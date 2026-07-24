@@ -1,0 +1,28 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Data that shouldn't be versioned in git
+data/bathymetry/*.tif      # real DEMs are large — track with DVC later
+data/ts6/*.tif             # digitized TS-6 raster, same reason
+outputs/
+*.log
+
+
+
+# Installers / binaries that shouldn't live in the repo
+*.dmg
+*.pkg
+*.zip
+
+# Large reference PDFs (keep locally, don't version)
+*.pdf

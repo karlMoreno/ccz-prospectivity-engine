@@ -1,0 +1,239 @@
+# CONTRACT 5 (v3) — Path C PHASE A source queue
+# ===========================================================================
+# This REPLACES v2's source_metadata.yaml with the concrete PHASE A ingestion
+# queue from Proposal v3 §5 / Alpha v3 §3. Each entry is one Path C Phase A
+# source: what evidence classes it carries, its license + is_open status, the
+# sampled area (for derivable kg/m²), and how to normalize it.
+#
+# Track E writes a SourceAdapter per entry (against SYNTHETIC data first);
+# Track G runs the downloads and fills the null fields. Only is_open=true
+# sources may enter a PUBLISHED run.
+#
+# Phase B ([25]-[46]) and Phase C (targeted requests) are OUT of the alpha and
+# NOT listed here.
+#
+# ***DATA REALITY (recap):*** DeepData's abundance/grade layer is CONFIDENTIAL
+# and has NO public API. Nodule abundance comes from these OPEN sources. Public
+# DeepData layers (APEI/contract polygons) + GEBCO bathymetry are context only.
+#
+# metadata_version 2 -> 3.
+
+metadata_version: 3
+
+# ---- normalization defaults referenced by Contract 7 (normalization.yaml) ----
+# Box cores in this queue are 50 x 50 cm = 0.25 m^2 unless a row says otherwise.
+box_core_area_m2_default: 0.25
+
+sources:
+
+  # ===================== PHASE A — [MASS] training sources =====================
+
+  - source_id: src_so268_boxcore            # [01]
+    title: "SO268 box-core nodule summary (BGR & GSR areas)"
+    doi: "10.1594/PANGAEA.904967"
+    url: "https://doi.org/10.1594/PANGAEA.904967"
+    source_type: dataset
+    evidence_classes: [MASS, COUNT, COVER]
+    primary_use: TRAIN                        # MASS rows train the model
+    is_open: true
+    license: "CC-BY-NC-4.0"
+    sampled_area_m2: 0.25                     # → kg/m2 = total nodule mass / 0.25 (×4)
+    derivation: "abundance_kg_m2 = nodule_mass_kg / sampled_area_m2"
+    accessed_date: null                       # [GEOLOGY — ISAAC] fill on download
+    content_hash: null
+    notes: "First modern contractor-area table. Keep event_id; COVER column stays COVER (not converted)."
+
+  - source_id: src_domes_fewkes1980          # [02]
+    title: "DOMES floor-density measurements, Fewkes et al. (1980)"
+    doi: "10.1594/PANGAEA.878220"
+    url: "https://doi.org/10.1594/PANGAEA.878220"
+    source_type: dataset
+    evidence_classes: [MASS]
+    primary_use: TRAIN
+    is_open: true
+    license: "CC-BY-3.0"
+    sampled_area_m2: null                     # already kg/m2 — no area needed
+    derivation: "reported directly (kg/m2); confirm wet/dry basis"
+    accessed_date: null
+    content_hash: null
+    notes: "Historic, already-normalized kg/m2. High-value training data."
+
+  - source_id: src_domes_piper1979           # [03]
+    title: "DOMES abundance & seafloor observations, Piper et al. (1979)"
+    doi: "10.1594/PANGAEA.880886"
+    url: "https://doi.org/10.1594/PANGAEA.880886"
+    source_type: dataset
+    evidence_classes: [MASS, COVER]
+    primary_use: TRAIN
+    is_open: true
+    license: "CC-BY-3.0"
+    sampled_area_m2: null
+    derivation: "MASS reported as kg/m2; COVER stays COVER"
+    accessed_date: null
+    content_hash: null
+    notes: "Compare events against [02] before dedup (DOMES family, rule 1)."
+
+  - source_id: src_domes_sitec_sorem1989     # [04]
+    title: "DOMES Site C nodule size & weight, Sorem (1989)"
+    doi: "10.1594/PANGAEA.879534"
+    url: "https://doi.org/10.1594/PANGAEA.879534"
+    source_type: dataset
+    evidence_classes: [MASS, COUNT]
+    primary_use: TRAIN
+    is_open: true
+    license: "CC-BY-3.0"
+    sampled_area_m2: null                     # [GEOLOGY — ISAAC] confirm box-core area to derive kg/m2
+    derivation: "group by event, sum mass, divide by box-core area (DERIVE)"
+    accessed_date: null
+    content_hash: null
+    notes: "DERIVE. Verify area before computing kg/m2; compare with [02]/[03]."
+
+  - source_id: src_so268_nodules             # [05]
+    title: "SO268 individual nodule measurements (~9,000 nodules)"
+    doi: "10.1594/PANGAEA.904962"
+    url: "https://doi.org/10.1594/PANGAEA.904962"
+    source_type: dataset
+    evidence_classes: [MASS, COUNT]
+    primary_use: TRAIN_AGGREGATE              # aggregate to EVENT, then train
+    is_open: true
+    license: "CC-BY-NC-4.0"
+    sampled_area_m2: 0.25
+    derivation: "aggregate nodules to event → event mass; kg/m2 = event_mass / 0.25; also yields mean_nodule_mass_g"
+    accessed_date: null
+    content_hash: null
+    notes: "Nodules are NESTED in [01] events (dedup rule 4). The EVENT is the spatial sample, not each nodule. Also the source of mean_nodule_mass_g for COUNT→MASS."
+
+  - source_id: src_dryad_chamber             # [06]
+    title: "CCZ benthic-chamber experiments & nodule abundance (Dryad)"
+    doi: "10.5061/dryad.tdz08kq6w"
+    url: "https://doi.org/10.5061/dryad.tdz08kq6w"
+    source_type: dataset
+    evidence_classes: [MASS]
+    primary_use: TRAIN                         # if station + chamber footprint recoverable
+    is_open: true
+    license: null                              # [GEOLOGY — ISAAC] confirm Dryad license
+    sampled_area_m2: null                      # chamber footprint — record per experiment
+    derivation: "kg/m2 = nodule mass / chamber footprint (DERIVE); do not merge replicates blindly"
+    accessed_date: null
+    content_hash: null
+    notes: "Experimental. Retain chamber footprint; treat replicates carefully."
+
+  # ================= PHASE A — [COVER]/[COUNT] covariate sources ================
+  # Ingested and TAGGED; used as covariates/context. NEVER converted to kg/m2.
+
+  - source_id: src_amon2016_frames           # [11]
+    title: "Amon et al. 2016 UK-1/EPIRB image-frame nodule data"
+    doi: null
+    url: "https://www.nature.com/articles/srep30492"
+    source_type: paper_supplement
+    evidence_classes: [COUNT, COVER]
+    primary_use: COVARIATE
+    is_open: true
+    license: "CC-BY-4.0"
+    sampled_area_m2: null                      # frame area — keep per frame
+    derivation: "NONE for kg/m2 (image metrics only)"
+    accessed_date: null
+    content_hash: null
+    notes: "Supplementary Table S3. Keep image-derived metrics separate from recovered mass."
+
+  - source_id: src_apei6_cover               # [12]
+    title: "APEI-6 nodule-cover gradient, Simon-Lledó et al. (PANGAEA)"
+    doi: "10.1594/PANGAEA.893220"
+    url: "https://doi.org/10.1594/PANGAEA.893220"
+    source_type: dataset
+    evidence_classes: [COVER]
+    primary_use: COVARIATE
+    is_open: true
+    license: null                              # [GEOLOGY — ISAAC] confirm
+    sampled_area_m2: null
+    derivation: "NONE for kg/m2 (cover is a covariate)"
+    accessed_date: null
+    content_hash: null
+    notes: "Image-derived cover. Preserve transect/image IDs."
+
+  - source_id: src_gsr_mendeley_cover        # [14]
+    title: "GSR collector-test site nodule coverage (Mendeley Data)"
+    doi: null
+    url: "https://data.mendeley.com/datasets/7jst5wyc6j/1"
+    source_type: dataset
+    evidence_classes: [COVER]
+    primary_use: COVARIATE
+    is_open: true
+    license: "CC-BY-4.0"
+    sampled_area_m2: null
+    derivation: "NONE for kg/m2"
+    accessed_date: null
+    content_hash: null
+    notes: "Separate pre-impact / impact / post-impact records."
+
+  # ===================== PHASE A — [GRID] priors / benchmark ===================
+  # Compiled/interpolated. Priors + benchmark ONLY. Never independent stations.
+
+  - source_id: src_ts6_grid                  # [18]
+    title: "ISA Technical Study No. 6 (2010) — abundance grid"
+    doi: null
+    url: "https://isa.org.jm/wp-content/uploads/2022/06/tstudy6.pdf"
+    source_type: benchmark
+    evidence_classes: [GRID]
+    primary_use: BENCHMARK                     # also see Contract 6 (ts6_reference)
+    is_open: true
+    license: "ISA publication — benchmark use, not redistributed as data"
+    sampled_area_m2: null
+    derivation: "compiled 0.1deg grid; observation_or_prediction = compiled"
+    accessed_date: null
+    content_hash: null
+    notes: "Benchmark surface for compare_to_ts6 (Contract 6). Never a training station."
+
+  - source_id: src_washburn2021_grid         # [19]
+    title: "Washburn et al. 2021 — regional 0.5° resource points"
+    doi: "10.3389/fmars.2021.661685"
+    url: "https://www.frontiersin.org/articles/10.3389/fmars.2021.661685/full"
+    source_type: dataset
+    evidence_classes: [GRID, GRADE]
+    primary_use: PRIOR
+    is_open: true
+    license: null                              # [GEOLOGY — ISAAC] confirm (supplement)
+    sampled_area_m2: null
+    derivation: "largely derived from TS-6 + Morgan; observation_or_prediction = interpolated"
+    accessed_date: null
+    content_hash: null
+    notes: "Regional prior. Record inherited source per point; NOT independent stations."
+
+  # ===================== PHASE A — public CONTEXT (not samples) =================
+
+  - source_id: src_bathymetry_primary
+    title: null                                # [GEOLOGY — ISAAC] e.g. "GEBCO 2024 tile"
+    doi: null
+    url: null
+    source_type: dem
+    evidence_classes: []                        # covariate raster, not an observation
+    primary_use: COVARIATE
+    is_open: null                               # PUBLIC GEBCO-class, NOT DeepData confidential bathy
+    license: null
+    sampled_area_m2: null
+    derivation: null
+    accessed_date: null
+    content_hash: null
+    notes: "Public global bathymetry (GEBCO). NOT DeepData confidential processed bathymetry."
+
+  - source_id: src_deepdata_public_context
+    title: null                                # e.g. "ISA DeepData — APEI & contract polygons (public)"
+    doi: null
+    url: "https://data.isa.org.jm/isa/map"
+    source_type: polygon
+    evidence_classes: []
+    primary_use: CONTEXT
+    is_open: true                               # PUBLIC layers only
+    license: null                               # [GEOLOGY — ISAAC] confirm ISA public-data terms
+    sampled_area_m2: null
+    derivation: null
+    accessed_date: null
+    content_hash: null
+    notes: "PUBLIC DeepData layers only (APEI/contract polygons). Confidential geological layer EXCLUDED. No public API — browse/export."
+
+# ---------------------------------------------------------------------------
+# ENGINE OUTPUT LICENSE (makes the corpus + maps citable; underpins the funding thesis)
+output_license:
+  data_products: "CC-BY-4.0"                    # the corpus + prediction maps
+  source_code: "Apache-2.0"
+  notes: "Phase-A corpus is publishable/citable. Derived products honor upstream terms (note CC-BY-NC on [01]/[05] restricts commercial reuse of those rows)."

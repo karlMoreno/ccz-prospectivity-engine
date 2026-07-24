@@ -1,0 +1,84 @@
+# CONTRACT 6 (NEW in v2) — TS-6 reference surface
+# ---------------------------------------------------------------------------
+# The digitized ISA Technical Study No. 6 (2010) predicted nodule-abundance
+# surface for the study area, used as the BENCHMARK for the engine's TS-6
+# comparison step (compare_to_ts6 / AR-P07 / PR-008).
+#
+# WHO OWNS WHAT:
+#   Track G  produces data/ts6/ts6_abundance.tif by georeferencing/digitizing
+#            the relevant TS-6 figure(s) or interpolating its tables, and fills
+#            the [GEOLOGY — ISAAC] fields below.
+#   Track E  reads this through the TS6Reference interface, resamples both
+#            surfaces to a common grid, and computes an agreement metric
+#            (spatial correlation + mean difference), recorded in the manifest.
+#
+# Until the real raster exists, Track E stubs a SYNTHETIC ts6 raster matching
+# this contract so the comparison machine can be built and CI-tested without
+# blocking on the digitization. Swap synthetic -> real at Integration
+# Checkpoint 3.
+#
+# IMPORTANT: this is a BENCHMARK, not redistributed data. See src_isa_ts6 in
+# Contract 5 (is_open=true, redistribution=false).
+#
+# v3 NOTE: the TS-6 grid ([18]) and Washburn ([19]) also appear in the Phase-A
+# source_queue (Contract 5) as evidence_class=GRID with primary_use BENCHMARK/
+# PRIOR. They are compiled/interpolated surfaces — priors + the benchmark here —
+# and are NEVER counted as independent training stations (see normalization.yaml
+# GRID rule).
+#
+# ***WHY TS-6 MATTERS TWICE (confidentiality finding)***
+# DeepData's nodule abundance/grade layer is CONFIDENTIAL, so it cannot be the
+# sample source. That elevates TS-6 to a potential DUAL role:
+#   1) BENCHMARK surface (this file) — the modeled 2010 surface we compare to.
+#   2) SAMPLE SOURCE (Contract 1 / src_ts6_abundance_points) — IF TS-6's
+#      appendices expose STATION-LEVEL abundance points.
+# Keep these straight to avoid CIRCULARITY:
+#   - PREFERRED: train on station-level points (TS-6 appendices + open
+#     literature) and compare the RESULT to TS-6's MODELED surface here.
+#     Independent, non-circular.
+#   - FALLBACK: if only TS-6's MODELED GRID is available (no stations), then
+#     using it as BOTH input and benchmark is circular; downgrade this step to
+#     an explicit "reproduction check" and label it as such. Record which case
+#     applies in `role_note` below.
+
+reference_version: 1
+
+ts6_reference:
+  title: "ISA Technical Study No. 6 (2010) — predicted nodule abundance (CCZ)"
+  source_id: src_isa_ts6                 # -> Contract 5 entry
+  source_url: "https://isa.org.jm/wp-content/uploads/2022/06/tstudy6.pdf"
+
+  # [GEOLOGY — ISAAC] Which TS-6 product did you digitize? Candidates:
+  #   Fig 5  — Nodule Abundance, Entire Study Area (ArcGIS OK)
+  #   Fig 8  — Abundance, Individual Blocks (GSLIB Kriging)
+  #   Fig 37/38 — Abundance interpolated contours (Appendix 8.1.1)
+  #   or interpolate the 0.1-degree grid tables (Section 3.2).
+  source_figure: null                    # e.g. "Figure 5" or "Appendix 8.1.1 Fig 38"
+  digitization_method: null              # "georeferenced raster scan" | "table interpolation" | "contour vectorization"
+
+  raster: data/ts6/ts6_abundance.tif     # the digitized surface Track G produces
+  unit: kg_m2
+  crs: EPSG:4326                         # reproject to canonical CRS on ingest
+  grid_note: "TS-6 modeled on a 0.1-degree grid; record native resolution + your resample."
+  content_hash: null                     # sha256:... filled at ingestion
+
+  # [GEOLOGY — ISAAC] record TS-6's role in THIS run, to keep validation honest:
+  #   "benchmark_only"        = samples came from stations elsewhere; this is an
+  #                             independent comparison (PREFERRED).
+  #   "reproduction_check"    = TS-6's modeled grid also fed the samples;
+  #                             comparison is circular and labeled as such.
+  role_note: null
+
+  # How Track E should compare (Track E reads these; Track G may tune with metrics.md)
+  comparison:
+    resample_to: analysis_grid           # both surfaces resampled to the run's grid
+    metrics: [spatial_correlation, mean_difference, rmse]
+    # [GEOLOGY — ISAAC] acceptable agreement + how to read divergence -> docs/geology/metrics.md
+    acceptable_spatial_correlation: null # e.g. >= 0.5 for "broadly consistent"
+
+  caveats:
+    - "TS-6 abundance is likely UNDERestimated (free-fall grab-sampler bias, TS-6 Section 3.1)."
+    - "TS-6 mixed public + PROPRIETARY inputs; our run uses OPEN data only, so some divergence is expected and legitimate."
+    - "Divergence may indicate a real improvement, not an error — [GEOLOGY — ISAAC] interprets."
+    - "Digitizing a printed figure introduces its own error; a coarse georeference is enough for pattern agreement."
+    - "DeepData's live abundance/grade layer is CONFIDENTIAL, which is precisely why TS-6's published outputs (and open literature) are the sample source — an open re-analysis of a closed resource layer."

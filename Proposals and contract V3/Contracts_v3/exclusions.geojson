@@ -1,0 +1,6 @@
+{
+  "type": "FeatureCollection",
+  "name": "ccz_exclusions",
+  "$comment": "CONTRACT 2 (companion) — Exclusion polygons subtracted from the minable footprint in the economic overlay (e.g., APEIs / Areas of Particular Environmental Interest, or any no-mining zone). Starts EMPTY on purpose. [GEOLOGY — ISAAC] Add real exclusion polygons that intersect the study area. Same GeoJSON/WGS84 rules as study_area.geojson. Each feature: exclusion_id, name, kind (apei|regulatory|other), source_id (Contract 5).",
+  "features": []
+}

@@ -1,0 +1,101 @@
+# CONTRACT 7 (NEW in v3) — Evidence-class normalization policy
+# ===========================================================================
+# The rules the AbundanceNormalizer (Strategy pattern) obeys when turning raw
+# observations into abundance_kg_m2. This is the seam where Track G's domain
+# judgment (which conversions are valid, what mean-nodule-mass to assume) meets
+# Track E's code. Track E implements one normalizer per evidence_class and reads
+# this file; Track G confirms the geology and fills the null parameters.
+#
+# GOLDEN RULE: abundance_kg_m2 is produced ONLY where physically valid. When a
+# class cannot yield a defensible kg/m², the normalizer returns the observation
+# with abundance_kg_m2 = null (blank) and the value stays a covariate/prior.
+#
+# policy_version 1.
+
+policy_version: 1
+
+# Screening bounds applied AFTER normalization (from TS-6 Table 2). Values
+# outside are qa_status=flagged (never silently dropped). 0 is valid (barren).
+screening:
+  abundance_kg_m2: { min: 0.0, max: 45.0 }
+  mn_pct: { min: 10.0, max: 45.0 }
+  ni_pct: { min: 0.3,  max: 2.0 }
+  cu_pct: { min: 0.2,  max: 2.0 }
+  co_pct: { min: 0.02, max: 0.5 }
+
+# ---------------------------------------------------------------------------
+# Per-evidence-class normalization strategies.
+normalizers:
+
+  MASS:
+    produces_kg_m2: true
+    rule: >
+      If abundance already reported as kg/m2, pass through (record basis).
+      Else kg_m2 = nodule_mass_kg / sampled_area_m2. sampled_area_m2 MUST be
+      known (box cores default 0.25 m2 per source_queue.yaml). Record
+      derivation_formula.
+    requires: [sampled_area_m2_or_already_kg_m2]
+    observation_or_prediction: observed
+    quality_grade_default: A
+    notes: "The only class the model trains on. Record wet/dry basis; do not silently mix bases."
+
+  COUNT:
+    produces_kg_m2: conditional
+    rule: >
+      kg_m2 = nodule_density_m2 * mean_nodule_mass_g / 1000.  ONLY if a
+      defensible mean_nodule_mass_g is available (e.g. from SO268 individual
+      nodules [05] for the same area/size-class). Otherwise DO NOT produce
+      kg_m2 — keep as COUNT covariate.
+    requires: [mean_nodule_mass_g]
+    mean_nodule_mass_g_source: null      # [GEOLOGY — ISAAC] e.g. src_so268_nodules aggregate
+    uncertainty: "propagate spread in mean_nodule_mass_g; record as quality_grade B and note in derivation_formula"
+    observation_or_prediction: observed
+    quality_grade_default: B
+    notes: "Count→mass is an ASSUMPTION, not a measurement. Track the assumption + its uncertainty."
+
+  COVER:
+    produces_kg_m2: false               # HARD RULE — never a bare kg/m2
+    rule: >
+      NEVER convert visible_cover_percent to kg/m2 in the corpus. Cover enters
+      the engine ONLY as a covariate. Any cover→mass relationship is a separate,
+      area-specific model with its own uncertainty, stored outside this corpus
+      and NEVER written back into abundance_kg_m2.
+    requires: []
+    observation_or_prediction: observed
+    quality_grade_default: B
+    notes: "Cover and recovered mass are different measurements (dedup rule 5). This is the rule that most protects the model."
+
+  GRID:
+    produces_kg_m2: prior_only          # value exists but is a prior/benchmark, not training
+    rule: >
+      Keep the compiled/interpolated kg/m2 value, but set observation_or_prediction
+      to compiled/interpolated/modelled and EXCLUDE from the training set. Used as
+      a regional prior and, for TS-6 [18], the benchmark surface (Contract 6).
+    requires: []
+    observation_or_prediction: compiled
+    quality_grade_default: C
+    notes: "TS-6 [18] and Washburn [19]. Never counted as an independent station."
+
+  GRADE:
+    produces_kg_m2: false
+    rule: >
+      Chemistry only. Join to an abundance station by station_id, else
+      cruise+event+coords within join_tolerance_km; populate mn/ni/cu/co_pct.
+      Record the join method + tolerance.
+    requires: []
+    join_tolerance_km: null              # [GEOLOGY — ISAAC] e.g. 1.0 km when exact station-id join fails
+    observation_or_prediction: observed
+    quality_grade_default: B
+    notes: "Feeds the optional metal columns + the economic layer (grade-based cutoffs)."
+
+# ---------------------------------------------------------------------------
+# Deduplication policy (Specification rules; AR-D04). Applied after normalization.
+deduplication:
+  key: [cruise, station_id, event_id, latitude, longitude, sample_datetime_utc]
+  rules:
+    - "DOMES families ([02][03][04] + parents [09][10]): dedupe by cruise+station/event+coords+date, NOT DOI."
+    - "NOAA↔PANGAEA mirrors: prefer the record with clearest methods; retain both provenance links."
+    - "Individual nodules ([05]) are nested within box-core EVENTS ([01]): the event is the spatial sample."
+    - "Regional grids ([18][19]): label compiled/interpolated; never merged with observed stations."
+    - "Image cover/count ≠ recovered mass: never merged; never converted."
+  coordinate_tolerance_deg: 0.001        # ~100 m; [GEOLOGY — ISAAC] tune

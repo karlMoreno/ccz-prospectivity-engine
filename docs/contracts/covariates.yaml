@@ -1,0 +1,125 @@
+# CONTRACT 3 (v2) — Covariate registry
+# ---------------------------------------------------------------------------
+# The single source of truth for which covariates the engine uses, and with
+# what parameters. Track E implements each ENABLED recipe deterministically
+# and records its recipe_version in the provenance manifest. Track G requests
+# additions/parameter changes by editing this file (additive changes are
+# non-breaking).
+#
+# Rule: a covariate is reproducible => every recipe has a version, and any
+# change to a recipe's math or parameters REQUIRES bumping recipe_version.
+# Structure frozen in Phase 0; the *list* may grow.
+#
+# v2 CHANGE (structure unchanged): the disabled `candidate_covariates` list
+# was SWAPPED from vague guesses to the FOUR proxies ISA Technical Study No. 6
+# actually found predictive. Still disabled = "Option B" (build after the
+# Option-A terrain-only pipeline is validated end-to-end). The ENABLED
+# Option-A terrain list is UNCHANGED. registry_version bumped 1 -> 2.
+
+registry_version: 2
+
+# Neighborhood window used by window-based recipes, in DEM cells (odd number).
+# [GEOLOGY — ISAAC] Advise the physically meaningful scale(s) for nodule
+# formation; multiple windows can be added as separate covariates if useful.
+default_window_cells: 3
+
+# ---------------------------------------------------------------------------
+# OPTION A — terrain-derived covariates (ENABLED). Built in the alpha from the
+# bathymetry DEM alone; fully reproducible, no extra data/licensing. UNCHANGED
+# from v1.
+# ---------------------------------------------------------------------------
+covariates:
+
+  - name: depth
+    recipe: passthrough           # the DEM value itself
+    recipe_version: 1
+    enabled: true
+    params: {}
+    geology_note: "[GEOLOGY — ISAAC] TS-6 found highest abundance at 4,100-4,200 m; is absolute depth or relative relief the better signal?"
+
+  - name: slope
+    recipe: horn_slope            # Horn (1981) 3x3 gradient
+    recipe_version: 1
+    enabled: true
+    params: { units: degrees }
+
+  - name: aspect
+    recipe: horn_aspect
+    recipe_version: 1
+    enabled: true
+    params: { units: degrees, undefined_flat_as: -1 }
+
+  - name: roughness
+    recipe: std_dev_elevation     # stdev of elevation in the window
+    recipe_version: 1
+    enabled: true
+    params: { window_cells: 3 }
+
+  - name: profile_curvature
+    recipe: zevenbergen_thorne_profile
+    recipe_version: 1
+    enabled: true
+    params: {}
+
+  - name: plan_curvature
+    recipe: zevenbergen_thorne_plan
+    recipe_version: 1
+    enabled: true
+    params: {}
+
+  - name: tpi
+    recipe: topographic_position_index   # cell minus mean(window)
+    recipe_version: 1
+    enabled: true
+    params: { window_cells: 3 }
+
+  - name: bpi
+    recipe: bathymetric_position_index   # TPI with an annulus (inner/outer)
+    recipe_version: 1
+    enabled: true
+    params: { inner_radius_cells: 1, outer_radius_cells: 5 }
+
+# ---------------------------------------------------------------------------
+# OPTION B — TS-6-PROVEN proxies (DISABLED until Track G sources each layer).
+# These are the covariates ISA Technical Study No. 6 reported as the strongest
+# predictors. They are NOT terrain-derived (except bathymetric_regime, which is
+# classified FROM the DEM) — each needs its own raster + a Contract 5 entry
+# (is_open=true). Enable in Phase 6 to move toward TS-6 parity.
+# [GEOLOGY — ISAAC] source each layer, set source_id, confirm units/classes.
+# ---------------------------------------------------------------------------
+candidate_covariates:
+
+  - name: sediment_type
+    recipe: external_raster
+    recipe_version: 0
+    enabled: false
+    params:
+      source_id: null
+      classes: [siliceous, pelagic_clay, calcareous]
+    ts6_finding: "STRONGEST correlate of nodule OCCURRENCE (WofE + Logistic Regression). Siliceous = favorable, calcareous = unfavorable."
+
+  - name: surface_chlorophyll
+    recipe: external_raster
+    recipe_version: 0
+    enabled: false
+    params:
+      source_id: null
+      unit: mg_m3
+    ts6_finding: "BEST single predictor of metal content; ~0.49 R2 (Mn), 0.44 (Ni), 0.39 (Cu) alone. Non-linear (intermediate productivity optimal)."
+
+  - name: ccd_minus_depth
+    recipe: external_raster
+    recipe_version: 0
+    enabled: false
+    params:
+      source_id: null
+      unit: m
+    ts6_finding: "Improves Cu regression (0.39 -> 0.49). Below-CCD = favorable for nodules."
+
+  - name: bathymetric_regime
+    recipe: classify_from_dem            # derived FROM the DEM, so no external source needed
+    recipe_version: 0
+    enabled: false
+    params:
+      regimes: [oceanic_rise, seamount_chain, abyssal_hills, seamount_abyssal, fracture_zone]
+    ts6_finding: "2nd/3rd strongest OCCURRENCE correlate. Favorability: abyssal_hills > seamount_abyssal > (rise = seamount_chain = fracture_zone)."

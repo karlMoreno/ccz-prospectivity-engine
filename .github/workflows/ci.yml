@@ -1,0 +1,27 @@
+name: CI
+
+# CLAUDE.md: "CI runs the full pipeline end-to-end on synthetic fixtures every
+# push." Phase 0's "full pipeline" is the ingestion Template Method over the
+# synthetic sources in data/fixtures/native/ — real per-source adapters and
+# the modeling stages land in later phases and grow this workflow, not replace it.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project (incl. dev/test deps)
+        # --only-binary avoids rasterio falling back to a source build, which
+        # needs a local GDAL toolchain (gdal-config) we don't want to require.
+        run: pip install -e ".[dev]" --only-binary=:all:
+
+      - name: Run pytest
+        run: pytest -v

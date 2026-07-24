@@ -1,0 +1,47 @@
+{
+    "type": "FeatureCollection",
+
+    "name": "ccz_study_area",
+
+    "$comment": "CONTRACT 2 — Study-area / AOI geometry. GeoJSON (RFC 7946): coordinates are [longitude, latitude] in WGS84 / CRS84 by definition, so no 'crs' member is included. The polygon below is an ILLUSTRATIVE ~2-degree box in the heart of the Clarion-Clipperton Zone (approx 11-13 N, 125-127 W) so Track E's pipeline has a valid AOI on day one. [GEOLOGY — ISAAC] Replace this geometry with the real study area (ideally aligned to a specific contract area). Exterior ring is counterclockwise (RFC 7946 right-hand rule) and closed (first point = last point).",
+
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "area_id": "ccz_alpha_aoi",
+                "name": "CCZ Alpha Study Area (PLACEHOLDER)",
+                "placeholder": true,
+                "crs_note": "WGS84 / EPSG:4326 per RFC 7946",
+                "geology_todo": "[GEOLOGY — ISAAC] set real bounds; record which contract area this corresponds to"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -127.0,
+                            11.0
+                        ],
+                        [
+                            -125.0,
+                            11.0
+                        ],
+                        [
+                            -125.0,
+                            13.0
+                        ],
+                        [
+                            -127.0,
+                            13.0
+                        ],
+                        [
+                            -127.0,
+                            11.0
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

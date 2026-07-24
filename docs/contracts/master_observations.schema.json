@@ -1,0 +1,362 @@
+{
+    "$comment": "CONTRACT 1 (v3) — Master observation schema. Frictionless Table Schema. This UPGRADES the v2 samples.csv into the master-observation corpus from Proposal v3: every row is an OPEN nodule observation tagged with an evidence_class, plus provenance and derivation fields so a computed kg/m² value traces to its source and formula. The engine's SampleSource selects rows where evidence_class=MASS AND abundance_kg_m2 is present AND is_open=true. Superset of the v2 file — abundance rows still validate. schema_version 2 -> 3.",
+
+    "name": "ccz_master_observations",
+
+    "title": "CCZ open nodule observations (evidence-typed master corpus)",
+
+    "schema_version": 3,
+
+    "primaryKey": [
+        "source_record_id"
+    ],
+
+    "missingValues": [
+        ""
+    ],
+
+    "foreignKeys": [
+        {
+            "fields": [
+                "source_id"
+            ],
+            "reference": {
+                "resource": "source_queue",
+                "fields": [
+                    "source_id"
+                ]
+            }
+        }
+    ],
+
+    "fields": [
+        {
+            "name": "source_record_id",
+            "type": "string",
+            "title": "Unique id for this observation in our corpus",
+            "constraints": {
+                "required": true,
+                "unique": true,
+                "pattern": "^[A-Za-z0-9_\\-]+$"
+            }
+        },
+        {
+            "name": "source_id",
+            "type": "string",
+            "title": "FK into source_queue.yaml (Contract 5)",
+            "constraints": {
+                "required": true,
+                "pattern": "^src_[A-Za-z0-9_\\-]+$"
+            }
+        },
+        {
+            "name": "evidence_class",
+            "type": "string",
+            "title": "The kind of evidence (mandatory; AR-D02)",
+            "$comment": "MASS = kg/m2 (TRAINING TARGET); COUNT = nodules/m2; COVER = % cover; GRID = compiled/interpolated (prior/benchmark, NOT a station); GRADE = chemistry to join. Conflating these poisons the model.",
+            "constraints": {
+                "required": true,
+                "enum": [
+                    "MASS",
+                    "COUNT",
+                    "COVER",
+                    "GRID",
+                    "GRADE"
+                ]
+            }
+        },
+        {
+            "name": "longitude",
+            "type": "number",
+            "title": "Longitude, decimal degrees, WGS84",
+            "constraints": {
+                "required": true,
+                "minimum": -180,
+                "maximum": 180
+            }
+        },
+        {
+            "name": "latitude",
+            "type": "number",
+            "title": "Latitude, decimal degrees, WGS84",
+            "constraints": {
+                "required": true,
+                "minimum": -90,
+                "maximum": 90
+            }
+        },
+        {
+            "name": "water_depth_m",
+            "type": "number",
+            "title": "Water depth (m, positive down)",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 7000
+            }
+        },
+        {
+            "name": "cruise",
+            "type": "string",
+            "title": "Cruise / expedition code (e.g. SO268)",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "station_id",
+            "type": "string",
+            "title": "Station id (as published)",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "event_id",
+            "type": "string",
+            "title": "Event id — the SPATIAL SAMPLE unit (dedup rule 4)",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "sample_datetime_utc",
+            "type": "datetime",
+            "title": "Sample datetime (UTC)",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "sample_method",
+            "type": "string",
+            "title": "Sampling method",
+            "$comment": "free_fall_grab UNDERestimates abundance (record it so bias is modellable). image/AUV/OFOS are COVER/COUNT, not MASS.",
+            "constraints": {
+                "required": false,
+                "enum": [
+                    "box_corer",
+                    "grab_sampler",
+                    "free_fall_grab",
+                    "dredge",
+                    "image",
+                    "auv",
+                    "ofos",
+                    "chamber",
+                    "compiled",
+                    "other"
+                ]
+            }
+        },
+        {
+            "name": "sampled_area_m2",
+            "type": "number",
+            "title": "Sampled footprint (m²) — REQUIRED to derive kg/m² for MASS/COUNT",
+            "constraints": {
+                "required": false,
+                "minimum": 0
+            }
+        },
+        {
+            "name": "abundance_value_original",
+            "type": "number",
+            "title": "Abundance as reported in the source",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "abundance_unit_original",
+            "type": "string",
+            "title": "Original unit (e.g. kg/m2, g, nodules)",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "abundance_basis",
+            "type": "string",
+            "title": "Wet/dry/unknown basis of the abundance",
+            "constraints": {
+                "required": false,
+                "enum": [
+                    "wet",
+                    "dry",
+                    "unknown"
+                ]
+            }
+        },
+        {
+            "name": "nodule_mass_kg",
+            "type": "number",
+            "title": "Total recovered nodule mass for the sample (kg)",
+            "constraints": {
+                "required": false,
+                "minimum": 0
+            }
+        },
+        {
+            "name": "abundance_kg_m2",
+            "type": "number",
+            "title": "Normalized abundance (kg/m²) — the TRAINING VALUE",
+            "$comment": "Populated by the AbundanceNormalizer ONLY where valid (MASS always; COUNT via mean nodule mass; COVER NEVER; GRID only as a prior/benchmark, flagged). Bounds from TS-6 Table 2 screening. 0 is valid (barren); blank = not derivable for this class.",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 45
+            }
+        },
+        {
+            "name": "nodule_count",
+            "type": "integer",
+            "title": "Nodule count for the sample",
+            "constraints": {
+                "required": false,
+                "minimum": 0
+            }
+        },
+        {
+            "name": "nodule_density_m2",
+            "type": "number",
+            "title": "Nodule density (nodules/m²) — COUNT class",
+            "constraints": {
+                "required": false,
+                "minimum": 0
+            }
+        },
+        {
+            "name": "visible_cover_percent",
+            "type": "number",
+            "title": "Visible nodule cover (%) — COVER class; NEVER auto-converted to kg/m²",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 100
+            }
+        },
+        {
+            "name": "mean_nodule_mass_g",
+            "type": "number",
+            "title": "Mean nodule mass (g) — used for COUNT→MASS",
+            "constraints": {
+                "required": false,
+                "minimum": 0
+            }
+        },
+        {
+            "name": "mn_pct",
+            "type": "number",
+            "title": "Mn dry wt % (GRADE join)",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 60
+            }
+        },
+        {
+            "name": "ni_pct",
+            "type": "number",
+            "title": "Ni dry wt %",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 5
+            }
+        },
+        {
+            "name": "cu_pct",
+            "type": "number",
+            "title": "Cu dry wt %",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 5
+            }
+        },
+        {
+            "name": "co_pct",
+            "type": "number",
+            "title": "Co dry wt %",
+            "constraints": {
+                "required": false,
+                "minimum": 0,
+                "maximum": 2
+            }
+        },
+        {
+            "name": "derivation_formula",
+            "type": "string",
+            "title": "How a computed value was produced (e.g. 'kg_m2 = mass_kg / 0.25')",
+            "$comment": "REQUIRED whenever abundance_kg_m2 was computed rather than reported (AR-D04).",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "observation_or_prediction",
+            "type": "string",
+            "title": "Is this an observed sample or a compiled/modelled value?",
+            "$comment": "GRID rows must be compiled/interpolated/modelled and are excluded from training (AR-D03).",
+            "constraints": {
+                "required": true,
+                "enum": [
+                    "observed",
+                    "compiled",
+                    "interpolated",
+                    "modelled"
+                ]
+            }
+        },
+        {
+            "name": "is_open",
+            "type": "boolean",
+            "title": "Open license? (mirrors the source; only true may enter a PUBLISHED run)",
+            "constraints": {
+                "required": true
+            }
+        },
+        {
+            "name": "quality_grade",
+            "type": "string",
+            "title": "Confidence in this row",
+            "constraints": {
+                "required": false,
+                "enum": [
+                    "A",
+                    "B",
+                    "C"
+                ]
+            }
+        },
+        {
+            "name": "duplicate_group_id",
+            "type": "string",
+            "title": "Shared id for likely-duplicate records (dedup)",
+            "constraints": {
+                "required": false
+            }
+        },
+        {
+            "name": "qa_status",
+            "type": "string",
+            "title": "QA disposition",
+            "constraints": {
+                "required": true,
+                "enum": [
+                    "pending",
+                    "pass",
+                    "fail",
+                    "flagged"
+                ]
+            }
+        },
+        {
+            "name": "notes",
+            "type": "string",
+            "title": "Free-text QA / provenance note",
+            "constraints": {
+                "required": false
+            }
+        }
+    ]
+}

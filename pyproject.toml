@@ -1,0 +1,38 @@
+[project]
+name = "ccz-prospectivity-engine"
+version = "0.1.0"
+description = "Open, reproducible modernization of ISA Technical Study No. 6 for one CCZ study area."
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+readme = "README.md"
+
+# Approved stack only (CLAUDE.md "Dependency & scope discipline"). Phase 0
+# pinned only what the scaffold imported; Phase 1 (E1.1, real SourceAdapters)
+# adds pangaeapy (PANGAEA DOI fetches) and openpyxl (Dryad/Mendeley xlsx).
+# scikit-learn/scikit-gstat/pykrige/richdem/xarray-spatial/fastapi are still
+# approved but land with the phases that first use them.
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pandas>=2.2,<3",
+    "numpy>=1.26",
+    "rasterio>=1.3,<2",
+    "shapely>=2.0,<3",
+    "pyyaml>=6.0,<7",
+    "pangaeapy>=1.0,<2",
+    "openpyxl>=3.1,<4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+]
+
+[tool.setuptools.packages.find]
+include = ["engine*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
