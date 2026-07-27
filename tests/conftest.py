@@ -10,6 +10,7 @@ import pytest
 
 from engine.prospectivity.domain.evidence import EvidenceClass
 from engine.prospectivity.domain.observation import Observation
+from engine.prospectivity.ingestion.normalizer_registry import NormalizerRegistry
 from engine.prospectivity.ingestion.pipeline import IngestionPipeline
 from tests.fixtures.adapters import (
     FixtureBoxcoreAdapter,
@@ -27,12 +28,20 @@ from tests.fixtures.rasters import write_synthetic_bathymetry, write_synthetic_t
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NATIVE_DIR = REPO_ROOT / "data" / "fixtures" / "native"
 
-NORMALIZERS = {
-    EvidenceClass.MASS: FixtureMassNormalizer(),
-    EvidenceClass.COUNT: FixtureCountNormalizer(),
-    EvidenceClass.COVER: FixtureCoverNormalizer(),
-    EvidenceClass.GRID: FixtureGridNormalizer(),
-}
+
+def _build_fixture_normalizer_registry() -> NormalizerRegistry:
+    # These E0.4/E0.5 fixture sources never emit GRADE, so GRADE is left
+    # unregistered here on purpose (NormalizerRegistry.normalize only needs a
+    # class actually present in a record's evidence_class).
+    registry = NormalizerRegistry()
+    registry.register(EvidenceClass.MASS, FixtureMassNormalizer())
+    registry.register(EvidenceClass.COUNT, FixtureCountNormalizer())
+    registry.register(EvidenceClass.COVER, FixtureCoverNormalizer())
+    registry.register(EvidenceClass.GRID, FixtureGridNormalizer())
+    return registry
+
+
+NORMALIZERS = _build_fixture_normalizer_registry()
 
 
 @pytest.fixture

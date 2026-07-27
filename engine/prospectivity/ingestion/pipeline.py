@@ -14,9 +14,10 @@ reading of their order deserves to be explicit, not silent.)
 
 This is Template Method by composition rather than subclassing: the sequence
 itself never changes, but each step delegates to an injected Strategy
-(SourceAdapter, AbundanceNormalizer per evidence class, an optional dedup
-Specification) so a new source or a new dedup rule is a new object passed to
-the constructor, never a new subclass of the pipeline.
+(SourceAdapter, a NormalizerRegistry of AbundanceNormalizer per evidence
+class, an optional dedup Specification) so a new source or a new dedup rule
+is a new object passed to the constructor, never a new subclass of the
+pipeline.
 
     ┌─────────────────────────────────────────────────────────┐
     │                  IngestionPipeline.run()                   │
@@ -24,17 +25,17 @@ the constructor, never a new subclass of the pipeline.
     │  fetch ──► adapt ──► normalize ──► validate ──► dedup ──►  │
     │   │          │           │             │           │   append
     │   ▼          ▼           ▼             ▼           ▼      │
-    │ adapter   adapter   normalizers[   Observation   dedup_    │
-    │ .fetch()  .adapt()  evidence_cls]  (**record)     spec     │
-    │                     .normalize()                            │
+    │ adapter   adapter   normalizers    Observation   dedup_    │
+    │ .fetch()  .adapt()  .normalize()   (**record)     spec     │
+    │                     (NormalizerRegistry;                    │
+    │                      REGISTRY, ingestion/normalizer_registry.py) │
     └─────────────────────────────────────────────────────────┘
 """
 
 from __future__ import annotations
 
-from engine.prospectivity.domain.evidence import EvidenceClass
 from engine.prospectivity.domain.observation import Observation
-from engine.prospectivity.ingestion.normalizer import AbundanceNormalizer
+from engine.prospectivity.ingestion.normalizer_registry import NormalizerRegistry
 from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapter
 from engine.prospectivity.ingestion.specification import Specification
 
@@ -45,7 +46,7 @@ class IngestionPipeline:
     def __init__(
         self,
         adapter: SourceAdapter,
-        normalizers: dict[EvidenceClass, AbundanceNormalizer],
+        normalizers: NormalizerRegistry,
         corpus: list[Observation],
         dedup_specification: Specification | None = None,
     ) -> None:
@@ -70,12 +71,7 @@ class IngestionPipeline:
         return self._adapter.adapt(raw_records)
 
     def _normalize(self, records: list[RawRecord]) -> list[RawRecord]:
-        normalized: list[RawRecord] = []
-        for record in records:
-            evidence_class = EvidenceClass(record["evidence_class"])
-            normalizer = self._normalizers[evidence_class]
-            normalized.append(normalizer.normalize(record))
-        return normalized
+        return [self._normalizers.normalize(record) for record in records]
 
     def _validate(self, records: list[RawRecord]) -> list[Observation]:
         return [Observation(**record) for record in records]
