@@ -40,16 +40,32 @@ class MassNormalizer(AbundanceNormalizer):
             _append_derivation_formula(record, "abundance_kg_m2 = abundance_value_original (already kg/m2)")
             record.setdefault("abundance_basis", AbundanceBasis.UNKNOWN.value)
             record.setdefault("quality_grade", QualityGrade.A.value)
-            return record
+        else:
+            mass_kg = record.get("nodule_mass_kg")
+            area_m2 = record.get("sampled_area_m2")
+            # Explicit `is not None` + `> 0`, not truthiness: a bare `and
+            # area_m2` would treat a (schema-legal, if physically nonsensical)
+            # area_m2=0.0 the same as a missing area, silently skipping the
+            # row instead of avoiding the ZeroDivisionError on purpose.
+            if mass_kg is not None and area_m2 is not None and area_m2 > 0:
+                record["abundance_kg_m2"] = mass_kg / area_m2
+                _append_derivation_formula(record, "abundance_kg_m2 = nodule_mass_kg / sampled_area_m2")
+                record.setdefault("quality_grade", QualityGrade.A.value)
 
-        mass_kg = record.get("nodule_mass_kg")
+        # D6 (E1.2-review decision, implemented 2026-07-27 P1 follow-up): a
+        # sampled footprint of zero or negative area is not an anomaly worth
+        # a second look -- it's physically impossible, full stop. Every other
+        # out-of-range value in this project gets "flagged" (screening,
+        # D5.3's failed box core) because the underlying value might still be
+        # real; a non-positive area cannot be. "fail" (terminal, matching the
+        # fail-is-terminal precedence already established for screening in
+        # normalizer_registry.py) rather than "flagged" -- never trains, but
+        # stays in the corpus for audit rather than silently indistinguishable
+        # from a legitimate covariate-only row with no area recorded at all.
+        # Checked independently of which branch above ran, since a corrupt
+        # area is a problem with the ROW, not just with the division path.
         area_m2 = record.get("sampled_area_m2")
-        # Explicit `is not None` + `> 0`, not truthiness: a bare `and area_m2`
-        # would treat a (schema-legal, if physically nonsensical) area_m2=0.0
-        # the same as a missing area, silently skipping the row instead of
-        # avoiding the ZeroDivisionError on purpose.
-        if mass_kg is not None and area_m2 is not None and area_m2 > 0:
-            record["abundance_kg_m2"] = mass_kg / area_m2
-            _append_derivation_formula(record, "abundance_kg_m2 = nodule_mass_kg / sampled_area_m2")
-            record.setdefault("quality_grade", QualityGrade.A.value)
+        if area_m2 is not None and area_m2 <= 0:
+            record["qa_status"] = "fail"
+
         return record

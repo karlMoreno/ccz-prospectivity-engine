@@ -42,9 +42,21 @@ def test_cover_rows_never_carry_abundance_kg_m2() -> None:
 
 
 def test_grid_rows_are_never_flagged_observed() -> None:
+    """P1b (2026-07-27 audit follow-up): the real corpus is single-source
+    today (src_so268_boxcore only) -- src_ts6_grid [18] was pulled from
+    REAL_ADAPTER_BUILDERS because it still pointed at a synthetic fixture,
+    so there are currently NO real GRID rows to check. Skips rather than
+    asserting on GRID rows that don't exist (or, worse, re-fabricating some
+    just to keep this green) -- re-activates automatically once Track G
+    delivers real TS-6 digitization and [18] is wired back in. The
+    underlying validation rule itself (a GRID row flagged "observed" is
+    rejected) is still enforced unconditionally by
+    test_grid_row_flagged_observed_is_rejected below, independent of what's
+    in the corpus right now."""
     observations = load_observations_from_csv(MASTER_CORPUS_CSV)
     grid_rows = [o for o in observations if o.evidence_class == EvidenceClass.GRID]
-    assert grid_rows, "fixture CSV should contain at least one GRID example row"
+    if not grid_rows:
+        pytest.skip("no GRID rows in the corpus today (P1b: [18] awaits real TS-6 data)")
     assert all(o.observation_or_prediction != ObservationOrPrediction.OBSERVED for o in grid_rows)
 
 

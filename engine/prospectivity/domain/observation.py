@@ -139,10 +139,24 @@ class Observation(BaseModel):
         return self
 
     def is_training_eligible(self) -> bool:
-        """The AR-P02 / SampleSource selection rule, exposed for reuse in tests."""
+        """The AR-P02 / SampleSource selection rule, exposed for reuse in tests.
+
+        P1 (2026-07-27 audit follow-up): also excludes qa_status in
+        (fail, flagged). D5.3 deliberately flagged the failed box core
+        (SO268/1_12-2) rather than silently dropping it, so it stays in the
+        corpus for audit — but "flagged, never silently dropped" only means
+        something if flagged rows are actually excluded from training
+        somewhere; before this, the flag had no downstream effect and the
+        row was training-eligible anyway. "fail" is excluded for the same
+        reason it's terminal in the E1.2 review's qa_status precedence rule
+        (normalizer_registry.py's apply_screening): a stronger,
+        already-adjudicated verdict that nothing downstream should launder
+        back into "trainable."
+        """
 
         return (
             self.evidence_class == EvidenceClass.MASS
             and self.abundance_kg_m2 is not None
             and self.is_open
+            and self.qa_status not in (QAStatus.FAIL, QAStatus.FLAGGED)
         )

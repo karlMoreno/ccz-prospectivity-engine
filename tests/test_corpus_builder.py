@@ -1,9 +1,13 @@
 """corpus_builder (E1.3) — the end-to-end wiring test: IngestionPipeline.run()
-through all four real adapters (PangaeaAdapter, NoduleAggregateAdapter,
-TabularFileAdapter, RegionalGridAdapter), the E1.2 NormalizerRegistry, and the
-E1.3 DuplicateStationSpecification, into one corpus. Plus the three required
+through the real adapters, the E1.2 NormalizerRegistry, and the E1.3
+DuplicateStationSpecification, into one corpus. Plus the three required
 end-to-end properties: idempotency, flagged/failed retention, and
 deterministic (byte-identical, stably-sorted) CSV output.
+
+Corpus is single-source today (P1b, 2026-07-27 audit follow-up): only [01]
+and [05] (merged under src_so268_boxcore) are wired -- src_dryad_chamber [06]
+and src_ts6_grid [18] both still point at E1.1 placeholder fixtures and are
+guarded out of REAL_ADAPTER_BUILDERS until real data exists.
 """
 
 from __future__ import annotations
@@ -16,39 +20,96 @@ import pytest
 
 from engine.prospectivity.domain.evidence import EvidenceClass
 from engine.prospectivity.domain.observation import Observation
-from engine.prospectivity.ingestion.corpus_builder import build_corpus, write_corpus_csv
+from engine.prospectivity.ingestion.corpus_builder import (
+    REAL_ADAPTER_BUILDERS,
+    SAMPLES_DIR,
+    SOURCES_DIR,
+    build_corpus,
+    build_dryad_chamber_adapter,
+    build_ts6_grid_adapter,
+    write_corpus_csv,
+)
+from engine.prospectivity.ingestion.corpus_builder import _require_production_path
 from engine.prospectivity.ingestion.dedup_rules import DuplicateStationSpecification
 from engine.prospectivity.ingestion.normalizer_registry import build_default_registry
 from engine.prospectivity.ingestion.pipeline import IngestionPipeline
 from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapter
 
 
-def test_build_corpus_wires_all_four_real_adapters_end_to_end() -> None:
+# --- P1 / P1b (2026-07-27 audit follow-up): production must refuse fixtures -
+
+
+def test_require_production_path_raises_for_a_tests_fixtures_path() -> None:
+    with pytest.raises(ValueError, match="test fixtures path"):
+        _require_production_path(SAMPLES_DIR / "dryad_chamber_sample.csv")
+
+
+def test_require_production_path_passes_through_a_real_data_path() -> None:
+    real_path = SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+    assert _require_production_path(real_path) == real_path
+
+
+def test_dryad_chamber_builder_itself_raises_until_real_data_exists() -> None:
+    """The concrete historical bug this guard exists to catch: [06] still
+    points at E1.1's placeholder fixture, so even calling its own builder
+    function directly (not just via REAL_ADAPTER_BUILDERS) must fail loudly
+    rather than silently constructing a fabricated-data adapter."""
+    with pytest.raises(ValueError, match="test fixtures path"):
+        build_dryad_chamber_adapter()
+
+
+def test_ts6_grid_builder_itself_raises_until_real_data_exists() -> None:
+    """P1b: the same fix as [06] got, for the same reason -- [18] still
+    points at E1.1's synthetic grid fixture (real TS-6 digitization is a
+    Track G deliverable that doesn't exist yet), so calling its builder
+    directly must fail loudly rather than silently constructing a
+    fabricated-data GRID adapter."""
+    with pytest.raises(ValueError, match="test fixtures path"):
+        build_ts6_grid_adapter()
+
+
+def test_real_adapter_builders_does_not_include_unguarded_fixture_sources() -> None:
+    """Belt-and-suspenders: every builder actually wired into production
+    must be constructible without raising -- if a future edit re-adds [06]
+    or [18] without also fixing their file_path, build_corpus() itself will
+    fail loudly the moment it runs, but this test catches it at collection
+    time instead of only during a real build."""
+    for build_adapter in REAL_ADAPTER_BUILDERS:
+        build_adapter()  # must not raise
+
+
+def test_build_corpus_is_single_source_until_track_g_delivers() -> None:
     """D8-F (2026-07-27 review): [01] and [05] describe the SAME 36 real
     events, and [01] is now authoritative for MASS+COUNT (explicit
-    quality_grade="A" in BoxcoreSummaryAdapter) -- so every one of [05]'s
-    MASS/COUNT rows merges into [01]'s survivor via D1, and
-    src_so268_nodules never appears as a standalone source_id in the final
-    corpus. Its contribution isn't lost: it's absorbed (mean_nodule_mass_g
-    etc. gap-filled) and provenance-linked (rule 2), asserted below."""
+    quality_grade="A" in BoxcoreSummaryAdapter, with [05] explicitly "B" for
+    MASS as of P2) -- so every one of [05]'s MASS/COUNT rows merges into
+    [01]'s survivor via D1, and src_so268_nodules never appears as a
+    standalone source_id in the final corpus. Its contribution isn't lost:
+    it's absorbed (mean_nodule_mass_g etc. gap-filled) and provenance-linked
+    (rule 2), asserted below.
+
+    P1/P1b (2026-07-27 audit follow-up): src_dryad_chamber [06] and
+    src_ts6_grid [18] are both no longer wired into REAL_ADAPTER_BUILDERS --
+    both were still E1.1's placeholder fixtures, not real data, and neither
+    belongs in a published, citable corpus. The corpus is single-source
+    today: everything comes from [01]/[05] merged under src_so268_boxcore.
+    This test's own name is the fact worth re-checking on every future
+    source addition -- it should start failing the moment a second real
+    source is legitimately wired in, which is the point."""
     corpus = build_corpus()
     assert len(corpus) > 0
 
     sources_seen = {obs.source_id for obs in corpus}
-    assert sources_seen == {
-        "src_so268_boxcore",
-        "src_dryad_chamber",
-        "src_ts6_grid",
-    }
+    assert sources_seen == {"src_so268_boxcore"}
 
     classes_seen = {obs.evidence_class for obs in corpus}
-    # GRADE is deliberately out of scope (no GRADE-carrying source wired; the
-    # station join is unresolved geology input) -- everything else appears.
+    # GRID and GRADE are both out of scope today: no real GRID source is
+    # wired (src_ts6_grid awaits Track G's digitization) and GRADE's station
+    # join is unresolved geology input -- MASS/COUNT/COVER only.
     assert classes_seen == {
         EvidenceClass.MASS,
         EvidenceClass.COUNT,
         EvidenceClass.COVER,
-        EvidenceClass.GRID,
     }
 
     # [05]'s contribution survives as a merge, not a disappearance: every
@@ -64,24 +125,65 @@ def test_build_corpus_wires_all_four_real_adapters_end_to_end() -> None:
     assert all(obs.mean_nodule_mass_g is not None for obs in boxcore_mass_and_count)
 
 
+def test_mass_and_count_survivors_are_identical_regardless_of_adapter_order(
+    tmp_path: Path,
+) -> None:
+    """P2 (2026-07-27 audit follow-up): the audit found MASS survivorship was
+    order-dependent (reversing REAL_ADAPTER_BUILDERS flipped the winner from
+    [01] to [05]) -- this is the test that actually guards the fix, unlike
+    test_build_corpus_wires_all_four_real_adapters_end_to_end above, which
+    only ever exercises the DEFAULT order and would not have caught the bug.
+
+    Runs the real build_corpus() production code path twice -- once in
+    REAL_ADAPTER_BUILDERS's normal order, once reversed -- and asserts the
+    resulting corpus is identical either way. Deliberately asserts on the
+    published CSV (the actual deliverable), not on quality_grade values or
+    any other mechanism-specific field, so this test keeps working even if
+    the tie-break mechanism changes later (e.g. to the lexicographic-source_id
+    or contract-precedence scheme proposed for the general problem)."""
+    forward = build_corpus(adapter_builders=REAL_ADAPTER_BUILDERS)
+    reversed_corpus = build_corpus(adapter_builders=list(reversed(REAL_ADAPTER_BUILDERS)))
+
+    forward_csv = tmp_path / "forward.csv"
+    reversed_csv = tmp_path / "reversed.csv"
+    write_corpus_csv(forward, forward_csv)
+    write_corpus_csv(reversed_corpus, reversed_csv)
+    assert forward_csv.read_bytes() == reversed_csv.read_bytes()
+
+    # Targeted, human-readable check on top of the byte-identical proof
+    # above: the specific claim the audit made concrete.
+    for corpus, label in [(forward, "forward"), (reversed_corpus, "reversed")]:
+        mass = next(
+            obs
+            for obs in corpus
+            if obs.evidence_class == EvidenceClass.MASS and obs.event_id == "SO268/1_12-2"
+        )
+        count = next(
+            obs
+            for obs in corpus
+            if obs.evidence_class == EvidenceClass.COUNT and obs.event_id == "SO268/1_12-2"
+        )
+        assert mass.source_id == "src_so268_boxcore", label
+        assert count.source_id == "src_so268_boxcore", label
+
+
 def test_build_corpus_normalizes_through_the_e12_registry_not_ad_hoc() -> None:
     """abundance_kg_m2 only ever appears where NormalizerRegistry (E1.2) would
-    put it -- e.g. src_dryad_chamber's CH-01 (0.85kg / 0.20m2 = 4.25 kg/m2)
-    matches MassNormalizer's own formula exactly, proving the real
+    put it -- e.g. [01]'s real SO268/1_24-3 event (4.9kg / 0.25m2 = 19.6
+    kg/m2) matches MassNormalizer's own formula exactly, proving the real
     end-to-end build actually routes through the registry, not an ad-hoc
-    computation. (D8, 2026-07-27 review: this test previously checked a
-    barren MASS row from [01]'s old synthetic fixture -- [01] now reads the
-    real PANGAEA.904967 file, which has no zero-mass event; the zero-mass
-    regression itself is still covered directly in test_normalizers.py.)"""
+    computation. (P1, 2026-07-27 audit follow-up: this test previously used
+    src_dryad_chamber's CH-01 -- no longer wired into production, see
+    test_build_corpus_wires_all_four_real_adapters_end_to_end.)"""
     corpus = build_corpus()
-    chamber_row = next(
+    boxcore_row = next(
         obs
         for obs in corpus
-        if obs.source_id == "src_dryad_chamber"
+        if obs.source_id == "src_so268_boxcore"
         and obs.evidence_class == EvidenceClass.MASS
-        and obs.station_id == "CH-01"
+        and obs.event_id == "SO268/1_24-3"
     )
-    assert chamber_row.abundance_kg_m2 == pytest.approx(4.25)
+    assert boxcore_row.abundance_kg_m2 == pytest.approx(19.6)
 
 
 def test_idempotency_rerunning_against_the_same_corpus_adds_nothing() -> None:

@@ -5,9 +5,9 @@ DuplicateStationSpecification, into ONE shared corpus written to
 data/corpus/master_observations.csv.
 
     build_boxcore()  ──┐
-    build_nodules()  ──┼──► IngestionPipeline(adapter, registry, corpus, dedup) ──► corpus
-    build_chamber()  ──┤        (same registry + same dedup Specification instance
-    build_ts6_grid() ──┘         shared across every adapter's run)
+    build_nodules()  ──┴──► IngestionPipeline(adapter, registry, corpus, dedup) ──► corpus
+                              (same registry + same dedup Specification instance
+                               shared across every adapter's run)
 
 Adapter run ORDER is part of the contract, not incidental: survivor
 precedence ties (dedup_rules.py: equal quality_grade) go to whichever row was
@@ -19,14 +19,26 @@ station join (`join_tolerance_km`) is unresolved geology input and out of
 scope for E1.3 (per the engineer of record's explicit instruction — GRADE
 rows pass through unjoined wherever they occur, but nothing here manufactures
 one). [01] and [05] both read their REAL downloaded PANGAEA files (D5/D8,
-2026-07-27 review) — the other two sources still read their E1.1 saved
-sample files.
+2026-07-27 review), living under data/sources/, not tests/fixtures/ —
+`_require_production_path` enforces that distinction structurally (P1,
+2026-07-27 audit follow-up).
+
+**The corpus is single-source until Track G delivers** (P1b, 2026-07-27
+audit follow-up): src_dryad_chamber [06] and src_ts6_grid [18] are BOTH
+deliberately NOT wired — both still pointed at E1.1 placeholder fixtures
+(round coordinates, fake dates for [06]; a synthetic grid for [18]), and
+calling either builder directly now raises rather than silently admitting
+fabricated data into a published, citable corpus (see each builder's own
+docstring). Every row in the corpus today comes from [01]+[05], merged
+under src_so268_boxcore. Real Dryad data and real TS-6 digitization
+(Contract 6 / ts6_reference.yaml, Track G, Checkpoint 3) are both
+prerequisites for re-wiring their sources, not just a path fix.
 
 Known limitation: dedup only catches a candidate that duplicates a row
 ALREADY in the corpus (from an earlier adapter in this list, or an earlier
 call to build_corpus() against the same corpus list) — two duplicate rows
 arriving in the SAME adapter's own single batch would not catch each other.
-None of the four wired sources' sample data has that shape today.
+None of the wired sources' sample data has that shape today.
 """
 
 from __future__ import annotations
@@ -58,6 +70,30 @@ DEFAULT_OUTPUT_PATH = REPO_ROOT / "data" / "corpus" / "master_observations.csv"
 # .schema.json field-for-field), never left to dict/set iteration order.
 _CSV_COLUMNS = list(Observation.model_fields.keys())
 
+_FIXTURES_PATH_PARTS = {"tests", "fixtures"}
+
+
+def _require_production_path(path: Path) -> Path:
+    """P1 (2026-07-27 audit follow-up): corpus_builder is a PRODUCTION entry
+    point — it must never silently read a test fixture as though it were
+    real data. This is the guard the dryad_chamber bug should have tripped:
+    a hand-typed placeholder (round coordinates, sequential fake dates, a
+    uniform footprint) was wired here with is_open=True and entered the
+    published, citable corpus indistinguishable from a real observation.
+
+    A structural check on the path's shape, not a naming convention someone
+    has to remember — raises loudly at adapter-construction time. If a real
+    source has no real data yet, the fix is to remove its builder from
+    REAL_ADAPTER_BUILDERS, not to point it at a fixture and hope no one
+    notices."""
+    if _FIXTURES_PATH_PARTS <= {part.lower() for part in path.parts}:
+        raise ValueError(
+            f"corpus_builder refuses to read a test fixtures path in production: {path}. "
+            "If this source has no real data yet, remove its builder from "
+            "REAL_ADAPTER_BUILDERS instead of pointing it at a fixture."
+        )
+    return path
+
 
 def build_boxcore_adapter() -> BoxcoreSummaryAdapter:
     """src_so268_boxcore [01] — MASS+COUNT+COVER, one row per event, reading
@@ -72,7 +108,9 @@ def build_boxcore_adapter() -> BoxcoreSummaryAdapter:
     would be a silent MASS/COUNT/COVER mismatch bug)."""
     return BoxcoreSummaryAdapter(
         source_id="src_so268_boxcore",
-        file_path=SOURCES_DIR / "SO268-bc-nodules-summary-PANGAEA-904967.tab",
+        file_path=_require_production_path(
+            SOURCES_DIR / "SO268-bc-nodules-summary-PANGAEA-904967.tab"
+        ),
         shared_column_map={
             "event_id": "Event",
             "latitude": "Latitude",
@@ -112,7 +150,7 @@ def build_nodule_aggregate_adapter() -> NoduleAggregateAdapter:
     shared_column_map entry for either would silently overwrite that."""
     return NoduleAggregateAdapter(
         source_id="src_so268_nodules",
-        file_path=SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab",
+        file_path=_require_production_path(SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"),
         event_column="Event",
         mass_column_g="Nodule m [g]",
         dimension_columns=["Nodule l [mm]", "Nodule w [mm]", "Nodule h [mm]"],
@@ -128,10 +166,19 @@ def build_nodule_aggregate_adapter() -> NoduleAggregateAdapter:
 
 
 def build_dryad_chamber_adapter() -> TabularFileAdapter:
-    """src_dryad_chamber [06] — MASS, chamber footprint as sampled_area_m2."""
+    """src_dryad_chamber [06] — MASS, chamber footprint as sampled_area_m2.
+
+    NOT wired into REAL_ADAPTER_BUILDERS (P1, 2026-07-27 audit follow-up):
+    no real Dryad download exists yet. This function still points at the
+    E1.1 placeholder fixture on purpose — _require_production_path makes it
+    raise if called, so re-adding it to REAL_ADAPTER_BUILDERS without also
+    fixing this path fails loudly instead of quietly re-admitting fabricated
+    data (the exact bug this cleanup exists to fix: three hand-typed rows
+    with round coordinates and a uniform footprint were is_open=True and
+    training-eligible in the published corpus)."""
     return TabularFileAdapter(
         source_id="src_dryad_chamber",
-        file_path=SAMPLES_DIR / "dryad_chamber_sample.csv",
+        file_path=_require_production_path(SAMPLES_DIR / "dryad_chamber_sample.csv"),
         shared_column_map={
             "station_id": "chamber_id",
             "latitude": "latitude",
@@ -151,10 +198,21 @@ def build_dryad_chamber_adapter() -> TabularFileAdapter:
 
 
 def build_ts6_grid_adapter() -> RegionalGridAdapter:
-    """src_ts6_grid [18] — GRID, compiled/benchmark, never a training station."""
+    """src_ts6_grid [18] — GRID, compiled/benchmark, never a training station.
+
+    NOT wired into REAL_ADAPTER_BUILDERS (P1b, 2026-07-27 audit follow-up):
+    real TS-6 digitization (Contract 6, ts6_reference.yaml) is a Track G
+    deliverable that doesn't exist yet — this function still points at the
+    E1.1 placeholder fixture on purpose. Same fix as src_dryad_chamber [06]
+    got in P1: _require_production_path makes calling this builder directly
+    raise rather than silently re-admitting fabricated data into a
+    published, citable corpus. GRID rows can never be training-eligible
+    (evidence_class != MASS), so this was lower-severity than [06]'s bug,
+    but it's still synthetic data that doesn't belong in a corpus described
+    as real."""
     return RegionalGridAdapter(
         source_id="src_ts6_grid",
-        file_path=SAMPLES_DIR / "regional_grid_sample.csv",
+        file_path=_require_production_path(SAMPLES_DIR / "regional_grid_sample.csv"),
         shared_column_map={
             "station_id": "cell_id",
             "latitude": "lat",
@@ -175,21 +233,41 @@ def build_ts6_grid_adapter() -> RegionalGridAdapter:
 REAL_ADAPTER_BUILDERS: list[Callable[[], SourceAdapter]] = [
     build_boxcore_adapter,
     build_nodule_aggregate_adapter,
-    build_dryad_chamber_adapter,
-    build_ts6_grid_adapter,
+    # build_dryad_chamber_adapter is deliberately NOT wired (P1, 2026-07-27
+    # audit follow-up): no real Dryad download exists yet; see its own
+    # docstring for why re-adding it here without a real file_path fails
+    # loudly rather than quietly re-admitting fabricated data.
+    #
+    # build_ts6_grid_adapter is deliberately NOT wired either (P1b,
+    # 2026-07-27 audit follow-up): no real digitized TS-6 file exists yet
+    # (Track G deliverable, Contract 6 / ts6_reference.yaml); see its own
+    # docstring. The corpus is single-source ([01]+[05] merged, under
+    # src_so268_boxcore) until Track G delivers real Dryad or TS-6 data.
 ]
 
 
-def build_corpus(corpus: list[Observation] | None = None) -> list[Observation]:
+def build_corpus(
+    corpus: list[Observation] | None = None,
+    adapter_builders: list[Callable[[], SourceAdapter]] | None = None,
+) -> list[Observation]:
     """Runs every real adapter's IngestionPipeline against the shared corpus,
-    in REAL_ADAPTER_BUILDERS's fixed order. Safe to call more than once
-    against the SAME corpus list: an adapter whose rows are already present
-    is a no-op the second time (idempotency) — see DuplicateStationSpecification,
-    which checks against this exact live corpus reference."""
+    in REAL_ADAPTER_BUILDERS's fixed order by default. Safe to call more than
+    once against the SAME corpus list: an adapter whose rows are already
+    present is a no-op the second time (idempotency) — see
+    DuplicateStationSpecification, which checks against this exact live
+    corpus reference.
+
+    `adapter_builders` (P2, 2026-07-27 audit follow-up) is a testability
+    hook, not a production knob — production always uses the default. It
+    exists so test_corpus_builder.py can run the REAL production code path
+    with REAL_ADAPTER_BUILDERS reversed, to prove survivorship is actually
+    order-independent, rather than re-implementing this loop in the test and
+    risking it drifting from what production really does."""
     corpus = corpus if corpus is not None else []
+    builders = adapter_builders if adapter_builders is not None else REAL_ADAPTER_BUILDERS
     registry = build_default_registry()
     dedup_specification = DuplicateStationSpecification(corpus)
-    for build_adapter in REAL_ADAPTER_BUILDERS:
+    for build_adapter in builders:
         IngestionPipeline(
             adapter=build_adapter(),
             normalizers=registry,

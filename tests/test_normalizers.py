@@ -57,6 +57,23 @@ def test_mass_normalizer_passes_through_when_already_kg_m2() -> None:
     assert "already kg/m2" in result["derivation_formula"]
 
 
+def test_mass_normalizer_zero_sampled_area_yields_qa_status_fail() -> None:
+    """D6: a zero sampled footprint is physically impossible, not merely
+    suspicious -- terminal "fail", not "flagged", and no abundance_kg_m2 is
+    computed (the division-by-zero guard is unchanged)."""
+    record = _record(evidence_class="MASS", nodule_mass_kg=2.5, sampled_area_m2=0.0)
+    result = MassNormalizer().normalize(record)
+    assert result["qa_status"] == "fail"
+    assert result.get("abundance_kg_m2") is None
+
+
+def test_mass_normalizer_negative_sampled_area_yields_qa_status_fail() -> None:
+    record = _record(evidence_class="MASS", nodule_mass_kg=2.5, sampled_area_m2=-0.25)
+    result = MassNormalizer().normalize(record)
+    assert result["qa_status"] == "fail"
+    assert result.get("abundance_kg_m2") is None
+
+
 # --- CountNormalizer ------------------------------------------------------
 
 

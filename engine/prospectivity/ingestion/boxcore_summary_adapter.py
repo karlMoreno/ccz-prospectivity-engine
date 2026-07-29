@@ -145,16 +145,26 @@ class BoxcoreSummaryAdapter(PangaeaAdapter):
             # [01] is authoritative for MASS and COUNT over [05] in D1's
             # merge -- it is the authors' own published per-event aggregate,
             # and its count already includes nodules [05] never weighed for
-            # most events (D8-D reconciliation: 31/36 exact). Without this,
-            # MassNormalizer/CountNormalizer's own quality_grade defaults
-            # decide by accident (MASS ties at "A" and falls to whichever
-            # adapter ran first; COUNT has no default at all unless
-            # mean_nodule_mass_g is present, which only [05] sets, so [05]
-            # would otherwise win COUNT outright with no one having decided
-            # that). Explicit "A" makes [01] win deterministically,
-            # independent of adapter run order. [05]'s mean_nodule_mass_g
-            # still flows into the surviving [01] row via D1's existing
-            # gap-fill merge -- unaffected by this change.
+            # most events (D8-D reconciliation: 31/36 exact).
+            #
+            # CORRECTED (P2, 2026-07-27 audit follow-up): this line ALONE
+            # does not make MASS order-independent, and a prior version of
+            # this comment wrongly claimed it did. Explicit "A" here strictly
+            # outranks CountNormalizer's own "B" default for COUNT (which
+            # only [05] ever gets, since only [05] carries
+            # mean_nodule_mass_g) -- COUNT was already order-independent
+            # before this line existed. But for MASS, [05]'s row ALSO used to
+            # default to "A" via MassNormalizer's own setdefault, so this
+            # line only tied with it rather than outranking it, and the tie
+            # fell back to first-encountered -- genuinely order-dependent,
+            # confirmed by reordering REAL_ADAPTER_BUILDERS in the audit.
+            # MASS is only order-independent now because [05]'s
+            # NoduleAggregateAdapter explicitly sets its own MASS
+            # quality_grade to "B" (see that file) -- a cross-file
+            # invariant, not something this one line guarantees by itself.
+            # [05]'s mean_nodule_mass_g still flows into the surviving [01]
+            # row via D1's existing gap-fill merge, unaffected by any of
+            # this.
             if record.get("evidence_class") in ("MASS", "COUNT"):
                 record["quality_grade"] = "A"
         return records

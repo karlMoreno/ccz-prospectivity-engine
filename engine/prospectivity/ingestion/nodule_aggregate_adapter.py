@@ -260,6 +260,24 @@ class NoduleAggregateAdapter(SourceAdapter):
                     "evidence_class": "MASS",
                     "nodule_mass_kg": total_mass_kg,
                     "mean_nodule_mass_g": mean_nodule_mass_g,
+                    # P2 (2026-07-27 audit follow-up): explicit "B", not
+                    # MassNormalizer's usual "A" default. This is a
+                    # SCIENTIFIC ranking, not a tie-break convenience --
+                    # [05]'s total is a sum of MEASURED nodules only. It
+                    # structurally excludes every "Plus N nodules of less
+                    # than 5g" nodule the authors never weighed (D5.1: up to
+                    # 60% of an event's population), and each measured
+                    # component is itself quantized to the equipment's 5g
+                    # floor. [01]'s "Nodules m [kg] (total)" is the authors'
+                    # own COMPLETE per-event total, covering every nodule,
+                    # weighed or not. [05]'s MASS genuinely is the less
+                    # complete measurement of the same physical quantity --
+                    # "B" says that plainly. That this also makes [01] win
+                    # the D1 merge deterministically (see
+                    # boxcore_summary_adapter.py's matching comment) is a
+                    # CONSEQUENCE of the grade being correct, not the reason
+                    # for setting it.
+                    "quality_grade": "B",
                 }
             )
             records.append(
