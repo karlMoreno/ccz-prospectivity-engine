@@ -23,6 +23,21 @@ CONTRACT                     v3 STATUS      WHAT CHANGED
                                              screening bounds. No other field changed.
 2 study_area (+ exclusions)  FROZEN          no change
 3 covariates.yaml            FROZEN          Option-A enabled; Option-B disabled.
+                                             registry_version 2 -> 3 (E1.4 preflight,
+                                             2026-07-28): windowed recipes (roughness,
+                                             tpi, bpi; recipe_version 1 -> 2) now take
+                                             PHYSICAL DISTANCES IN METRES, resolved to
+                                             cells at runtime from the DEM's actual
+                                             resolution. At cell counts, the same
+                                             recipe_version measured a ~33 km
+                                             neighborhood on the 0.1-deg synthetic DEM
+                                             but ~1.4 km on 15-arc-sec GEBCO (24x),
+                                             silently. Metre values preserve the
+                                             GEBCO-equivalent meaning of the old cell
+                                             counts. Slope/aspect/curvature stay
+                                             native-resolution 3x3 operators: never mix
+                                             features from different DEM resolutions in
+                                             one training matrix.
 4 scenarios.yaml             FROZEN          structure same; cutoffs → real ranges.
 5 source_queue.yaml          EXPANDED        source_metadata → the PHASE-A SOURCE
   (was source_metadata)                      QUEUE: one entry per Phase-A source with

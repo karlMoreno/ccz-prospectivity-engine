@@ -15,13 +15,46 @@
 # actually found predictive. Still disabled = "Option B" (build after the
 # Option-A terrain-only pipeline is validated end-to-end). The ENABLED
 # Option-A terrain list is UNCHANGED. registry_version bumped 1 -> 2.
+#
+# v3 CHANGE (E1.4 Preflight 2, 2026-07-28; approved by the engineer of
+# record): neighborhood parameters are now PHYSICAL DISTANCES IN METRES, not
+# cell counts. Cells are not a unit of distance: the same `window_cells: 3`
+# meant a ~33 km neighborhood on the 0.1-degree synthetic DEM but ~1.4 km on
+# real 15-arc-sec GEBCO — a 24x change in what the feature physically
+# measures, with no recipe_version bump and nothing that could detect it at
+# Checkpoint 1. Windowed recipes (roughness, tpi, bpi) now declare metres;
+# the engine resolves metres -> cells at runtime from the DEM's actual N-S
+# cell size (square windows: nearest odd cell count, ties round up, minimum
+# 3; radii: round half up, minimum 1, outer forced > inner). BOTH the
+# requested metres and the resolved cell window are recorded in each layer's
+# provenance. On a DEM too coarse for the requested distance the resolution
+# clamps to the minimum and records `clamped: true` — by design, not an
+# error (the coarse synthetic DEM does this; real GEBCO does not).
+# The metre values below preserve what v2's cell counts meant on real GEBCO
+# 15-arc-sec (~460 m/cell at 13N): 3 cells ~ 1400 m span; BPI inner 1 cell
+# ~ 460 m, outer 5 cells ~ 2300 m.
+#
+# NATIVE-RESOLUTION OPERATORS: slope, aspect, and both curvatures are defined
+# on the immediate 3x3 stencil at the DEM's native resolution — that is the
+# operator's definition, not a tunable window, so they carry no metre
+# parameter and their physical scale IS the DEM resolution. Consequence:
+# covariates computed from DEMs of different resolutions must NEVER be mixed
+# in one training matrix. The provenance manifest records the DEM resolution,
+# so this is checkable.
+#
+# recipe_version bumped 1 -> 2 for roughness, tpi, bpi (parameter semantics
+# changed: cells -> metres). registry_version bumped 2 -> 3.
 
-registry_version: 2
+registry_version: 3
 
-# Neighborhood window used by window-based recipes, in DEM cells (odd number).
+# Neighborhood window used by window-based recipes, as a PHYSICAL DISTANCE in
+# metres (full window span for square windows), converted to a cell window at
+# runtime from the DEM's actual resolution. 1400 m preserves what the old
+# 3-cell default meant on real GEBCO 15-arc-sec.
 # [GEOLOGY — ISAAC] Advise the physically meaningful scale(s) for nodule
-# formation; multiple windows can be added as separate covariates if useful.
-default_window_cells: 3
+# formation — in metres/km now, not cells; multiple windows can be added as
+# separate covariates if useful.
+default_window_m: 1400
 
 # ---------------------------------------------------------------------------
 # OPTION A — terrain-derived covariates (ENABLED). Built in the alpha from the
@@ -51,9 +84,9 @@ covariates:
 
   - name: roughness
     recipe: std_dev_elevation     # stdev of elevation in the window
-    recipe_version: 1
+    recipe_version: 2             # v3: window now in metres, resolved at runtime
     enabled: true
-    params: { window_cells: 3 }
+    params: { window_m: 1400 }
 
   - name: profile_curvature
     recipe: zevenbergen_thorne_profile
@@ -69,15 +102,15 @@ covariates:
 
   - name: tpi
     recipe: topographic_position_index   # cell minus mean(window)
-    recipe_version: 1
+    recipe_version: 2             # v3: window now in metres, resolved at runtime
     enabled: true
-    params: { window_cells: 3 }
+    params: { window_m: 1400 }
 
   - name: bpi
     recipe: bathymetric_position_index   # TPI with an annulus (inner/outer)
-    recipe_version: 1
+    recipe_version: 2             # v3: radii now in metres, resolved at runtime
     enabled: true
-    params: { inner_radius_cells: 1, outer_radius_cells: 5 }
+    params: { inner_radius_m: 460, outer_radius_m: 2300 }
 
 # ---------------------------------------------------------------------------
 # OPTION B — TS-6-PROVEN proxies (DISABLED until Track G sources each layer).

@@ -25,6 +25,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0,<9",
+    # E1.4 plot deliverable only — never imported by engine runtime code
+    # (sole import site: engine/prospectivity/features/plot_stack.py).
+    "matplotlib>=3.8,<4",
 ]
 
 [tool.setuptools.packages.find]
