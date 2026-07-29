@@ -1,4 +1,4 @@
-"""Observation — the master-observation row (Contract 1, schema_version 3).
+"""Observation — the master-observation row (Contract 1, schema_version 4).
 
 Field-for-field mirror of docs/contracts/master_observations.schema.json. This
 is the one place the CLAUDE.md scientific-integrity rules are enforced as code
@@ -62,7 +62,15 @@ class Observation(BaseModel):
     nodule_mass_kg: float | None = Field(default=None, ge=0)
 
     # -- normalized training value ------------------------------------------------
-    abundance_kg_m2: float | None = Field(default=None, ge=0, le=45)
+    # le=100, not 45: 45 is normalization.yaml's TS-6 screening ceiling, a SOFT
+    # bound enforced by apply_screening()'s qa_status="flagged", not a hard
+    # validation limit. Schema v4 (E1.3 review): at le=45 this field's own
+    # maximum exactly matched the screening ceiling, so a value screening
+    # should have flagged instead raised ValidationError first, and
+    # qa_status="flagged" was never reachable for this field. Widened to
+    # match the headroom mn/ni/cu/co_pct already have over their own
+    # screening bounds (docs/contracts/master_observations.schema.json).
+    abundance_kg_m2: float | None = Field(default=None, ge=0, le=100)
 
     # -- count / cover covariates --------------------------------------------------
     nodule_count: int | None = Field(default=None, ge=0)

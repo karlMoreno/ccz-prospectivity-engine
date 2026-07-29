@@ -1,11 +1,11 @@
 {
-    "$comment": "CONTRACT 1 (v3) — Master observation schema. Frictionless Table Schema. This UPGRADES the v2 samples.csv into the master-observation corpus from Proposal v3: every row is an OPEN nodule observation tagged with an evidence_class, plus provenance and derivation fields so a computed kg/m² value traces to its source and formula. The engine's SampleSource selects rows where evidence_class=MASS AND abundance_kg_m2 is present AND is_open=true. Superset of the v2 file — abundance rows still validate. schema_version 2 -> 3.",
+    "$comment": "CONTRACT 1 (v4) — Master observation schema. Frictionless Table Schema. This UPGRADES the v2 samples.csv into the master-observation corpus from Proposal v3: every row is an OPEN nodule observation tagged with an evidence_class, plus provenance and derivation fields so a computed kg/m² value traces to its source and formula. The engine's SampleSource selects rows where evidence_class=MASS AND abundance_kg_m2 is present AND is_open=true. Superset of the v2 file — abundance rows still validate. schema_version 2 -> 3 -> 4 (v4, E1.3 review: abundance_kg_m2's own maximum raised from 45 to 100 — at 45 it exactly matched normalization.yaml's screening ceiling, so any value screening should have flagged instead hard-failed validation before qa_status=\"flagged\" was reachable; widened to give the same headroom the mn/ni/cu/co_pct fields already had over their screening bounds).",
 
     "name": "ccz_master_observations",
 
     "title": "CCZ open nodule observations (evidence-typed master corpus)",
 
-    "schema_version": 3,
+    "schema_version": 4,
 
     "primaryKey": [
         "source_record_id"
@@ -199,11 +199,11 @@
             "name": "abundance_kg_m2",
             "type": "number",
             "title": "Normalized abundance (kg/m²) — the TRAINING VALUE",
-            "$comment": "Populated by the AbundanceNormalizer ONLY where valid (MASS always; COUNT via mean nodule mass; COVER NEVER; GRID only as a prior/benchmark, flagged). Bounds from TS-6 Table 2 screening. 0 is valid (barren); blank = not derivable for this class.",
+            "$comment": "Populated by the AbundanceNormalizer ONLY where valid (MASS always; COUNT via mean nodule mass; COVER NEVER; GRID only as a prior/benchmark, flagged). TS-6 Table 2 screening bound is 45 (normalization.yaml) — that is a SOFT bound enforced by qa_status=flagged, not this field's own maximum. This field's maximum is deliberately wider (v4) so a screening-range violation can be flagged instead of hard-rejected here first. 0 is valid (barren); blank = not derivable for this class.",
             "constraints": {
                 "required": false,
                 "minimum": 0,
-                "maximum": 45
+                "maximum": 100
             }
         },
         {

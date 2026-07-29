@@ -29,12 +29,8 @@ whichever normalizer produced a value, and it only ever flags (qa_status=
 
 from __future__ import annotations
 
-import functools
-from pathlib import Path
-
-import yaml
-
 from engine.prospectivity.domain.evidence import EvidenceClass, QAStatus
+from engine.prospectivity.ingestion._contract_paths import load_normalization_yaml
 from engine.prospectivity.ingestion.cover_normalizer import CoverNormalizer
 from engine.prospectivity.ingestion.count_normalizer import CountNormalizer
 from engine.prospectivity.ingestion.grade_normalizer import GradeNormalizer
@@ -44,33 +40,34 @@ from engine.prospectivity.ingestion.normalizer import AbundanceNormalizer
 from engine.prospectivity.ingestion.source_adapter import RawRecord
 
 
-def _find_repo_root(start: Path) -> Path:
-    for candidate in (start, *start.parents):
-        if (candidate / "pyproject.toml").is_file():
-            return candidate
-    raise FileNotFoundError(f"Could not locate repo root (no pyproject.toml above {start})")
-
-
-@functools.lru_cache(maxsize=1)
 def _screening_bounds() -> dict[str, dict[str, float]]:
     """Contract 7's `screening:` block, loaded (not duplicated in Python) from
     data/config/normalization.yaml so the YAML stays the single source of truth."""
-    repo_root = _find_repo_root(Path(__file__).resolve())
-    config_path = repo_root / "data" / "config" / "normalization.yaml"
-    normalization = yaml.safe_load(config_path.read_text())
-    return normalization["screening"]
+    return load_normalization_yaml()["screening"]
+
+
+# qa_status precedence decision (confirmed with the engineer of record,
+# 2026-07-27, E1.2 review): "fail" is terminal. Screening only promotes a
+# record OUT of pending/pass into "flagged" — it never overwrites an
+# existing "fail" (or an already-"flagged" record) with its own verdict. A
+# prior "fail" is a stronger, already-adjudicated status; screening
+# shouldn't launder it into a softer-sounding "flagged".
+_SCREENING_MAY_OVERWRITE = {None, QAStatus.PENDING.value, QAStatus.PASS.value}
 
 
 def apply_screening(record: RawRecord) -> RawRecord:
     """Flags (never drops) any screened field outside its normalization.yaml
-    bound. Bounds are inclusive; 0 is valid for abundance_kg_m2 (barren)."""
+    bound. Bounds are inclusive; 0 is valid for abundance_kg_m2 (barren).
+    Never overwrites an existing "fail"/"flagged" qa_status — see
+    _SCREENING_MAY_OVERWRITE."""
     record = dict(record)
     for field, bounds in _screening_bounds().items():
         value = record.get(field)
         if value is None:
             continue
         if value < bounds["min"] or value > bounds["max"]:
-            record["qa_status"] = QAStatus.FLAGGED.value
+            if record.get("qa_status") in _SCREENING_MAY_OVERWRITE:
+                record["qa_status"] = QAStatus.FLAGGED.value
     return record
 
 

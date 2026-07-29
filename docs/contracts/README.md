@@ -10,7 +10,17 @@ CONTRACT                     v3 STATUS      WHAT CHANGED
 1 master_observations        UPGRADED       samples.csv → MASTER schema: every row
   (.csv + .schema.json)                      carries evidence_class + provenance +
                                              derivation fields. Superset; abundance
-                                             rows still valid. schema_version 3.
+                                             rows still valid. schema_version 3 -> 4
+                                             (E1.3 review, 2026-07-27): abundance_kg_m2's
+                                             own maximum raised 45 -> 100. At 45 it
+                                             exactly matched normalization.yaml's TS-6
+                                             screening ceiling, so a value the screening
+                                             step should have flagged instead failed
+                                             Pydantic validation first -- qa_status=
+                                             "flagged" was never reachable for this one
+                                             field. Widened to match the headroom
+                                             mn/ni/cu/co_pct already had over their own
+                                             screening bounds. No other field changed.
 2 study_area (+ exclusions)  FROZEN          no change
 3 covariates.yaml            FROZEN          Option-A enabled; Option-B disabled.
 4 scenarios.yaml             FROZEN          structure same; cutoffs → real ranges.

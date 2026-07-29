@@ -176,3 +176,32 @@ def test_registry_normalize_applies_screening_after_the_class_rule() -> None:
     out_of_bounds = registry.normalize(record)
     assert out_of_bounds["abundance_kg_m2"] == pytest.approx(80.0)
     assert out_of_bounds["qa_status"] == "flagged"  # 80 > screening max of 45
+
+
+def test_screening_never_overwrites_an_existing_fail() -> None:
+    """qa_status precedence decision (2026-07-27 review): fail is terminal —
+    screening flags a fresh pending/pass row, but never launders a prior
+    "fail" into "flagged"."""
+    record = _record(evidence_class="MASS", abundance_kg_m2=99.0, qa_status="fail")
+    result = apply_screening(record)
+    assert result["qa_status"] == "fail"
+
+
+def test_screening_accepts_zero_abundance_as_valid_barren() -> None:
+    """normalization.yaml screening bounds are 0.0-45.0 with 0 explicitly
+    valid (barren) — must not be flagged, and must not be skipped as if
+    missing."""
+    record = _record(evidence_class="MASS", abundance_kg_m2=0.0, qa_status="pending")
+    result = apply_screening(record)
+    assert result["qa_status"] == "pending"
+
+
+# --- zero-abundance / falsy-zero regression --------------------------------
+
+
+def test_mass_normalizer_zero_mass_yields_zero_abundance() -> None:
+    """nodule_mass_kg=0.0 is a real (barren) measurement, not a missing one:
+    abundance_kg_m2 must come out as 0.0, never None."""
+    record = _record(evidence_class="MASS", nodule_mass_kg=0.0, sampled_area_m2=0.25)
+    result = MassNormalizer().normalize(record)
+    assert result["abundance_kg_m2"] == 0.0

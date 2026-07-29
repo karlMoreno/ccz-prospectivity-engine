@@ -1,0 +1,37 @@
+# TEST FIXTURE NOTE: this is a VERBATIM excerpt (not synthetic) of the real
+# PANGAEA.904962 dataset - Schoening & Gazis (2019), "Sizes, weights and
+# volumes of poly-metallic nodules from box cores taken during SONNE cruises
+# SO268/1 and SO268/2", CC BY-NC 4.0 (https://doi.org/10.1594/PANGAEA.904962).
+# Rows below are taken as-is from events SO268/1_24-3 and SO268/2_95-2 and
+# SO268/2_129-1 in the real downloaded file
+# (data/sources/SO268-bc-nodules-PANGAEA-904962.tab), trimmed to ~20 rows to
+# cover: 3 events; one "Numbers above 1000..." labelling-note annotation row
+# (SO268/1_24-3); one "Plus N nodules of less than 5g" count annotation row
+# (SO268/2_95-2); one real nodule with dimensions but null mass (SO268/2_129-1
+# Sample ID 3, "Broken"); and negative Elevation [m] values throughout.
+/* DATA DESCRIPTION:
+Citation:	Schoening, Timm; Gazis, Iason-Zois (2019): Sizes, weights and volumes of poly-metallic nodules from box cores taken during SONNE cruises SO268/1 and SO268/2 [dataset]. GEOMAR - Helmholtz Centre for Ocean Research Kiel, PANGAEA, https://doi.org/10.1594/PANGAEA.904962
+Event(s):	SO268/1_24-3 (BC-09) * LATITUDE: 11.931067 * LONGITUDE: -117.027350 * DATE/TIME: 2019-03-06T00:59:28 * ELEVATION: -4087.6 m * CAMPAIGN: SO268/1 * COMMENT: GER Trial; Position USBL
+	SO268/2_95-2 (BC-24) * LATITUDE: 11.862333 * LONGITUDE: -117.012750 * DATE/TIME: 2019-04-04T22:39:57 * ELEVATION: -4120.2 m * CAMPAIGN: SO268/2 * COMMENT: GER Dredge; Position USBL
+	SO268/2_129-1 (BC-30) * LATITUDE: 14.116733 * LONGITUDE: -125.875067 * DATE/TIME: 2019-04-16T18:10:00 * ELEVATION: -4503.0 m * CAMPAIGN: SO268/2 * COMMENT: BEL Trial; Position USBL
+License:	Creative Commons Attribution-NonCommercial 4.0 International (CC-BY-NC-4.0) (URI: https://creativecommons.org/licenses/by-nc/4.0/)
+*/
+Event	Date/Time	Latitude	Longitude	Elevation [m]	Sample ID	Depth sed [m]	Depth top [m]	Depth bot [m]	Nodule l [mm]	Nodule w [mm]	Nodule h [mm]	Nodule m [g]	Nodule vol [ml]	Comment
+SO268/1_24-3	2019-03-06	11.9311	-117.0273	-4088										Numbers above 1000 were not numbered on the plastic sampling containers for NIOZ
+SO268/1_24-3	2019-03-06	11.9311	-117.0273	-4088	2	0.000			69	43	35	90		
+SO268/1_24-3	2019-03-06	11.9311	-117.0273	-4088	4	0.000			104	71	39	220		
+SO268/1_24-3	2019-03-06	11.9311	-117.0273	-4088	24	0.000			85	42	28	100		
+SO268/1_24-3	2019-03-06	11.9311	-117.0273	-4088	15	0.000			60	41	42	85		
+SO268/1_24-3	2019-03-06	11.9311	-117.0273	-4088	19	0.000			51	42	23	60		
+SO268/2_95-2	2019-04-04	11.8623	-117.0127	-4120										Plus 13 Nodules of less than 5g
+SO268/2_95-2	2019-04-04	11.8623	-117.0127	-4120	1	0.000			110	80	50	370		
+SO268/2_95-2	2019-04-04	11.8623	-117.0127	-4120	2	0.000			85	70	53	240		
+SO268/2_95-2	2019-04-04	11.8623	-117.0127	-4120	3	0.000			125	95	70	550		
+SO268/2_95-2	2019-04-04	11.8623	-117.0127	-4120	4	0.000			95	65	55	265		
+SO268/2_95-2	2019-04-04	11.8623	-117.0127	-4120	5	0.000			35	30	15	20		
+SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	1	0.000			100	90	60	370		
+SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	2	0.000			110	100	55	520		
+SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	3	0.000			45	40	30			Broken
+SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	4	0.000			70	70	30	110		Broken
+SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	5	0.000			80	40	45	140		
+SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	6	0.000			110	80	60	345		

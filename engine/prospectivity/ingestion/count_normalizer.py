@@ -27,9 +27,15 @@ class CountNormalizer(AbundanceNormalizer):
         mean_mass_g = record.get("mean_nodule_mass_g")
         if density is not None and mean_mass_g is not None:
             record["abundance_kg_m2"] = density * mean_mass_g / 1000
-            record["derivation_formula"] = (
+            formula = (
                 "abundance_kg_m2 = nodule_density_m2 * mean_nodule_mass_g / 1000 "
                 "(count->mass is an assumption; see quality_grade)"
             )
+            # D8-C (2026-07-27 review): APPEND, don't overwrite -- some
+            # adapters (e.g. NoduleAggregateAdapter) already document their
+            # own aggregation math in derivation_formula before this
+            # normalizer runs; a bare overwrite would discard it.
+            existing = record.get("derivation_formula")
+            record["derivation_formula"] = f"{existing}; {formula}" if existing else formula
             record.setdefault("quality_grade", QualityGrade.B.value)
         return record
