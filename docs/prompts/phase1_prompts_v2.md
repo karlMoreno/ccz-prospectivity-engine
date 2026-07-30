@@ -158,10 +158,17 @@ Checkpoint 1. Fully doable before Isaac finishes G1.1.
 
 ## Pattern summary for Phase 1 (grant-defense cheat sheet)
 
-| Task | Pattern | Why that pattern |
-|------|---------|------------------|
-| E1.1 | Adapter | Each source family has a foreign interface; adapters translate it to the one master schema without the pipeline knowing source formats |
-| E1.2 | Strategy | Each evidence class has an interchangeable normalization policy; the scientific rules live in one class each, testable in isolation |
-| E1.2 | Registry/Factory | Selection by `evidence_class` tag is data-driven, not branched; adding a class can't be forgotten silently (completeness test) |
-| E1.3 | Specification | Dedup rules are composable, named predicates — each scientific rule is one object with one test |
-| E1.3 | Template Method | `IngestionPipeline.run()` fixes the step order (fetch→adapt→normalize→validate→dedup→append); steps vary, skeleton doesn't |
+> **Moved.** The authoritative version is **[`docs/PATTERNS.md`](../PATTERNS.md)**
+> (E1.5, 2026-07-29). It supersedes the table that used to sit here: it is
+> written from the code with `file:line` citations, covers the patterns added
+> after this planning note was written (Observer, Layer Supertype, Null Object,
+> the feature-recipe Strategy and Registry), names the test that depends on each
+> structure, and adds a **reverse audit** of indirection that is *not* earning
+> its keep. Keeping a second copy here would guarantee they drift.
+>
+> One correction worth carrying over, since this note's wording was wrong:
+> Specification was justified above as "composable, named predicates." The
+> *named predicate* half held; the **composable half did not** — the shipped
+> dedup logic has one production Specification and zero composition sites, and
+> `PATTERNS.md` §3.1 recommends deleting the unused combinators. Defending
+> "composable" to a reviewer would not survive a look at the code.

@@ -82,6 +82,13 @@ class NormalizerRegistry:
     def register(self, evidence_class: EvidenceClass, normalizer: AbundanceNormalizer) -> None:
         self._normalizers[evidence_class] = normalizer
 
+    def registered_classes(self) -> set[EvidenceClass]:
+        """The evidence classes that actually have a normalizer. Public so the
+        three-way agreement test (schema enum <-> EvidenceClass <-> registry)
+        can assert on it without reaching into private state; mirrors
+        CovariateRegistry.names()."""
+        return set(self._normalizers)
+
     def assert_complete(self) -> None:
         """Fails loudly if any EvidenceClass member has no registered
         normalizer — the alternative is a class silently passing through
