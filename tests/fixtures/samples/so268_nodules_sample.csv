@@ -2,18 +2,26 @@
 # PANGAEA.904962 dataset - Schoening & Gazis (2019), "Sizes, weights and
 # volumes of poly-metallic nodules from box cores taken during SONNE cruises
 # SO268/1 and SO268/2", CC BY-NC 4.0 (https://doi.org/10.1594/PANGAEA.904962).
-# Rows below are taken as-is from events SO268/1_24-3 and SO268/2_95-2 and
-# SO268/2_129-1 in the real downloaded file
-# (data/sources/SO268-bc-nodules-PANGAEA-904962.tab), trimmed to ~20 rows to
-# cover: 3 events; one "Numbers above 1000..." labelling-note annotation row
+# Rows below are taken as-is from events SO268/1_24-3, SO268/2_95-2,
+# SO268/2_129-1 and SO268/2_116-1 in the real downloaded file
+# (data/sources/SO268-bc-nodules-PANGAEA-904962.tab), trimmed to ~21 rows to
+# cover: 4 events; one "Numbers above 1000..." labelling-note annotation row
 # (SO268/1_24-3); one "Plus N nodules of less than 5g" count annotation row
 # (SO268/2_95-2); one real nodule with dimensions but null mass (SO268/2_129-1
-# Sample ID 3, "Broken"); and negative Elevation [m] values throughout.
+# Sample ID 3, "Broken"); two "Fragment" nodules with valid mass plus one
+# plain nodule (SO268/2_116-1 Sample IDs 31, 47 and 2 — D5.4 coverage, P3);
+# and negative Elevation [m] values throughout.
+#
+# SO268/2_116-1's own "Plus 13 nodules of less than 5g" annotation row is
+# deliberately NOT excerpted, so this event isolates the D5.4 Fragment rule
+# from D5.1's unweighed-nodule arithmetic. Trimming rows is what this fixture
+# already does for every event; no row is altered.
 /* DATA DESCRIPTION:
 Citation:	Schoening, Timm; Gazis, Iason-Zois (2019): Sizes, weights and volumes of poly-metallic nodules from box cores taken during SONNE cruises SO268/1 and SO268/2 [dataset]. GEOMAR - Helmholtz Centre for Ocean Research Kiel, PANGAEA, https://doi.org/10.1594/PANGAEA.904962
 Event(s):	SO268/1_24-3 (BC-09) * LATITUDE: 11.931067 * LONGITUDE: -117.027350 * DATE/TIME: 2019-03-06T00:59:28 * ELEVATION: -4087.6 m * CAMPAIGN: SO268/1 * COMMENT: GER Trial; Position USBL
 	SO268/2_95-2 (BC-24) * LATITUDE: 11.862333 * LONGITUDE: -117.012750 * DATE/TIME: 2019-04-04T22:39:57 * ELEVATION: -4120.2 m * CAMPAIGN: SO268/2 * COMMENT: GER Dredge; Position USBL
 	SO268/2_129-1 (BC-30) * LATITUDE: 14.116733 * LONGITUDE: -125.875067 * DATE/TIME: 2019-04-16T18:10:00 * ELEVATION: -4503.0 m * CAMPAIGN: SO268/2 * COMMENT: BEL Trial; Position USBL
+	SO268/2_116-1 (BC-29) * LATITUDE: 11.861850 * LONGITUDE: -117.011183 * DATE/TIME: 2019-04-10T01:15:00 * ELEVATION: -4117.2 m * LOCATION: Clarion-Clipperton Fraction Zone, North East Pacific Ocean * CAMPAIGN: SO268/2 * BASIS: Sonne_2 (URI: https://uol.de/icbm/forschungsplattformen-schiffe/sonne) * METHOD/DEVICE: Box corer (BC) (URI: http://en.wikipedia.org/wiki/Box_corer) * COMMENT: GER Dredge
 License:	Creative Commons Attribution-NonCommercial 4.0 International (CC-BY-NC-4.0) (URI: https://creativecommons.org/licenses/by-nc/4.0/)
 */
 Event	Date/Time	Latitude	Longitude	Elevation [m]	Sample ID	Depth sed [m]	Depth top [m]	Depth bot [m]	Nodule l [mm]	Nodule w [mm]	Nodule h [mm]	Nodule m [g]	Nodule vol [ml]	Comment
@@ -35,3 +43,6 @@ SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	3	0.000			45	40	30			Broken
 SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	4	0.000			70	70	30	110		Broken
 SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	5	0.000			80	40	45	140		
 SO268/2_129-1	2019-04-16	14.1167	-125.8751	-4503	6	0.000			110	80	60	345		
+SO268/2_116-1	2019-04-10	11.8619	-117.0112	-4117	2	0.000			45	45	30	50		
+SO268/2_116-1	2019-04-10	11.8619	-117.0112	-4117	31	0.000			75	55	40	130		Fragment
+SO268/2_116-1	2019-04-10	11.8619	-117.0112	-4117	47	0.000			40	35	30	45		Fragment

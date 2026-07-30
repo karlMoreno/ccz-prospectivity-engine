@@ -89,7 +89,11 @@ sources:
     notes: "DERIVE. Verify area before computing kg/m2; compare with [02]/[03]."
 
   - source_id: src_so268_nodules             # [05]
-    title: "SO268 individual nodule measurements (~9,000 nodules)"
+    # Row count corrected 2026-07-29 (P3) from "~9,000 nodules": the actual
+    # downloaded file (data/sources/SO268-bc-nodules-PANGAEA-904962.tab) has
+    # 1,658 data rows across 36 box-core events. The ~9,000 figure was an
+    # estimate made before the download and was never true of this dataset.
+    title: "SO268 individual nodule measurements (1,658 rows / 36 events)"
     doi: "10.1594/PANGAEA.904962"
     url: "https://doi.org/10.1594/PANGAEA.904962"
     source_type: dataset

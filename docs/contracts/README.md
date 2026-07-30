@@ -21,6 +21,20 @@ CONTRACT                     v3 STATUS      WHAT CHANGED
                                              field. Widened to match the headroom
                                              mn/ni/cu/co_pct already had over their own
                                              screening bounds. No other field changed.
+                                             PHYSICAL rationale for 100 (added 2026-07-29,
+                                             P3 — previously only the mechanical one was
+                                             recorded): ~100 kg/m2 is ~1.7x the ~60 kg/m2
+                                             close-packed monolayer limit (5 cm nodules,
+                                             ~2 g/cm3 wet bulk density, ~60% areal
+                                             packing). Published CCZ abundances run
+                                             ~1.5-30 kg/m2 and this corpus tops out at
+                                             26.8, so the bound rejects unit and
+                                             transcription errors (a g/m2 value read as
+                                             kg/m2, a misplaced decimal) without
+                                             rejecting an extreme-but-physically-real
+                                             reading. It is a PLAUSIBILITY ceiling, not a
+                                             screening threshold — 45 (normalization.yaml)
+                                             remains the soft bound that flags.
 2 study_area (+ exclusions)  FROZEN          no change
 3 covariates.yaml            FROZEN          Option-A enabled; Option-B disabled.
                                              registry_version 2 -> 3 (E1.4 preflight,

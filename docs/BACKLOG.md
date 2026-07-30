@@ -13,7 +13,9 @@ docstrings, and review chat. Rules of the file:
 - Every entry cites where the detail lives (`file:line` or walkthrough §) so
   it is verifiable. Do not add entries that trace to nothing.
 
-Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
+Last consolidated: 2026-07-29 (through E1.4, dependency hygiene, and the P3
+contract-hygiene batch). **30 open items**: §1 Track G 10, §2 Karl 3, §3
+Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 
 ---
 
@@ -96,12 +98,13 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   is your source document — left untouched on purpose, twice. Decide: sync
   it, or declare it historical. Owner: Karl. Trigger: next time that file is
   touched. Detail: E1.3.md §5.
-- [ ] **CLAUDE.md contract-path mismatch.** [CLAUDE.md:20](../CLAUDE.md#L20)
-  and :170 point at `phase0-contracts-v3/`, which doesn't exist; contracts
-  live in `docs/contracts/` + `data/` (canonical) and `Proposals and
-  contract V3/Contracts_v3/` (authoring). Flagged at Phase-0 review, still
-  unchanged; it's your standing instructions file. Owner: Karl. Trigger: any
-  time. Detail: phase-0-and-E1.1.md:741.
+- [ ] **`CLAUDE.md` "Current status" is stale.** Still reads "Phase: 0
+  (scaffold) — not yet started. Start here." and warns against jumping to
+  Phase 1, which is complete through E1.4. Every session reads this file
+  first, so it mis-frames the work from the opening line. Left for you: it's
+  your standing-instructions file, and P3's scope was the contract paths (now
+  fixed). Owner: Karl (or E on your say-so). Trigger: any time. Detail:
+  [CLAUDE.md:169](../CLAUDE.md#L169).
 - [ ] **Precision/rounding rule for computed `abundance_kg_m2`.**
   Normalizers deliberately don't round (normalization.yaml specifies no
   precision), so full float precision lands in the corpus CSV. Decide
@@ -202,32 +205,31 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   clusters. Owner: E + Karl. Trigger: Phase-2 kickoff (E2.x spatial CV).
   Detail: review discussion 2026-07-28.
 
-## 5. Contract hygiene (the P3 batch)
+## 5. Contract hygiene (the P3 batch — COMPLETE 2026-07-29)
 
-- [ ] **`[05]` row-count claim.** `source_queue.yaml:92` still says "~9,000
-  nodules"; the real file has 1,658 rows / 36 events. Manual correction next
-  time the file is touched. Detail:
-  [source_queue.yaml:92](../data/sources/source_queue.yaml#L92); E1.3.md §11.
-- [ ] **Physical rationale for the 100 kg/m² ceiling.** `docs/contracts/`
-  records only the mechanical rationale (headroom over the 45 screening
-  bound); the physical one (~1.7× the ~60 kg/m² close-packed monolayer
-  limit) is not written down. Detail:
+- [x] **`[05]` row-count claim.** Corrected to "1,658 rows / 36 events" with
+  the correction's source (the downloaded PANGAEA.904962 file) recorded
+  inline — P3, 2026-07-29. Detail:
+  [source_queue.yaml:92](../data/sources/source_queue.yaml#L92).
+- [x] **Physical rationale for the 100 kg/m² ceiling.** Added to the
+  contract-1 row: ~1.7× the ~60 kg/m² close-packed monolayer limit, and why
+  the bound catches unit/transcription errors without rejecting a real
+  extreme — P3, 2026-07-29. Detail:
   [docs/contracts/README.md](../docs/contracts/README.md) contract-1 row.
-- [ ] **D5.4 has no test and no Fragment fixture.** Broken/Fragment rows
-  count as one nodule each; the fixture contains two "Broken" rows but no
-  "Fragment" row, and no test asserts the rule by name. Detail:
-  [so268_nodules_sample.csv:34](../tests/fixtures/samples/so268_nodules_sample.csv#L34)
-  (Broken only); E1.3.md §11 D5.4.
-- [ ] **`[09]`/`[10]` in rule text but not registered.** Dedup rule 1's
-  prose references DOMES parents `[09][10]`; `source_queue.yaml` has 13
-  entries and neither ID. Register them or amend the rule text. Detail:
-  [normalization.yaml:96](../data/config/normalization.yaml#L96); E1.3.md §1.
-- [ ] **5th reconciliation residual, documented not fixed.**
-  `SO268/2_205-2`: `[01]` did not add its 16 sub-5g nodules to its published
-  count, though 11 other events did include theirs — D5.1's "counts include
-  sub-5g nodules" is usually-but-not-always true. A source inconsistency to
-  keep visible, not a bug to fix. Detail: E1.3.md §12 D;
-  [test_reconciliation.py](../tests/test_reconciliation.py).
+- [x] **D5.4 test + Fragment fixture.** Fourth event `SO268/2_116-1`
+  excerpted verbatim (Samples 31/47 "Fragment" with mass, plus plain Sample
+  2); two tests now name D5.4 — the Fragment case and the
+  Broken-with-mass case — P3, 2026-07-29. Detail:
+  [test_nodule_aggregate_adapter.py](../tests/test_nodule_aggregate_adapter.py).
+- [x] **`[09]`/`[10]` in rule text but not registered.** Rule 1's prose now
+  states inline that they are not registered Phase-A sources, with a note
+  that the rule is a generic key-match needing no specific IDs — P3,
+  2026-07-29. Detail:
+  [normalization.yaml:96](../data/config/normalization.yaml#L96).
+- [x] **`CLAUDE.md` contract-path mismatch** (was §2). Both references now
+  name the real layout: `docs/contracts/` + `data/` canonical, `Proposals and
+  contract V3/Contracts_v3/` authoring. The adjacent alpha-proposal path was
+  wrong in the same way and was corrected too — P3, 2026-07-29.
 
 ## 6. Scheduled for later phases (not blocked — just not yet)
 
@@ -248,6 +250,14 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   study latitudes. Recorded in every layer's provenance (`crs_strategy`).
   Detail: E1.4.md §6;
   [recipe.py:52](../engine/prospectivity/features/recipe.py#L52).
+- **5th reconciliation residual — documented, not fixed.** `SO268/2_205-2`:
+  `[01]` did not add its 16 sub-5g nodules to its published count, though 11
+  other events did include theirs, so D5.1's "counts include sub-5g nodules"
+  is usually-but-not-always true. A source inconsistency found while writing
+  the reconciliation test and verified against both raw files — kept visible
+  rather than absorbed by loosening a tolerance. Moved here from §5 (P3,
+  2026-07-29): it is a finding, not pending work. Detail: E1.3.md §12 D;
+  [test_reconciliation.py](../tests/test_reconciliation.py).
 - **GRADE pass-through by design.** `GradeNormalizer` passes GRADE rows
   through unjoined: the station join is corpus-assembly logic, not
   per-record normalization (E1.2 decision). When the join is built (with

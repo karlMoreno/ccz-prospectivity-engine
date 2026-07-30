@@ -93,7 +93,12 @@ normalizers:
 deduplication:
   key: [cruise, station_id, event_id, latitude, longitude, sample_datetime_utc]
   rules:
-    - "DOMES families ([02][03][04] + parents [09][10]): dedupe by cruise+station/event+coords+date, NOT DOI."
+    # NOTE (2026-07-29, P3): [09] and [10] are NOT registered Phase-A sources
+    # — source_queue.yaml has 13 entries and neither ID appears. The rule is a
+    # generic key-match and needs no specific IDs to work; the reference is
+    # retained only to record that DOMES parent compilations were considered.
+    # If they are ever queued, register them there first.
+    - "DOMES families ([02][03][04] + parents [09][10], not registered — see note above): dedupe by cruise+station/event+coords+date, NOT DOI."
     - "NOAA↔PANGAEA mirrors: prefer the record with clearest methods; retain both provenance links."
     - "Individual nodules ([05]) are nested within box-core EVENTS ([01]): the event is the spatial sample."
     - "Regional grids ([18][19]): label compiled/interpolated; never merged with observed stations."

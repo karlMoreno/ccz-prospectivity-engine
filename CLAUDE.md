@@ -16,8 +16,16 @@ comparison against the TS-6 2010 surface. Two people build it: **Track E** (engi
 the code) and **Track G** (geologist, the data + science). They are decoupled by a set
 of frozen **contracts**. The authoritative specs are:
 
-- `CCZ-Prospectivity-Engine-Alpha-Proposal-v3.md` — the build plan (phases, scope, requirements).
-- `phase0-contracts-v3/` — the seven contracts (frozen data/interface shapes). **Treat these as ground truth.**
+- `Proposals and contract V3/CCZ-Prospectivity-Engine-Alpha-Proposal-v3.md` — the build
+  plan (phases, scope, requirements).
+- The seven contracts (frozen data/interface shapes) — **treat these as ground truth**:
+  - **Canonical (what the code reads):** `docs/contracts/` (schema, `covariates.yaml`,
+    contracts README) + `data/` (`config/normalization.yaml`, `sources/source_queue.yaml`,
+    `aoi/study_area.geojson`, `ts6/ts6_reference.yaml`, `economics/scenarios.yaml`).
+  - **Authoring copies (Karl's source documents, not read by any code path):**
+    `Proposals and contract V3/Contracts_v3/`.
+  - Path corrected 2026-07-29 (P3): this file previously pointed at
+    `phase0-contracts-v3/`, which has never existed in the repo.
 
 If anything I ask conflicts with those documents, say so and ask before proceeding.
 
@@ -167,8 +175,10 @@ ccz-prospectivity-engine/
 ## Current status
 
 - Phase: **0 (scaffold) — not yet started.** Start here.
-- The seven contracts are drafted in `phase0-contracts-v3/`. Treat them as frozen; if one
-  needs a structural change, bump its `*_version`, tell me, and note it in the contracts README.
+- The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
+  `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;
+  if one needs a structural change, bump its `*_version`, tell me, and note it in the
+  contracts README.
 - Do **not** jump ahead to Phase 1 (real source adapters) until Phase 0's scaffold +
   synthetic fixtures + green CI exist and I've reviewed them.
 

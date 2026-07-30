@@ -62,7 +62,7 @@ def test_fetch_skips_the_pangaea_metadata_block_via_the_terminator_not_a_line_co
     63 lines -- if this adapter hardcoded skiprows, it would misparse either
     one of them."""
     rows = _build_adapter().fetch()
-    assert len(rows) == 18  # 3 annotation/label rows + 15 real nodule rows
+    assert len(rows) == 21  # 3 annotation/label rows + 18 real nodule rows
     assert all("Event" in row for row in rows)  # real columns, not header noise
 
 
@@ -71,7 +71,12 @@ def test_fetch_skips_the_pangaea_metadata_block_via_the_terminator_not_a_line_co
 
 def test_adapt_produces_one_mass_and_one_count_record_per_event_not_per_nodule() -> None:
     by_event = _records_by_event()
-    assert set(by_event) == {"SO268/1_24-3", "SO268/2_95-2", "SO268/2_129-1"}
+    assert set(by_event) == {
+        "SO268/1_24-3",
+        "SO268/2_95-2",
+        "SO268/2_129-1",
+        "SO268/2_116-1",
+    }
     for classes in by_event.values():
         assert set(classes) == {"MASS", "COUNT"}
 
@@ -102,6 +107,39 @@ def test_real_nodule_with_null_mass_counts_but_contributes_no_mass() -> None:
     assert count["nodule_count"] == 6  # includes the null-mass nodule
     assert mass["nodule_mass_kg"] == pytest.approx(1.485)  # excludes it from the sum
     assert mass["mean_nodule_mass_g"] == pytest.approx(297.0)  # 1485 / 5, NOT / 6
+
+
+# --- D5.4: Broken/Fragment rows each count as ONE nodule (P3) ---------------
+
+
+def test_d5_4_fragment_and_broken_rows_each_count_as_one_whole_nodule() -> None:
+    """D5.4, named explicitly so a regression that starts excluding damaged
+    nodules fails loudly. 231 "Broken" + 93 "Fragment" rows are ~19.7% of the
+    real file's nodules; the decision (2026-07-27) is NO special-casing —
+    each qualifies under C's predicate (mass OR dimensions present) and
+    counts as one nodule, contributing its full recorded mass.
+
+    SO268/2_116-1's fixture rows are Sample 2 (plain, 50g) and Samples 31/47
+    (both Comment "Fragment", 130g and 45g). If Fragments were excluded, the
+    count would be 1 and the mass 0.050kg."""
+    by_event = _records_by_event()
+    mass = by_event["SO268/2_116-1"]["MASS"]
+    count = by_event["SO268/2_116-1"]["COUNT"]
+    assert count["nodule_count"] == 3  # 1 plain + 2 Fragment, none dropped
+    assert mass["nodule_mass_kg"] == pytest.approx(0.225)  # 50 + 130 + 45
+    assert mass["mean_nodule_mass_g"] == pytest.approx(75.0)  # 225 / 3
+
+
+def test_d5_4_broken_row_with_mass_contributes_that_mass() -> None:
+    """The "Broken" half of D5.4: SO268/2_129-1 Sample 4 is Comment "Broken"
+    WITH a recorded 110g mass — it contributes that mass in full (unlike
+    Sample 3, which is Broken with NO mass and so counts without contributing;
+    see test_real_nodule_with_null_mass_counts_but_contributes_no_mass)."""
+    by_event = _records_by_event()
+    mass = by_event["SO268/2_129-1"]["MASS"]
+    # 1.485kg total includes Sample 4's 110g; excluding Broken-with-mass
+    # would give 1.375kg.
+    assert mass["nodule_mass_kg"] == pytest.approx(1.485)
 
 
 # --- D5.1: unweighed sub-5g nodules -----------------------------------------
