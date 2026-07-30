@@ -13,8 +13,16 @@ for the full build plan. The seven frozen contracts live in
 
 ## Status
 
-**Phase 0 (scaffold).** See `docs/contracts/README.md` for the Phase 0
-done-checklist.
+**Phase 1, Track E complete through E1.4.** Phase 0's scaffold + seven
+contracts, real ingestion (E1.1–E1.3: source adapters, per-evidence-class
+normalizers, dedup Specifications, corpus build), and terrain feature
+recipes (E1.4: Contract 3 v3 metre-based windows, the 8 Option-A covariates,
+plot deliverable on the labelled synthetic DEM) are built and reviewed. The
+corpus ([`data/corpus/master_observations.csv`](data/corpus/master_observations.csv))
+holds **108 rows** (36 SO268 box-core events × MASS/COUNT/COVER), **35
+training-eligible MASS rows**, and is **single-source** until Track G
+delivers real Dryad data and the TS-6 digitization. Per-task reviews live in
+[`docs/walkthroughs/`](docs/walkthroughs/).
 
 ## Development
 
