@@ -19,12 +19,12 @@ buys.
 | Pattern | Where | Variation point (what varies / what's fixed) | Earning it? |
 |---|---|---|---|
 | Adapter | [`source_adapter.py:31`](../engine/prospectivity/ingestion/source_adapter.py#L31) + 4 concrete | source file formats vary / master schema fixed | **Yes** — 4 impls |
+| Strategy | [`terrain/source.py:26`](../engine/prospectivity/terrain/source.py#L26) | synthetic DEM vs real GEBCO / recipes unchanged | **Yes, as of 2026-07-29** — now bridged (§3.2) |
 | Strategy | [`normalizer.py:29`](../engine/prospectivity/ingestion/normalizer.py#L29) + 5 concrete | per-evidence-class kg/m² policy varies / call site fixed | **Yes** — 5 impls |
 | Strategy | [`recipe.py:69`](../engine/prospectivity/features/recipe.py#L69) + 8 concrete | terrain math varies / build sequence fixed | **Yes** — 8 impls |
 | Registry | [`normalizer_registry.py:74`](../engine/prospectivity/ingestion/normalizer_registry.py#L74) | which normalizer for a tag / no branching | **Yes** — 5 entries + completeness |
 | Registry | [`registry.py:61`](../engine/prospectivity/features/registry.py#L61) | which recipe for a covariate name | **Yes** — 8 entries + completeness |
-| Specification | [`dedup_rules.py:156`](../engine/prospectivity/ingestion/dedup_rules.py#L156) | dedup predicate varies / pipeline filter fixed | **Partly** — 1 production impl (§3.1) |
-| Specification *combinators* | [`specification.py:44-70`](../engine/prospectivity/ingestion/specification.py#L44) | — | **No** — unused (§3.1) |
+| Specification | [`dedup_rules.py:156`](../engine/prospectivity/ingestion/dedup_rules.py#L156) | dedup predicate varies / pipeline filter fixed | **Yes** — ABC kept; combinators **deleted** (§3.1) |
 | Template Method | [`pipeline.py:69`](../engine/prospectivity/ingestion/pipeline.py#L69) | steps vary / order fixed | **Yes** |
 | Template Method | [`recipe.py:84`](../engine/prospectivity/features/recipe.py#L84) | compute varies / resolve→compute→provenance fixed | **Yes** |
 | Template Method | [`engine.py:94`](../engine/prospectivity/engine.py#L94) | strategies vary / run order fixed | **Not yet** (§3.2) |
@@ -158,34 +158,46 @@ case. Guarded by
 
 ## 3. Reverse audit — indirection NOT earning its keep
 
-### 3.1 Specification combinators are dead ceremony — recommend deleting
+### 3.1 Specification combinators — DELETED 2026-07-29 ✅
 
-[`specification.py:44-73`](../engine/prospectivity/ingestion/specification.py#L44)
-defines `_AndSpecification`, `_OrSpecification`, `_NotSpecification` plus the
-`&`/`|`/`~` operators. **Production composition sites: zero.** The only callers
-are the 3 tests in
-[`test_specification_combinators.py`](../tests/test_specification_combinators.py).
+`_AndSpecification`, `_OrSpecification`, `_NotSpecification` and the `&`/`|`/`~`
+operators are gone, along with `test_specification_combinators.py`. The
+`Specification` ABC stays: the pipeline depends on that interface,
+`dedup_specification` is optional and swappable, and tests inject alternatives.
+Rationale, now recorded in
+[`specification.py`](../engine/prospectivity/ingestion/specification.py)'s own
+docstring so it survives without this file:
 
-The premise was that dedup rules would compose. E1.3 discovered they don't:
-rules 4 and 5 collapsed into a single guard (`_comparable_evidence`), rule 3
-moved into an adapter entirely, and rules 1–2 turned out to be the *same*
-mechanical rule. What shipped is **one** production `Specification`
-(`DuplicateStationSpecification`), and it is stateful — it mutates the corpus on
-match — which is exactly the kind of predicate that must *not* be composed with
-`&`/`|`, since evaluation order would become load-bearing and invisible.
+1. **Nothing composed them.** Phase 0 froze the operators assuming the dedup
+   rules would compose. They didn't: Contract 7's rules 4 and 5 collapsed into a
+   single guard (`_comparable_evidence`), rule 3 moved into an adapter because a
+   many-to-one aggregation isn't a boolean predicate at all, and rules 1–2
+   turned out to be the same mechanical key-match. **Zero production composition
+   sites**; three tests that tested only themselves.
+2. **The shipped Specification is stateful, so composition is unsafe.**
+   `DuplicateStationSpecification.is_satisfied_by()` merges the candidate into
+   the corpus row and returns False (D1/D4). Under `a & b`, short-circuiting
+   would silently decide whether `b`'s merge ran; under `~a`, a False meaning
+   "already merged, don't append" would invert into "append this". Evaluation
+   order would be load-bearing and invisible at the call site — a corpus
+   corruption bug with no symptom.
 
-**Recommendation: delete the three combinator classes, the operators, and their
-test file** (~45 lines + 3 tests). Keep the `Specification` ABC: the pipeline
-depends on that interface, `dedup_specification` is optional and swappable, and
-tests inject alternatives. If a genuinely composable rule appears later,
-reintroducing `&` is a 10-line change — cheaper than the standing invitation to
-compose a stateful predicate incorrectly.
+**This was not theoretical.** Writing the idempotency test that §3.1 motivated
+(item 2 of the same follow-up) found the stateful merge was **not** idempotent:
+a second `is_satisfied_by()` on the same pair re-appended the provenance link,
+and on a `build_corpus()` re-run a row recorded itself as "duplicate of \<its own
+source_record_id\>". Row counts stayed correct throughout, so the length-only
+idempotency test never saw it. Both causes are fixed and guarded
+([`test_dedup_rules.py`](../tests/test_dedup_rules.py) idempotency test,
+[`test_corpus_builder.py:189`](../tests/test_corpus_builder.py#L189) strengthened
+to compare every field). The fragility the combinators would have amplified was
+real and present.
 
 ### 3.2 Five ABCs have zero production implementations
 
 | ABC | Production impls | Status |
 |---|---|---|
-| [`TerrainSource:26`](../engine/prospectivity/terrain/source.py#L26) | **0** | **Actively bypassed** — see below |
+| [`TerrainSource:26`](../engine/prospectivity/terrain/source.py#L26) | 0 | **WIRED 2026-07-29** — no longer bypassed; see below |
 | [`SampleSource:33`](../engine/prospectivity/samples/source.py#L33) | **0** | Consumer arriving Phase 2 |
 | [`Estimator:28`](../engine/prospectivity/estimators/base.py#L28) | 0 | Phase 2 |
 | [`EconomicModel:30`](../engine/prospectivity/economics/model.py#L30) | 0 | Phase 4 |
@@ -195,16 +207,44 @@ All five are Phase-0 pre-declared seams with test-only subclasses. Pre-declaring
 an interface for work that lands in two phases' time is a bet, and it should be
 called what it is. Two need naming individually:
 
-**`TerrainSource` is the real problem — not merely unearned, divergent.** E1.4
-built [`DemGrid.load(path)`](../engine/prospectivity/features/dem_grid.py#L79),
-which reads the DEM directly and *bypasses `TerrainSource` entirely*. So the
-codebase has an interface for "where does the bathymetry come from" whose only
-real consumer doesn't use it, and a `FixtureTerrainSource` whose
-`content_hash="sha256:synthetic-fixture"` placeholder is exactly the kind of
-fake the provenance work exists to eliminate. **Recommendation:** at Checkpoint
-1, either put `DemGrid` behind `TerrainSource` (the honest fix — real GEBCO vs
-synthetic *is* a genuine variation point, arriving now) or delete the ABC. Do not
-leave both.
+**`TerrainSource` — WIRED, not deleted (resolved 2026-07-29).** The finding was
+that E1.4's `DemGrid.load(path)` read the DEM directly, leaving an interface for
+"where does bathymetry come from" whose only real consumer ignored it.
+
+The precise diagnosis matters: **the seam was never absent.**
+`ProspectivityEngine._ingest` already called `terrain_source.load(study_area)`
+and handed the resulting `TerrainLayer` to `feature_builder`. What was missing
+was any way for `features/` to *consume* a layer — so E1.4 went around it. Fixed
+by adding the bridge:
+
+```
+   TerrainSource (STRATEGY)          ┌─ FixtureTerrainSource   (synthetic, today)
+     .load(study_area)  ◄────────────┤
+        │                            └─ GEBCOTerrainSource     (Checkpoint 1)
+        ▼
+   TerrainLayer  ──► DemGrid.from_terrain_layer(layer)  ──► recipes (unchanged)
+                       │  verifies layer.content_hash against the bytes read
+                       └─ from_terrain_source(source, area) = load + bridge
+```
+
+`from_terrain_layer` is the primary form because it matches what the engine
+already produces; `from_terrain_source` is the convenience. Swapping synthetic →
+real GEBCO is now a substitution **at the seam**: change the injected
+`TerrainSource`, change nothing in `DemGrid` and nothing in any recipe.
+
+Two things the bridge also fixed:
+
+- **It verifies the reported hash** against the SHA-256 of the bytes it actually
+  read, so a source that reports a hash it didn't compute fails loudly instead
+  of seeding provenance with a fiction (mutation-verified).
+- **`FixtureTerrainSource`'s `content_hash="sha256:synthetic-fixture"` placeholder
+  is gone**, replaced by a real computed hash — as is the identical placeholder
+  in `FixtureTS6Reference`, fixed in the same pass since leaving one of two
+  identical fakes would just reintroduce the problem at Checkpoint 3. Being
+  synthetic is recorded in the layer's name, never by faking a hash.
+
+`DemGrid.load(path)` remains for direct use (the plot CLI, tests) — it is the
+low-level reader the bridge delegates to, not a competing way in.
 
 **`SampleSource` is a near-miss, not ceremony.** Its concrete
 `get_training_samples()` carries the MASS-only rule, and the rule itself *is*
@@ -233,10 +273,9 @@ slips.
 
 ### 3.4 Absent patterns where a variation point is real *today*
 
-**None in Phase 1.** Every real variation point currently in the code has a seam.
-The genuine gaps are all Phase 2, listed in §4 — and one Phase-1-adjacent item:
-`TerrainSource` (§3.2), where the variation (synthetic → real GEBCO) arrives at
-Checkpoint 1 and the seam exists but is unused rather than missing.
+**None in Phase 1.** Every real variation point currently in the code has a seam,
+and as of 2026-07-29 the one that had a seam it wasn't using (`TerrainSource`,
+§3.2) is wired. The genuine gaps are all Phase 2, listed in §4.
 
 ---
 

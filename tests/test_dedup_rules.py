@@ -473,3 +473,60 @@ def test_provenance_recorded_when_candidate_wins() -> None:
     assert survivor.source_record_id == "src_b_MASS_000001"  # candidate is now the survivor
     assert "src_a_MASS_000001" in survivor.notes
     assert "src_a" in survivor.notes
+
+
+# --- E1.5 follow-up: the stateful Specification must be idempotent ----------
+
+
+def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> None:
+    """`is_satisfied_by` is NOT a pure predicate — on a match it merges the
+    candidate into the corpus row in place (D1/D4). That is exactly the
+    fragility that got the AND/OR/NOT combinators deleted (see
+    specification.py): under composition, evaluation order would decide how
+    many times a merge ran, invisibly.
+
+    So the state transition must be a fixed point. A second identical call
+    must change NOTHING: not the corpus length, not any survivor field, and
+    critically not `notes` — the merge APPENDS its provenance link, so a
+    double-merge would silently duplicate that text (and re-donate fields)
+    while every count-based assertion still passed.
+    """
+    corpus: list[Observation] = []
+    spec = DuplicateStationSpecification(corpus)
+
+    existing = _obs(
+        source_record_id="src_a_MASS_000001",
+        source_id="src_a",
+        evidence_class="MASS",
+        abundance_kg_m2=14.6,
+        quality_grade="A",
+        # deliberately absent, so the merge has a real field to donate:
+        mean_nodule_mass_g=None,
+    )
+    corpus.append(existing)
+
+    duplicate = _obs(
+        source_record_id="src_b_MASS_000001",
+        source_id="src_b",
+        evidence_class="MASS",
+        abundance_kg_m2=14.5,
+        quality_grade="B",  # lower -> existing wins, duplicate is absorbed
+        mean_nodule_mass_g=41.3,
+    )
+
+    assert not spec.is_satisfied_by(duplicate)
+    after_first = corpus[0].model_dump()
+    assert len(corpus) == 1
+    # The merge did happen: the donated field and the provenance link landed.
+    assert after_first["mean_nodule_mass_g"] == 41.3
+    assert after_first["notes"].count("src_b_MASS_000001") == 1
+    assert after_first["notes"].count("merged fields") == 1
+
+    # Second identical call — the fixed-point assertion.
+    assert not spec.is_satisfied_by(duplicate)
+    after_second = corpus[0].model_dump()
+
+    assert len(corpus) == 1
+    assert after_second == after_first  # every field, not just the counts
+    assert after_second["notes"].count("src_b_MASS_000001") == 1  # not 2
+    assert after_second["notes"].count("merged fields") == 1

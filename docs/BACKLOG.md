@@ -13,10 +13,11 @@ docstrings, and review chat. Rules of the file:
 - Every entry cites where the detail lives (`file:line` or walkthrough §) so
   it is verifiable. Do not add entries that trace to nothing.
 
-Last consolidated: 2026-07-29 (through **E1.5 — Phase 1 Track E complete**).
-**30 open items**: §1 Track G 10, §2 Karl 1, §3 Engineering 14, §4 Phase-2
-risks 2, §6 later phases 3. §5 is fully closed. The three new §3 items are
-E1.5 reverse-audit findings — see [PATTERNS.md](PATTERNS.md) §3.
+Last consolidated: 2026-07-29 (through **E1.5 + its follow-ups — Phase 1
+Track E complete**). **28 open items**: §1 Track G 10, §2 Karl 1, §3
+Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+Two of the three E1.5 reverse-audit findings are already closed (combinators
+deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
 ---
 
@@ -151,22 +152,21 @@ E1.5 reverse-audit findings — see [PATTERNS.md](PATTERNS.md) §3.
   in one row; `build_records` supports multiple `EvidenceClassMapping`s but
   no test exercises a two-class source. Owner: E. Trigger: `[19]` wired
   (same batch as the item above). Detail: phase-0-and-E1.1.md:729.
-- [ ] **Delete the unused Specification combinators** (E1.5 reverse audit).
-  `_AndSpecification`/`_OrSpecification`/`_NotSpecification` + the `&`/`|`/`~`
-  operators have **zero production composition sites**; the shipped dedup logic
-  has one Specification, and it is stateful (mutates the corpus on match), so
-  composing it with `&`/`|` would make evaluation order load-bearing and
-  invisible. ~45 lines + 3 tests of ceremony. Keep the ABC. Owner: E. Trigger:
-  any time; low risk. Detail: [PATTERNS.md](PATTERNS.md) §3.1;
-  [specification.py:44](../engine/prospectivity/ingestion/specification.py#L44).
-- [ ] **`TerrainSource` is bypassed, not just unused** (E1.5 reverse audit).
-  `DemGrid.load(path)` reads the DEM directly, so the ABC for "where does
-  bathymetry come from" has zero production implementations and its only real
-  consumer ignores it — while `FixtureTerrainSource` still carries a
-  `content_hash="sha256:synthetic-fixture"` placeholder. Decide at Checkpoint 1:
-  put `DemGrid` behind `TerrainSource` (synthetic → real GEBCO is a genuine
-  variation point arriving now) or delete the ABC. Not both. Owner: E + Karl.
-  Trigger: **Checkpoint 1**. Detail: [PATTERNS.md](PATTERNS.md) §3.2.
+- [x] **Specification combinators deleted** (2026-07-29). Zero production
+  composition sites, and the shipped Specification is stateful so composition
+  would have made evaluation order load-bearing. ABC kept. Writing the
+  idempotency test this motivated **found a real bug**: the merge re-appended
+  provenance links on a repeat call, and a `build_corpus()` re-run made a row
+  record itself as its own duplicate — invisible to the length-only idempotency
+  test. Both fixed and guarded. Detail: [PATTERNS.md](PATTERNS.md) §3.1.
+- [x] **`TerrainSource` wired, not deleted** (2026-07-29). Added
+  `DemGrid.from_terrain_layer()` / `from_terrain_source()` — the seam was never
+  absent (the engine already called `terrain_source.load()`), `features/` just
+  had no way to consume a `TerrainLayer`. The bridge verifies the layer's
+  reported hash against the bytes read, and both
+  `content_hash="sha256:synthetic-fixture"` placeholders (terrain AND ts6) are
+  replaced by real computed hashes. Synthetic → real GEBCO is now a substitution
+  at the seam. Detail: [PATTERNS.md](PATTERNS.md) §3.2.
 - [ ] **`CorpusCsvSampleSource` never implemented.** `SampleSource` has zero
   production subclasses; the MASS-only rule reaches production only via
   `Observation.is_training_eligible()`, and the corpus is read directly. Phase

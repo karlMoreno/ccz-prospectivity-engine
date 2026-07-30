@@ -201,13 +201,37 @@ class DuplicateStationSpecification(Specification):
         if donated_fields:
             link_note += f"; merged fields: {', '.join(sorted(donated_fields))}"
         updates["duplicate_group_id"] = group_id
-        updates["notes"] = f"{survivor.notes}; {link_note}" if survivor.notes else link_note
+        # IDEMPOTENCY (2026-07-29, E1.5 follow-up): only append a provenance
+        # link that isn't already recorded. The gap-fill above is naturally
+        # idempotent (it only ever fills a None), but the notes append was not
+        # — merging the same pair twice duplicated the link text. That was a
+        # real defect, not a hypothetical: build_corpus() documents itself as
+        # safe to re-run against the same corpus, and each re-run grew every
+        # merged row's notes while the row COUNT stayed correct, so the
+        # length-only idempotency test never saw it.
+        already_linked = survivor.notes is not None and (
+            f"duplicate of {dropped.source_record_id}" in survivor.notes
+        )
+        if not already_linked:
+            updates["notes"] = f"{survivor.notes}; {link_note}" if survivor.notes else link_note
         return survivor.model_copy(update=updates)
 
     def is_satisfied_by(self, candidate: Observation) -> bool:
         existing = self._find_duplicate(candidate)
         if existing is None:
             return True
+        # Same RECORD being re-offered, not a duplicate PAIR (2026-07-29, E1.5
+        # follow-up). On a re-run of the same adapter against an
+        # already-populated corpus, a candidate matches the very row it
+        # produced last time. Merging that pair made the row record itself as
+        # "duplicate of <its own source_record_id>" — corrupt provenance, and
+        # invisible to a length-only idempotency check. Nothing to merge here:
+        # the corpus already holds this record.
+        if (
+            candidate.source_id == existing.source_id
+            and candidate.source_record_id == existing.source_record_id
+        ):
+            return False
         if _quality_rank(candidate.quality_grade) > _quality_rank(existing.quality_grade):
             survivor, dropped = candidate, existing
         else:

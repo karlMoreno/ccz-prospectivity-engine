@@ -30,10 +30,16 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import rasterio
 from affine import Affine
+
+if TYPE_CHECKING:  # import-time cycle avoidance only; these are type hints
+    from engine.prospectivity.domain.study_area import StudyArea
+    from engine.prospectivity.domain.terrain import TerrainLayer
+    from engine.prospectivity.terrain.source import TerrainSource
 
 # Spherical approximation: metres per degree of latitude (and of longitude at
 # the equator), WGS84 mean. Documented constant so every physical conversion
@@ -61,6 +67,51 @@ class DemGrid:
     def cell_size_ns_m(self) -> float:
         """The scalar cell size used for metres->cells window resolution."""
         return self.dy_m
+
+    @classmethod
+    def from_terrain_source(
+        cls, terrain_source: "TerrainSource", study_area: "StudyArea"
+    ) -> "DemGrid":
+        """Convenience: run the STRATEGY, then bridge its layer.
+
+        Equivalent to `from_terrain_layer(terrain_source.load(study_area))`.
+        Use this when you hold the source; use `from_terrain_layer` when you
+        already hold the layer — which is what `ProspectivityEngine` does.
+        """
+        return cls.from_terrain_layer(terrain_source.load(study_area))
+
+    @classmethod
+    def from_terrain_layer(cls, layer: "TerrainLayer") -> "DemGrid":
+        """Bridge a TerrainLayer into a DemGrid — the missing link that made
+        E1.4 bypass the TerrainSource seam (fixed 2026-07-29, E1.5 follow-up).
+
+        The seam itself was never absent: `ProspectivityEngine._ingest` already
+        calls `terrain_source.load(study_area)` and hands the resulting
+        TerrainLayer to `feature_builder`. What was missing was any way for
+        `features/` to CONSUME one, so `DemGrid.load(path)` read the raster
+        directly and the interface for "where does the bathymetry come from"
+        had a real consumer that ignored it. With this bridge, Phase 2's
+        feature_builder takes the layer the engine already produced, and
+        synthetic -> real GEBCO becomes a substitution AT the seam
+        (Checkpoint 1): swap the injected TerrainSource, change nothing here
+        and nothing in any recipe.
+
+        The layer's own `content_hash` is verified against the bytes actually
+        read, so a TerrainSource that reports a hash it didn't compute fails
+        loudly rather than seeding provenance with a fiction.
+        """
+        if layer.path is None:
+            raise ValueError(
+                f"TerrainLayer {layer.name!r} has no path; DemGrid needs a readable raster"
+            )
+        grid = cls.load(Path(layer.path))
+        if layer.content_hash is not None and layer.content_hash != grid.content_hash:
+            raise ValueError(
+                f"TerrainLayer.content_hash ({layer.content_hash}) does not match the "
+                f"SHA-256 of the bytes actually read ({grid.content_hash}) — a layer "
+                "must not report a hash it did not compute"
+            )
+        return grid
 
     @classmethod
     def load(cls, path: Path) -> "DemGrid":

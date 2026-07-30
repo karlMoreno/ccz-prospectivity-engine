@@ -15,6 +15,7 @@ from rasterio.transform import from_origin
 from engine.prospectivity.domain.study_area import StudyArea
 from engine.prospectivity.domain.terrain import TerrainLayer
 from engine.prospectivity.domain.ts6 import TS6Surface
+from engine.prospectivity.provenance.contract_versions import file_sha256
 from engine.prospectivity.terrain.source import TerrainSource
 from engine.prospectivity.ts6.reference import TS6Reference
 
@@ -77,6 +78,19 @@ def write_synthetic_ts6_raster(path: Path) -> None:
 
 
 class FixtureTerrainSource(TerrainSource):
+    """Test-only TerrainSource (STRATEGY). The DEM is synthetic, but its
+    content_hash is REAL: computed from the actual file bytes, not the
+    "sha256:synthetic-fixture" placeholder this used to hardcode (removed
+    2026-07-29, E1.5 follow-up).
+
+    Why it matters for a fixture: `DemGrid.from_terrain_source` verifies the
+    layer's reported hash against the bytes it reads, so a placeholder would
+    either have to be special-cased (defeating the check for everyone) or
+    would fail. A fixture that lies about provenance is exactly what the
+    manifest work exists to eliminate — being synthetic is recorded in the
+    layer's own name/notes, never by faking a hash.
+    """
+
     def __init__(self, raster_path: Path) -> None:
         self._raster_path = raster_path
 
@@ -85,11 +99,18 @@ class FixtureTerrainSource(TerrainSource):
             name="bathymetry",
             source_id="src_bathymetry_primary",
             path=str(self._raster_path),
-            content_hash="sha256:synthetic-fixture",
+            content_hash=file_sha256(self._raster_path),
+            resolution_deg=PIXEL_SIZE_DEG,
         )
 
 
 class FixtureTS6Reference(TS6Reference):
+    """Test-only TS6Reference (STRATEGY). Real computed content_hash, same
+    reasoning as FixtureTerrainSource above — this carried the identical
+    "sha256:synthetic-fixture" placeholder and was fixed in the same pass
+    (2026-07-29), since leaving one of two identical fakes in place would just
+    reintroduce the problem at Checkpoint 3."""
+
     def __init__(self, raster_path: Path) -> None:
         self._raster_path = raster_path
 
@@ -99,5 +120,5 @@ class FixtureTS6Reference(TS6Reference):
             source_id="src_ts6_grid",
             raster_path=str(self._raster_path),
             role_note="benchmark_only",
-            content_hash="sha256:synthetic-fixture",
+            content_hash=file_sha256(self._raster_path),
         )

@@ -187,15 +187,24 @@ def test_build_corpus_normalizes_through_the_e12_registry_not_ad_hoc() -> None:
 
 
 def test_idempotency_rerunning_against_the_same_corpus_adds_nothing() -> None:
+    """Strengthened 2026-07-29 (E1.5 follow-up): this test used to compare only
+    the row COUNT and the id list, and it passed while re-runs silently grew
+    every merged row's `notes` — each re-run appending another provenance link,
+    one of them claiming the row was a duplicate of ITSELF. "Adds nothing" now
+    means every field of every row is unchanged, which is what the name always
+    claimed."""
     corpus: list[Observation] = []
     build_corpus(corpus)
-    first_run_len = len(corpus)
-    first_run_ids = sorted(obs.source_record_id for obs in corpus)
+    first_run = [obs.model_dump() for obs in corpus]
 
     build_corpus(corpus)  # same adapters, same shared corpus, run again
+    build_corpus(corpus)  # and again — a fixed point, not just stable once
 
-    assert len(corpus) == first_run_len
-    assert sorted(obs.source_record_id for obs in corpus) == first_run_ids
+    assert len(corpus) == len(first_run)
+    assert sorted(obs.source_record_id for obs in corpus) == sorted(
+        row["source_record_id"] for row in first_run
+    )
+    assert [obs.model_dump() for obs in corpus] == first_run
 
 
 class _SingleRecordAdapter(SourceAdapter):

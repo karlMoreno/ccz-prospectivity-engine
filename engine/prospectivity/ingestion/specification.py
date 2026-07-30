@@ -1,20 +1,42 @@
 """Specification — SPECIFICATION.
 
-Dedup + QA rules (AR-D04: DOMES families dedupe by cruise+station+coords+date
-not DOI; individual nodules nest within box-core events; cover is never merged
-with mass; ...) as small, composable, testable predicates over an Observation,
-rather than one tangled dedup function. Phase 0 defines only the generic
-combinators (`&`, `|`, `~`); the concrete domain rules above are Track G/E's
-Phase 1 job (E1.3) once real duplicate patterns exist to encode.
+One dedup/QA rule per class: a named predicate over an Observation, rather
+than one tangled dedup function. `IngestionPipeline` depends on this interface
+and nothing more, so the dedup policy is swappable (and omittable — the
+pipeline's `dedup_specification` is optional).
 
-    IsDuplicateOf(other) & ~IsNestedNoduleEvent()   # composable via & | ~
     ┌───────────────────────────────┐
     │        Specification (ABC)      │
     │  is_satisfied_by(obs) -> bool    │
-    │  __and__, __or__, __invert__     │  <- combinators, frozen now
     └───────────────────────────────┘
-       ▲                 ▲
-  (Phase 1 concrete specifications: DomesFamilyDuplicate, NestedNoduleEvent, ...)
+                   ▲
+      DuplicateStationSpecification (E1.3, dedup_rules.py)
+
+NO AND/OR/NOT COMBINATORS — removed 2026-07-29 (E1.5 reverse audit), and
+deliberately not coming back without a reason:
+
+1. **Nothing composed them.** Phase 0 froze `&`/`|`/`~` on the assumption that
+   the dedup rules would compose. They didn't: Contract 7's rules 4 and 5
+   collapsed into a single guard (`_comparable_evidence`), rule 3 moved into an
+   adapter (`NoduleAggregateAdapter`) because a many-to-one aggregation isn't a
+   boolean predicate at all, and rules 1 and 2 turned out to be the same
+   mechanical key-match. What shipped is ONE production Specification. The
+   combinators had zero production composition sites and three tests that
+   tested only themselves.
+
+2. **The shipped Specification is STATEFUL, which makes composition unsafe.**
+   `DuplicateStationSpecification.is_satisfied_by()` does not merely answer a
+   question — on a match it MERGES the candidate into the corpus row and
+   returns False (D1/D4). Under `a & b`, short-circuit evaluation would decide
+   whether `b`'s merge happens at all; under `~a`, a False that means "already
+   merged, don't append" would silently become "append this". Evaluation order
+   would be load-bearing and invisible at the call site. Offering the operators
+   is an invitation to a bug that would corrupt the corpus quietly.
+
+If a genuinely stateless, genuinely composable rule appears, reintroducing
+`__and__` is a few lines — cheaper than keeping a trap. Any such rule should
+also be paired with an idempotency test like
+`test_dedup_rules.py::test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent`.
 """
 
 from __future__ import annotations
@@ -25,47 +47,14 @@ from engine.prospectivity.domain.observation import Observation
 
 
 class Specification(ABC):
-    """A composable boolean predicate over an Observation."""
+    """A named boolean predicate over an Observation.
+
+    Implementations MAY be stateful (the one production implementation is), so
+    callers must treat `is_satisfied_by` as potentially side-effecting and call
+    it exactly once per candidate, in a defined order. `IngestionPipeline._dedup`
+    documents that contract at its own call site.
+    """
 
     @abstractmethod
     def is_satisfied_by(self, observation: Observation) -> bool:
         raise NotImplementedError
-
-    def __and__(self, other: "Specification") -> "Specification":
-        return _AndSpecification(self, other)
-
-    def __or__(self, other: "Specification") -> "Specification":
-        return _OrSpecification(self, other)
-
-    def __invert__(self) -> "Specification":
-        return _NotSpecification(self)
-
-
-class _AndSpecification(Specification):
-    def __init__(self, left: Specification, right: Specification) -> None:
-        self._left = left
-        self._right = right
-
-    def is_satisfied_by(self, observation: Observation) -> bool:
-        return self._left.is_satisfied_by(observation) and self._right.is_satisfied_by(
-            observation
-        )
-
-
-class _OrSpecification(Specification):
-    def __init__(self, left: Specification, right: Specification) -> None:
-        self._left = left
-        self._right = right
-
-    def is_satisfied_by(self, observation: Observation) -> bool:
-        return self._left.is_satisfied_by(observation) or self._right.is_satisfied_by(
-            observation
-        )
-
-
-class _NotSpecification(Specification):
-    def __init__(self, wrapped: Specification) -> None:
-        self._wrapped = wrapped
-
-    def is_satisfied_by(self, observation: Observation) -> bool:
-        return not self._wrapped.is_satisfied_by(observation)
