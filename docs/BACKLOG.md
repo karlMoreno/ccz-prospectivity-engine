@@ -42,7 +42,7 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   as fabricated; `_require_production_path()` blocks re-wiring until a real
   file exists under `data/`. Owner: G downloads, E re-wires. Trigger: real
   Dryad file delivered. Detail:
-  [corpus_builder.py:168](../engine/prospectivity/ingestion/corpus_builder.py:168);
+  [corpus_builder.py:168](../engine/prospectivity/ingestion/corpus_builder.py#L168);
   E1.3.md §13.
 - [ ] **Real TS-6 `[18]` digitization (Contract 6).** Same P1b guard as
   `[06]`; `ts6_reference.yaml`'s method/figure/role_note/metrics fields are
@@ -50,14 +50,14 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   single-source until this or `[06]` lands.** One test re-activates itself
   when wired (`test_grid_rows_are_never_flagged_observed`). Owner: G.
   Trigger: Checkpoint 3. Detail:
-  [corpus_builder.py:200](../engine/prospectivity/ingestion/corpus_builder.py:200);
-  [ts6_reference.yaml:51](../data/ts6/ts6_reference.yaml:51)–82; E1.3.md §15.
+  [corpus_builder.py:200](../engine/prospectivity/ingestion/corpus_builder.py#L200);
+  [ts6_reference.yaml:51](../data/ts6/ts6_reference.yaml#L51)–82; E1.3.md §15.
 - [ ] **Real GEBCO bathymetry (G1.1).** Synthetic DEM everywhere until
   Checkpoint 1; `src_bathymetry_primary`'s title/license are `null`. The
   metre-based windows (Contract 3 v3) only resolve unclamped on the real
   DEM. Owner: G. Trigger: Checkpoint 1. Detail:
   [data/bathymetry/README.md](../data/bathymetry/README.md);
-  [source_queue.yaml:205](../data/sources/source_queue.yaml:205), :227.
+  [source_queue.yaml:205](../data/sources/source_queue.yaml#L205), :227.
 - [ ] **Geographic spread over row count.** The corpus is two clusters of
   ~12 km extent separated by ~991 km. When queueing further Phase-A sources,
   prioritise stations BETWEEN the clusters over more stations inside them —
@@ -65,13 +65,13 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   source-queue pass. Detail: review discussion 2026-07-28; cluster geometry
   visible in `outputs/e1.4/covariate_stack_synthetic_dem.png`.
 - [ ] **normalization.yaml geology parameters.** `mean_nodule_mass_g_source`
-  ([normalization.yaml:50](../data/config/normalization.yaml:50)),
+  ([normalization.yaml:50](../data/config/normalization.yaml#L50)),
   `join_tolerance_km` (:86, blocks the GRADE join), and the
   `coordinate_tolerance_deg` tune flag (:101). Owner: G. Trigger: :50/:101
   any time; :86 before `[19]` wiring.
 - [ ] **covariates.yaml geology questions — now in real distances.** The
   physically meaningful neighborhood scale(s) for nodule formation
-  ([covariates.yaml:54](../docs/contracts/covariates.yaml:54), metres/km
+  ([covariates.yaml:54](../docs/contracts/covariates.yaml#L54), metres/km
   since v3, not cells) and absolute depth vs relative relief (:71). Safe
   defaults stand. Owner: G. Trigger: any time before Phase-2 modeling
   hardens. 
@@ -80,13 +80,13 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   on download per the contract's own header. Only `is_open=true` sources may
   enter a published run, so licenses gate publication. Owner: G. Trigger:
   each download. Detail:
-  [source_queue.yaml:42](../data/sources/source_queue.yaml:42)–227 (tagged
+  [source_queue.yaml:42](../data/sources/source_queue.yaml#L42)–227 (tagged
   inline).
 - [ ] **Contract 4 real economics.** `scenarios.yaml` is entirely
   `illustrative_only: true` with `[GEOLOGY — ISAAC]` tags on cutoffs,
   composition, and price sources; the engine watermarks output until
   flipped. Owner: G. Trigger: Checkpoint 4. Detail:
-  [scenarios.yaml:10](../data/economics/scenarios.yaml:10)–78.
+  [scenarios.yaml:10](../data/economics/scenarios.yaml#L10)–78.
 
 ## 2. Decisions needed (Karl)
 
@@ -96,7 +96,7 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   is your source document — left untouched on purpose, twice. Decide: sync
   it, or declare it historical. Owner: Karl. Trigger: next time that file is
   touched. Detail: E1.3.md §5.
-- [ ] **CLAUDE.md contract-path mismatch.** [CLAUDE.md:20](../CLAUDE.md)
+- [ ] **CLAUDE.md contract-path mismatch.** [CLAUDE.md:20](../CLAUDE.md#L20)
   and :170 point at `phase0-contracts-v3/`, which doesn't exist; contracts
   live in `docs/contracts/` + `data/` (canonical) and `Proposals and
   contract V3/Contracts_v3/` (authoring). Flagged at Phase-0 review, still
@@ -133,14 +133,14 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   training-matrix assembly comparing each layer's recorded
   `dem.resolution_deg` would. Owner: E. Trigger: **Phase-2 training-matrix
   task**. Detail:
-  [covariates.yaml:37](../docs/contracts/covariates.yaml:37)–45 (v3
+  [covariates.yaml:37](../docs/contracts/covariates.yaml#L37)–45 (v3
   comment); provenance already carries the resolution.
 - [ ] **Smoothed synthetic DEM.** Current fixture is uncorrelated noise:
   derivative covariates are noise-of-noise and a stencil-axis bug has places
   to hide; a Gaussian-smoothed field makes plots interpretable. Known-value
   plane tests cover correctness — this is diagnostic value only. Owner: E.
   Trigger: any time; cheap. Detail:
-  [rasters.py:65](../tests/fixtures/rasters.py:65).
+  [rasters.py:65](../tests/fixtures/rasters.py#L65).
 - [ ] **Verify D3's GRID `source_id` scoping when `[19]` lands.** A TS-6
   cell and a Washburn cell at the same coordinates must BOTH survive
   (independent compiled products, rule 4). The unit test exists with
@@ -165,8 +165,18 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   divergence is why CI stayed green on a netcdf4 that cannot install on
   arm64. Revisit hash-pinning (uv/pip-tools) before a published run. Owner:
   E. Trigger: pre-publication. Detail:
-  [requirements.lock:1](../requirements.lock)–5;
+  [requirements.lock:1](../requirements.lock#L1)–5;
   phase-0-and-E1.1.md:755.
+- [ ] **Corpus provenance manifest (JSON) — deferred three times.** A stated
+  alpha deliverable (proposal + CLAUDE.md reproducibility rules): a recorder
+  hooked into the pipeline via the OBSERVER pattern (events observed, the
+  Template Method untouched) emitting a JSON manifest that lists every
+  absorbed source, a `training_eligible_count` SEPARATE from rows admitted,
+  rows falling outside the AOI, and the corpus's pairwise-distance structure
+  (the two-cluster geometry Phase 2 inherits). Owner: E. Trigger: **now** —
+  prerequisites P1/P2 are met. Detail: alpha proposal (provenance manifest);
+  CLAUDE.md "Reproducibility rules"; deferred at E1.3, the P1/P2 reviews,
+  and E1.4.
 - [ ] **Dependency versions into the provenance manifest.** The manifest
   claims to pin everything about a run; the dependency lock hash should sit
   alongside contract versions. Owner: E. Trigger: Phase-3 manifest emitter.
@@ -175,7 +185,7 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   — `plot_stack.py` sets Agg itself); install step uses bare `pip` rather
   than `python -m pip`, inconsistent with the README's canonical form.
   Owner: E. Trigger: next CI edit. Detail:
-  [ci.yml:24](../.github/workflows/ci.yml).
+  [ci.yml:24](../.github/workflows/ci.yml#L24).
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
@@ -197,7 +207,7 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
 - [ ] **`[05]` row-count claim.** `source_queue.yaml:92` still says "~9,000
   nodules"; the real file has 1,658 rows / 36 events. Manual correction next
   time the file is touched. Detail:
-  [source_queue.yaml:92](../data/sources/source_queue.yaml:92); E1.3.md §11.
+  [source_queue.yaml:92](../data/sources/source_queue.yaml#L92); E1.3.md §11.
 - [ ] **Physical rationale for the 100 kg/m² ceiling.** `docs/contracts/`
   records only the mechanical rationale (headroom over the 45 screening
   bound); the physical one (~1.7× the ~60 kg/m² close-packed monolayer
@@ -206,12 +216,12 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
 - [ ] **D5.4 has no test and no Fragment fixture.** Broken/Fragment rows
   count as one nodule each; the fixture contains two "Broken" rows but no
   "Fragment" row, and no test asserts the rule by name. Detail:
-  [so268_nodules_sample.csv:34](../tests/fixtures/samples/so268_nodules_sample.csv)
+  [so268_nodules_sample.csv:34](../tests/fixtures/samples/so268_nodules_sample.csv#L34)
   (Broken only); E1.3.md §11 D5.4.
 - [ ] **`[09]`/`[10]` in rule text but not registered.** Dedup rule 1's
   prose references DOMES parents `[09][10]`; `source_queue.yaml` has 13
   entries and neither ID. Register them or amend the rule text. Detail:
-  [normalization.yaml:96](../data/config/normalization.yaml:96); E1.3.md §1.
+  [normalization.yaml:96](../data/config/normalization.yaml#L96); E1.3.md §1.
 - [ ] **5th reconciliation residual, documented not fixed.**
   `SO268/2_205-2`: `[01]` did not add its 16 sub-5g nodules to its published
   count, though 11 other events did include theirs — D5.1's "counts include
@@ -219,26 +229,31 @@ Last consolidated: 2026-07-29 (through E1.4 + dependency hygiene).
   keep visible, not a bug to fix. Detail: E1.3.md §12 D;
   [test_reconciliation.py](../tests/test_reconciliation.py).
 
-## 6. Deferred by design (note, don't schedule)
+## 6. Scheduled for later phases (not blocked — just not yet)
 
 - [ ] **Option-B covariates** (`sediment_type`, `surface_chlorophyll`,
   `ccd_minus_depth`, `bathymetric_regime`) — the TS-6-proven proxies, Phase
   6. Registry + tests actively keep them out until then. Detail:
-  [covariates.yaml:123](../docs/contracts/covariates.yaml:123)–158.
-- [ ] **GRADE station join + `[19]` Washburn.** `join_tolerance_km` is
-  unresolved (§1 above) and no GRADE-carrying source is wired;
-  `GradeNormalizer` passes GRADE rows through unjoined by design. Detail:
-  [normalization.yaml:86](../data/config/normalization.yaml:86);
-  [test_corpus_builder.py:106](../tests/test_corpus_builder.py:106).
+  [covariates.yaml:123](../docs/contracts/covariates.yaml#L123)–158.
 - [ ] **Postgres/PostGIS** — parked until Phase 5; `database/` holds
   `.gitkeep`s only. Detail: phase-0-and-E1.1.md:723.
 - [ ] **Phase B (PDF extraction) and Phase C (targeted requests) source
   tiers** — out of the alpha entirely. Detail: alpha proposal §scope;
   CLAUDE.md scope discipline.
-- [ ] **Window anisotropy (≤~3%).** Metre windows resolve from the N-S cell
-  size; the E-W physical span deviates ≤~3% at study latitudes. Recorded in
-  every layer's provenance (`crs_strategy`), deliberately not corrected.
-  Detail: E1.4.md §6; [recipe.py:52](../engine/prospectivity/features/recipe.py:52).
+
+## 7. Closed decisions, recorded for reference (not open items)
+
+- **Window anisotropy (≤~3%) — accepted, not corrected.** Metre windows
+  resolve from the N-S cell size; the E-W physical span deviates ≤~3% at
+  study latitudes. Recorded in every layer's provenance (`crs_strategy`).
+  Detail: E1.4.md §6;
+  [recipe.py:52](../engine/prospectivity/features/recipe.py#L52).
+- **GRADE pass-through by design.** `GradeNormalizer` passes GRADE rows
+  through unjoined: the station join is corpus-assembly logic, not
+  per-record normalization (E1.2 decision). When the join is built (with
+  `[19]`, once `join_tolerance_km` is resolved — §1), it arrives as a new
+  pipeline stage, not a normalizer change. Detail: E1.2.md §6;
+  [test_corpus_builder.py:106](../tests/test_corpus_builder.py#L106).
 
 ---
 
