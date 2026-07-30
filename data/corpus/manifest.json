@@ -12,7 +12,7 @@
     "min_latitude": 11.8369,
     "min_longitude": -125.929
   },
-  "content_hash": "sha256:883ec431b794a0877c00d63127336f1927798a30c7a9b4acb72ab30c840bdd20",
+  "content_hash": "sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f",
   "contract_versions": {
     "covariates_registry_version": 3,
     "master_observations_schema_version": 4,
@@ -26,7 +26,7 @@
   ],
   "corpus_path": "data/corpus/master_observations.csv",
   "corpus_row_count": 108,
-  "generated_at": "2026-07-30T03:23:06.208990Z",
+  "generated_at": "2026-07-30T03:36:00.905427Z",
   "rows_by_evidence_class": {
     "COUNT": 36,
     "COVER": 36,
@@ -96,7 +96,8 @@
   "sources_absorbed_entirely": [
     "src_so268_nodules"
   ],
-  "spatial_summary": {
+  "spatial_summary_all_rows": {
+    "basis": "all_corpus_rows",
     "cluster_extents": [
       {
         "centroid_latitude": 11.8813,
@@ -124,6 +125,37 @@
       "median": 11.681,
       "min": 0.0248,
       "pairs": 630
+    }
+  },
+  "spatial_summary_training_eligible": {
+    "basis": "training_eligible_rows",
+    "cluster_extents": [
+      {
+        "centroid_latitude": 11.8789,
+        "centroid_longitude": -117.0287,
+        "locations": 21,
+        "max_internal_distance_km": 11.1675
+      },
+      {
+        "centroid_latitude": 14.0695,
+        "centroid_longitude": -125.8957,
+        "locations": 14,
+        "max_internal_distance_km": 12.0222
+      }
+    ],
+    "clusters": 2,
+    "distinct_locations": 35,
+    "linkage_distance_km": 100.0,
+    "pairwise_distance_km": {
+      "largest_gap_between_km": [
+        12.0222,
+        986.0362
+      ],
+      "largest_gap_km": 974.014,
+      "max": 995.997,
+      "median": 11.801,
+      "min": 0.0544,
+      "pairs": 595
     }
   },
   "study_area_containment": {

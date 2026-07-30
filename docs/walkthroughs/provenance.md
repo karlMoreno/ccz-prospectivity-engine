@@ -81,10 +81,14 @@ Then in `data/corpus/manifest.json`: `contributing_sources` lists **two**
 sources; `sources_absorbed_entirely` is `["src_so268_nodules"]`;
 `training_eligible_count` is 35 against `corpus_row_count` 108 with
 `rows_by_qa_status` explaining the gap (3 flagged); `study_area_containment`
-reports 108 of 108 outside; `spatial_summary.pairwise_distance_km` shows
-`largest_gap_km` ≈ 974 between ≈12 km and ≈986 km. Confirm `git diff` on
-`master_observations.csv` is empty — the manifest work must not change the
-corpus.
+reports 108 of 108 outside; and
+`spatial_summary_training_eligible.pairwise_distance_km` shows **595 pairs**
+(C(35,2) — the stations that can actually train) with `largest_gap_km` ≈ 974
+between ≈12 km and ≈986 km. `spatial_summary_all_rows` records the same
+structure over all 36 event locations (630 pairs) so the effect of excluding
+the flagged box core is visible; the conclusion is identical either way.
+Confirm `git diff` on `master_observations.csv` is empty — the manifest work
+must not change the corpus.
 
 ## Deliberately not recorded
 

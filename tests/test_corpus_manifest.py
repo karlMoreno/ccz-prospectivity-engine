@@ -224,19 +224,42 @@ def test_geometry_records_the_aoi_mismatch_and_the_variogram_support_gap() -> No
     assert containment["rows_outside_study_area"] == containment["rows_total"] == 108
     assert containment["fraction_outside"] == 1.0
 
-    summary = manifest.spatial_summary
+    # The decision-relevant block: the stations that can actually TRAIN, so
+    # the pair count must exclude the flagged failed box core.
+    summary = manifest.spatial_summary_training_eligible
+    assert summary["basis"] == "training_eligible_rows"
+    assert summary["distinct_locations"] == 35  # not 36
     assert summary["clusters"] == 2
-    assert summary["distinct_locations"] == 36
     assert summary["linkage_distance_km"] == 100.0
     assert len(summary["cluster_extents"]) == 2
     for extent in summary["cluster_extents"]:
         assert extent["max_internal_distance_km"] < 15.0  # tight clusters
 
     distances = summary["pairwise_distance_km"]
-    assert distances["pairs"] == 630  # 36 choose 2
+    assert distances["pairs"] == 595  # C(35,2), the training-eligible stations
     assert distances["largest_gap_km"] > 900.0
     low, high = distances["largest_gap_between_km"]
     assert low < 15.0 and high > 900.0  # nothing between ~12 km and ~986 km
+
+
+def test_spatial_summary_is_recorded_for_both_row_sets_and_they_differ() -> None:
+    """Both sets recorded so the effect of excluding the flagged box core is
+    visible rather than taken on trust. The CONCLUSION is unchanged between
+    them — still two clusters, still a ~974 km support gap — which is itself
+    worth being able to see."""
+    _, manifest = build_corpus_with_manifest()
+    eligible = manifest.spatial_summary_training_eligible
+    all_rows = manifest.spatial_summary_all_rows
+
+    assert all_rows["basis"] == "all_corpus_rows"
+    assert all_rows["distinct_locations"] == 36
+    assert all_rows["pairwise_distance_km"]["pairs"] == 630  # C(36,2)
+    assert eligible["pairwise_distance_km"]["pairs"] == 595  # C(35,2)
+
+    # Same structural conclusion from either set.
+    assert eligible["clusters"] == all_rows["clusters"] == 2
+    assert eligible["pairwise_distance_km"]["largest_gap_km"] > 900.0
+    assert all_rows["pairwise_distance_km"]["largest_gap_km"] > 900.0
 
 
 def test_manifest_declares_its_contract_versions_and_no_upstream_artifacts() -> None:

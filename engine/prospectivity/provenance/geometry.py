@@ -112,11 +112,23 @@ def _rounded(value: float | None, digits: int = 4) -> float | None:
 
 
 def spatial_summary(
-    observations: list[Observation], linkage_km: float = DEFAULT_LINKAGE_KM
+    observations: list[Observation],
+    linkage_km: float = DEFAULT_LINKAGE_KM,
+    basis: str = "unspecified",
 ) -> dict:
-    """Cluster structure + pairwise-distance distribution. Descriptive only."""
+    """Cluster structure + pairwise-distance distribution. Descriptive only.
+
+    `basis` names the row set this was computed over and is echoed into the
+    result. Required in practice, because the manifest records two of these
+    side by side and a pair count is meaningless without knowing which
+    stations it counted: the variogram question is about the stations that can
+    actually TRAIN, so the training-eligible block is the decision-relevant
+    one (C(35,2) = 595 pairs), while the all-rows block (C(36,2) = 630) also
+    counts the flagged failed box core that will never train.
+    """
     locations = unique_locations(observations)
     summary: dict = {
+        "basis": basis,
         "distinct_locations": len(locations),
         "linkage_distance_km": linkage_km,
     }

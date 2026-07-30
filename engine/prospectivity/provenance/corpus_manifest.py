@@ -124,7 +124,14 @@ class CorpusManifest(ProvenanceArtifact):
     bounding_box_all_rows: dict[str, float] | None = None
     bounding_box_training_eligible: dict[str, float] | None = None
     study_area_containment: dict = Field(default_factory=dict)
-    spatial_summary: dict = Field(default_factory=dict)
+    # Two summaries, same shape, mirroring the bounding_box_* pair above. The
+    # TRAINING-ELIGIBLE one is the decision-relevant block: "can a variogram be
+    # estimated" is a question about the stations that can actually train, so
+    # its pair count must exclude the flagged failed box core. The all-rows
+    # block is kept so the effect of that exclusion is visible rather than
+    # having to be taken on trust.
+    spatial_summary_training_eligible: dict = Field(default_factory=dict)
+    spatial_summary_all_rows: dict = Field(default_factory=dict)
 
 
 def _source_queue_entries() -> dict[str, dict]:
@@ -257,7 +264,10 @@ def build_corpus_manifest(
         bounding_box_all_rows=geometry.bounding_box(corpus),
         bounding_box_training_eligible=geometry.bounding_box(training_eligible),
         study_area_containment=geometry.count_outside_study_area(corpus, STUDY_AREA_PATH),
-        spatial_summary=geometry.spatial_summary(corpus),
+        spatial_summary_training_eligible=geometry.spatial_summary(
+            training_eligible, basis="training_eligible_rows"
+        ),
+        spatial_summary_all_rows=geometry.spatial_summary(corpus, basis="all_corpus_rows"),
     )
     return manifest.finalize()
 
