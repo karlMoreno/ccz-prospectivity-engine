@@ -1,0 +1,138 @@
+{
+  "any_non_commercial_input": true,
+  "bounding_box_all_rows": {
+    "max_latitude": 14.1167,
+    "max_longitude": -117.0112,
+    "min_latitude": 11.8369,
+    "min_longitude": -125.929
+  },
+  "bounding_box_training_eligible": {
+    "max_latitude": 14.1167,
+    "max_longitude": -117.0112,
+    "min_latitude": 11.8369,
+    "min_longitude": -125.929
+  },
+  "content_hash": "sha256:883ec431b794a0877c00d63127336f1927798a30c7a9b4acb72ab30c840bdd20",
+  "contract_versions": {
+    "covariates_registry_version": 3,
+    "master_observations_schema_version": 4,
+    "normalization_policy_version": 1,
+    "study_area_content_hash": "sha256:3f351954624e3fbbad72d1cce7f24a6d1cac99cbd962948aaac0a311a3e44834",
+    "study_area_id": "ccz_alpha_aoi"
+  },
+  "contributing_sources": [
+    "src_so268_boxcore",
+    "src_so268_nodules"
+  ],
+  "corpus_path": "data/corpus/master_observations.csv",
+  "corpus_row_count": 108,
+  "generated_at": "2026-07-30T03:23:06.208990Z",
+  "rows_by_evidence_class": {
+    "COUNT": 36,
+    "COVER": 36,
+    "MASS": 36
+  },
+  "rows_by_qa_status": {
+    "flagged": 3,
+    "pending": 105
+  },
+  "sources": [
+    {
+      "absorbed_by_evidence_class": {},
+      "absorbed_rows": 0,
+      "adapted_records": 108,
+      "admitted_by_evidence_class": {
+        "COUNT": 36,
+        "COVER": 36,
+        "MASS": 36
+      },
+      "admitted_rows": 108,
+      "backed_by": "real_data",
+      "doi": "10.1594/PANGAEA.904967",
+      "fetched_rows": 36,
+      "flagged_admitted_rows": 3,
+      "fully_absorbed": false,
+      "input_content_hash": "sha256:36078e69a22f0413ace0bc7704a076fc4e179bf5416f9ff55a08806a7a1138f0",
+      "input_path": "data/sources/SO268-bc-nodules-summary-PANGAEA-904967.tab",
+      "is_non_commercial": true,
+      "is_open": true,
+      "license": "CC-BY-NC-4.0",
+      "normalized_records": 108,
+      "reconciles": true,
+      "reconciliation_identity": "adapted_records == admitted_rows + absorbed_rows + rejected_rows (admitted counted from the finished corpus, not from append order)",
+      "rejected_rows": 0,
+      "source_id": "src_so268_boxcore",
+      "title": "SO268 box-core nodule summary (BGR & GSR areas)",
+      "url": "https://doi.org/10.1594/PANGAEA.904967"
+    },
+    {
+      "absorbed_by_evidence_class": {
+        "COUNT": 36,
+        "MASS": 36
+      },
+      "absorbed_rows": 72,
+      "adapted_records": 72,
+      "admitted_by_evidence_class": {},
+      "admitted_rows": 0,
+      "backed_by": "real_data",
+      "doi": "10.1594/PANGAEA.904962",
+      "fetched_rows": 1658,
+      "flagged_admitted_rows": 0,
+      "fully_absorbed": true,
+      "input_content_hash": "sha256:af06fbda795f08c9d1f3f069c6874d2c6408750a3c88a9412fdfb1226588d12f",
+      "input_path": "data/sources/SO268-bc-nodules-PANGAEA-904962.tab",
+      "is_non_commercial": true,
+      "is_open": true,
+      "license": "CC-BY-NC-4.0",
+      "normalized_records": 72,
+      "reconciles": true,
+      "reconciliation_identity": "adapted_records == admitted_rows + absorbed_rows + rejected_rows (admitted counted from the finished corpus, not from append order)",
+      "rejected_rows": 0,
+      "source_id": "src_so268_nodules",
+      "title": "SO268 individual nodule measurements (1,658 rows / 36 events)",
+      "url": "https://doi.org/10.1594/PANGAEA.904962"
+    }
+  ],
+  "sources_absorbed_entirely": [
+    "src_so268_nodules"
+  ],
+  "spatial_summary": {
+    "cluster_extents": [
+      {
+        "centroid_latitude": 11.8813,
+        "centroid_longitude": -117.0286,
+        "locations": 22,
+        "max_internal_distance_km": 11.1675
+      },
+      {
+        "centroid_latitude": 14.0695,
+        "centroid_longitude": -125.8957,
+        "locations": 14,
+        "max_internal_distance_km": 12.0222
+      }
+    ],
+    "clusters": 2,
+    "distinct_locations": 36,
+    "linkage_distance_km": 100.0,
+    "pairwise_distance_km": {
+      "largest_gap_between_km": [
+        12.0222,
+        986.0362
+      ],
+      "largest_gap_km": 974.014,
+      "max": 995.997,
+      "median": 11.681,
+      "min": 0.0248,
+      "pairs": 630
+    }
+  },
+  "study_area_containment": {
+    "fraction_outside": 1.0,
+    "note": "Descriptive only. The AOI is a Phase-0 placeholder and defining the real one is an open decision (docs/BACKLOG.md section 1); nothing filters rows on it.",
+    "rows_outside_study_area": 108,
+    "rows_total": 108,
+    "study_area_path": "study_area.geojson"
+  },
+  "training_eligible_count": 35,
+  "upstream_hashes": {}
+}

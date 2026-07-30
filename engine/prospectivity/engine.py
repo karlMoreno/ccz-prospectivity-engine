@@ -136,7 +136,7 @@ class ProspectivityEngine:
     ) -> RunManifest:
         return RunManifest(
             run_id=str(uuid.uuid4()),
-            created_at=datetime.now(UTC),
+            generated_at=datetime.now(UTC),
             seed=self._seed,
             cv_scores=cv_scores,
             ts6_agreement=ts6_agreement,

@@ -13,15 +13,40 @@ module exists so E1.4's rasters/provenance can be produced and reviewed now.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import numpy as np
 import rasterio
+from pydantic import Field
 
 from engine.prospectivity.features._contract import load_covariates_yaml
 from engine.prospectivity.features.dem_grid import DemGrid
 from engine.prospectivity.features.registry import build_default_registry
+from engine.prospectivity.provenance.artifact import ProvenanceArtifact
+from engine.prospectivity.provenance.contract_versions import contract_versions
+
+
+class FeatureStackManifest(ProvenanceArtifact):
+    """The features-stage provenance artifact (docs/contracts/PROVENANCE.md),
+    written as `<stack dir>/provenance.json`.
+
+    Refactored onto ProvenanceArtifact (2026-07-29) WITHOUT changing what it
+    records: `contract`, `registry_version`, `dem` and `layers` are byte-for-
+    byte the same content as the hand-built dict this replaces. The four
+    shared chaining fields are ADDED. `registry_version` is kept at top level
+    (existing readers and tests use it) even though `contract_versions` now
+    also carries it — preserving what was recorded took precedence over
+    de-duplicating it.
+
+    Upstream is the DEM: a raw input rather than an artifact, so its hash is
+    quoted in `upstream_hashes` under "dem" and a model run downstream can
+    prove which terrain its features came from.
+    """
+
+    contract: str
+    registry_version: int
+    dem: dict = Field(default_factory=dict)
+    layers: list[dict] = Field(default_factory=list)
 
 
 def build_covariate_stack(dem_path: Path, output_dir: Path) -> dict[str, Path]:
@@ -52,13 +77,15 @@ def build_covariate_stack(dem_path: Path, output_dir: Path) -> dict[str, Path]:
             dataset.write(result.values.astype(np.float32), 1)
         written[result.name] = layer_path
 
-    provenance = {
-        "contract": "docs/contracts/covariates.yaml",
-        "registry_version": load_covariates_yaml()["registry_version"],
-        "dem": grid.provenance(),
-        "layers": [result.provenance for result in results],
-    }
+    manifest = FeatureStackManifest(
+        contract="docs/contracts/covariates.yaml",
+        registry_version=load_covariates_yaml()["registry_version"],
+        dem=grid.provenance(),
+        layers=[result.provenance for result in results],
+        contract_versions=contract_versions(),
+        upstream_hashes={"dem": grid.content_hash},
+    ).finalize()
     provenance_path = output_dir / "provenance.json"
-    provenance_path.write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n")
+    provenance_path.write_text(manifest.to_json())
     written["provenance"] = provenance_path
     return written

@@ -13,9 +13,10 @@ docstrings, and review chat. Rules of the file:
 - Every entry cites where the detail lives (`file:line` or walkthrough §) so
   it is verifiable. Do not add entries that trace to nothing.
 
-Last consolidated: 2026-07-29 (through E1.4, dependency hygiene, and the P3
-contract-hygiene batch). **30 open items**: §1 Track G 10, §2 Karl 3, §3
-Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+Last consolidated: 2026-07-29 (through E1.4, dependency hygiene, the P3
+contract-hygiene batch, and the provenance-manifest work). **27 open items**:
+§1 Track G 10, §2 Karl 1, §3 Engineering 11, §4 Phase-2 risks 2, §6 later
+phases 3. §5 is fully closed.
 
 ---
 
@@ -92,19 +93,16 @@ Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 
 ## 2. Decisions needed (Karl)
 
-- [ ] **Authoring-copy schema sync.** `Proposals and contract
-  V3/Contracts_v3/master_observations.schema.json` is still v3 with
-  `abundance_kg_m2.maximum: 45` (line 206) while canonical is v4 / 100. It
-  is your source document — left untouched on purpose, twice. Decide: sync
-  it, or declare it historical. Owner: Karl. Trigger: next time that file is
-  touched. Detail: E1.3.md §5.
-- [ ] **`CLAUDE.md` "Current status" is stale.** Still reads "Phase: 0
-  (scaffold) — not yet started. Start here." and warns against jumping to
-  Phase 1, which is complete through E1.4. Every session reads this file
-  first, so it mis-frames the work from the opening line. Left for you: it's
-  your standing-instructions file, and P3's scope was the contract paths (now
-  fixed). Owner: Karl (or E on your say-so). Trigger: any time. Detail:
-  [CLAUDE.md:169](../CLAUDE.md#L169).
+- [x] **Authoring-copy schema — declared HISTORICAL** (Option B, your call
+  2026-07-29). A `$HISTORICAL_ARTIFACT` header now states it is the Phase-0
+  frozen artifact, that `docs/contracts/` is authoritative, and that
+  `abundance_kg_m2.maximum` was later raised 45 → 100 in schema v4 with the
+  rationale in the contracts README. **No field value changed** — preserving
+  what was frozen was the point.
+- [x] **`CLAUDE.md` "Current status" refreshed** (2026-07-29): Phase 1 Track E
+  complete through E1.4, corpus state (108 / 35 / single-source), next task,
+  and a pointer to this file for open items. The stale "do not jump ahead to
+  Phase 1" warning now guards Phase 2 instead.
 - [ ] **Precision/rounding rule for computed `abundance_kg_m2`.**
   Normalizers deliberately don't round (normalization.yaml specifies no
   precision), so full float precision lands in the corpus CSV. Decide
@@ -170,16 +168,14 @@ Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
   E. Trigger: pre-publication. Detail:
   [requirements.lock:1](../requirements.lock#L1)–5;
   phase-0-and-E1.1.md:755.
-- [ ] **Corpus provenance manifest (JSON) — deferred three times.** A stated
-  alpha deliverable (proposal + CLAUDE.md reproducibility rules): a recorder
-  hooked into the pipeline via the OBSERVER pattern (events observed, the
-  Template Method untouched) emitting a JSON manifest that lists every
-  absorbed source, a `training_eligible_count` SEPARATE from rows admitted,
-  rows falling outside the AOI, and the corpus's pairwise-distance structure
-  (the two-cluster geometry Phase 2 inherits). Owner: E. Trigger: **now** —
-  prerequisites P1/P2 are met. Detail: alpha proposal (provenance manifest);
-  CLAUDE.md "Reproducibility rules"; deferred at E1.3, the P1/P2 reviews,
-  and E1.4.
+- [x] **Corpus provenance manifest (JSON)** — built 2026-07-29 after three
+  deferrals. `data/corpus/manifest.json`, populated by a `ProvenanceRecorder`
+  (OBSERVER) on `IngestionPipeline`, with the three-artifact boundary and the
+  chaining rule defined in
+  [docs/contracts/PROVENANCE.md](contracts/PROVENANCE.md). Records absorbed
+  sources (`[05]` now visible), `training_eligible_count` (35) separate from
+  admitted (108), AOI containment (108/108 outside), and the pairwise-distance
+  structure (2 clusters, 974 km support gap).
 - [ ] **Dependency versions into the provenance manifest.** The manifest
   claims to pin everything about a run; the dependency lock hash should sit
   alongside contract versions. Owner: E. Trigger: Phase-3 manifest emitter.
@@ -269,6 +265,14 @@ Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 
 ## Recently closed
 
+- [x] Provenance architecture: three chained artifacts on a shared Layer
+  Supertype base, `docs/contracts/PROVENANCE.md` defining the boundary, and
+  the corpus manifest built on it. The reversed-order test caught a real
+  attribution defect (admitted counted from appends, not from the finished
+  corpus) — fixed before landing.
+- [x] P3 contract hygiene: `[05]` row count, the 100 kg/m² physical rationale,
+  D5.4 Fragment fixture + tests, the `[09]`/`[10]` note, and `CLAUDE.md`'s
+  contract paths — `618488e`.
 - [x] Plot-coverage gap: `plot_stack` smoke tests added (was zero coverage,
   CI green without exercising the deliverable) — `1080e03`.
 - [x] pangaeapy moved to the `[fetch]` extra; netcdf4/cftime orphans

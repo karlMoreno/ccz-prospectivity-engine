@@ -126,6 +126,9 @@ class NoduleAggregateAdapter(SourceAdapter):
         # test supplies a small excerpt's raw text directly instead of
         # reading the real multi-hundred-KB file from disk.
         self._dataset_loader = dataset_loader or (lambda: file_path.read_text())
+        # Public so the provenance manifest can hash the real input file — see
+        # provenance/corpus_manifest.py::_adapter_input_paths.
+        self.input_path = file_path
 
     def fetch(self) -> list[dict[str, Any]]:
         header_text, data_text = split_header_and_data(self._dataset_loader())

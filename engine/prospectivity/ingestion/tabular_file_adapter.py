@@ -40,6 +40,9 @@ class TabularFileAdapter(SourceAdapter):
     ) -> None:
         self.source_id = source_id
         self._file_path = file_path
+        # Public so the provenance manifest can hash the real input file — see
+        # provenance/corpus_manifest.py::_adapter_input_paths.
+        self.input_path = file_path
         self._shared_column_map = shared_column_map
         self._evidence_mappings = evidence_mappings
         self._is_open = is_open

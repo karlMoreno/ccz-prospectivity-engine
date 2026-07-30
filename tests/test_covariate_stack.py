@@ -59,9 +59,22 @@ def test_written_rasters_preserve_georeferencing_and_border_nans(tmp_path: Path)
 
 
 def test_two_independent_builds_are_byte_identical(tmp_path: Path) -> None:
+    """Rasters must be byte-identical. provenance.json is identical EXCEPT
+    `generated_at` (a wall-clock timestamp, added when the sidecar moved onto
+    ProvenanceArtifact) — so this asserts the stronger property instead:
+    `content_hash` is computed over the substance with the timestamp excluded,
+    so two independent builds must produce the SAME hash."""
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
     first = build_covariate_stack(dem_path, tmp_path / "stack_a")
     second = build_covariate_stack(dem_path, tmp_path / "stack_b")
-    for key in first:
-        assert first[key].read_bytes() == second[key].read_bytes(), key
+
+    for name in EXPECTED_LAYERS:
+        assert first[name].read_bytes() == second[name].read_bytes(), name
+
+    first_provenance = json.loads(first["provenance"].read_text())
+    second_provenance = json.loads(second["provenance"].read_text())
+    assert first_provenance["content_hash"] == second_provenance["content_hash"]
+    assert first_provenance.pop("generated_at") != ""  # present
+    second_provenance.pop("generated_at")
+    assert first_provenance == second_provenance

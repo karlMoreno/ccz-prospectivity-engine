@@ -174,13 +174,31 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **0 (scaffold) — not yet started.** Start here.
+- Phase: **1, Track E — complete through E1.4** (as of 2026-07-29). Phase 0's scaffold +
+  seven contracts, real ingestion (E1.1 source adapters, E1.2 normalizers, E1.3 dedup +
+  corpus build, plus the P1/P1b/P2/P3 review batches), and terrain feature recipes (E1.4:
+  Contract 3 v3 metre-based windows, the 8 Option-A covariates, the plot deliverable) are
+  all built and reviewed.
+- **Corpus state:** `data/corpus/master_observations.csv` holds **108 rows** (36 SO268
+  box-core events × MASS/COUNT/COVER), of which **35 are training-eligible**. It is
+  **single-source** (`[01]`+`[05]` merged under `src_so268_boxcore`) until Track G delivers
+  real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
+  because their placeholders were fabricated. `data/corpus/manifest.json` is the build
+  record; see `docs/contracts/PROVENANCE.md`.
+- **Next task:** the provenance manifest work is done for ingestion + features; Phase 2
+  (estimators + spatial CV) is next, and needs a decision on the training target first
+  (buried vs surface abundance — `docs/BACKLOG.md` §1).
+- **Open items live in `docs/BACKLOG.md`** — the single source of truth, grouped by who is
+  blocked. Read it before proposing work; add an entry whenever something is deliberately
+  deferred.
+- Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`,
+  `E1.3.md`, `E1.4.md`). Read the relevant one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;
   if one needs a structural change, bump its `*_version`, tell me, and note it in the
   contracts README.
-- Do **not** jump ahead to Phase 1 (real source adapters) until Phase 0's scaffold +
-  synthetic fixtures + green CI exist and I've reviewed them.
+- Do **not** jump ahead to Phase 2 (estimators, spatial CV) without my go-ahead — the
+  phase-boundary rule above still governs.
 
 
 

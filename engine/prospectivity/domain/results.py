@@ -8,6 +8,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from engine.prospectivity.provenance.artifact import ProvenanceArtifact
+
 
 class PredictionSurface(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -68,15 +70,21 @@ class EconomicScenarioResult(BaseModel):
     minable_area_m2: float | None = None
 
 
-class RunManifest(BaseModel):
-    """Provenance manifest (run + corpus). Phase 0 only needs the shape; the
-    emitter (provenance/) is built in Phase 3.
+class RunManifest(ProvenanceArtifact):
+    """Model-run provenance: the third artifact in docs/contracts/PROVENANCE.md
+    (ingestion -> features -> RUN). Records what one modelling run did; it
+    quotes the corpus and feature-stack hashes it consumed in the inherited
+    `upstream_hashes`, so a prediction traces to exactly one of each.
+
+    Refactored onto ProvenanceArtifact (2026-07-29) WITHOUT changing what it
+    records: every original field survives. The one rename is
+    `created_at` -> the base's `generated_at` — same fact, same value, the
+    name the other two artifacts already use, which is what lets a reader (and
+    the shared-field test) treat all three uniformly. Field VALUES for Phase
+    2-4 are still filled by the emitter; this remains a shape until then.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     run_id: str
-    created_at: datetime
     seed: int
     inputs: dict = Field(default_factory=dict)
     cv_scores: list[CVScore] = Field(default_factory=list)

@@ -59,6 +59,12 @@ from engine.prospectivity.ingestion.pipeline import IngestionPipeline
 from engine.prospectivity.ingestion.regional_grid_adapter import RegionalGridAdapter
 from engine.prospectivity.ingestion.source_adapter import SourceAdapter
 from engine.prospectivity.ingestion.tabular_file_adapter import TabularFileAdapter
+from engine.prospectivity.provenance.corpus_manifest import (
+    CorpusManifest,
+    build_corpus_manifest,
+    write_corpus_manifest,
+)
+from engine.prospectivity.provenance.recorder import PipelineObserver, ProvenanceRecorder
 
 REPO_ROOT = find_repo_root(Path(__file__).resolve())
 SAMPLES_DIR = REPO_ROOT / "tests" / "fixtures" / "samples"
@@ -249,6 +255,7 @@ REAL_ADAPTER_BUILDERS: list[Callable[[], SourceAdapter]] = [
 def build_corpus(
     corpus: list[Observation] | None = None,
     adapter_builders: list[Callable[[], SourceAdapter]] | None = None,
+    observer: PipelineObserver | None = None,
 ) -> list[Observation]:
     """Runs every real adapter's IngestionPipeline against the shared corpus,
     in REAL_ADAPTER_BUILDERS's fixed order by default. Safe to call more than
@@ -262,7 +269,13 @@ def build_corpus(
     exists so test_corpus_builder.py can run the REAL production code path
     with REAL_ADAPTER_BUILDERS reversed, to prove survivorship is actually
     order-independent, rather than re-implementing this loop in the test and
-    risking it drifting from what production really does."""
+    risking it drifting from what production really does.
+
+    `observer` (OBSERVER, provenance/recorder.py) is optional and defaults to
+    nothing being recorded. Pass a ProvenanceRecorder to collect the per-source
+    accounting `build_corpus_with_manifest()` turns into
+    data/corpus/manifest.json. Recording never changes what this function
+    returns — see test_corpus_manifest.py's no-op test."""
     corpus = corpus if corpus is not None else []
     builders = adapter_builders if adapter_builders is not None else REAL_ADAPTER_BUILDERS
     registry = build_default_registry()
@@ -273,8 +286,37 @@ def build_corpus(
             normalizers=registry,
             corpus=corpus,
             dedup_specification=dedup_specification,
+            observer=observer,
         ).run()
     return corpus
+
+
+def build_corpus_with_manifest(
+    adapter_builders: list[Callable[[], SourceAdapter]] | None = None,
+    corpus_path: Path = DEFAULT_OUTPUT_PATH,
+) -> tuple[list[Observation], CorpusManifest]:
+    """build_corpus() + the ingestion-stage provenance artifact.
+
+    Adapters are constructed ONCE here and reused, so the manifest hashes the
+    same input files the build actually read rather than re-deriving them."""
+    builders = adapter_builders if adapter_builders is not None else REAL_ADAPTER_BUILDERS
+    adapters = [build_adapter() for build_adapter in builders]
+    recorder = ProvenanceRecorder()
+    corpus: list[Observation] = []
+    registry = build_default_registry()
+    dedup_specification = DuplicateStationSpecification(corpus)
+    for adapter in adapters:
+        IngestionPipeline(
+            adapter=adapter,
+            normalizers=registry,
+            corpus=corpus,
+            dedup_specification=dedup_specification,
+            observer=recorder,
+        ).run()
+    manifest = build_corpus_manifest(
+        corpus=corpus, recorder=recorder, adapters=adapters, corpus_path=corpus_path
+    )
+    return corpus, manifest
 
 
 def write_corpus_csv(corpus: list[Observation], output_path: Path = DEFAULT_OUTPUT_PATH) -> None:
@@ -292,9 +334,14 @@ def write_corpus_csv(corpus: list[Observation], output_path: Path = DEFAULT_OUTP
 
 
 def main() -> None:
-    corpus = build_corpus()
+    corpus, manifest = build_corpus_with_manifest()
     write_corpus_csv(corpus)
+    write_corpus_manifest(manifest)
     print(f"Wrote {len(corpus)} observations to {DEFAULT_OUTPUT_PATH}")
+    print(
+        f"  {manifest.training_eligible_count} training-eligible; "
+        f"sources: {', '.join(manifest.contributing_sources)}"
+    )
 
 
 if __name__ == "__main__":

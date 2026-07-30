@@ -83,6 +83,10 @@ class BoxcoreSummaryAdapter(PangaeaAdapter):
         # Injection seam (offline tests): a test supplies a small excerpt's
         # raw text directly instead of reading the real file from disk.
         self._raw_text_loader = dataset_loader or (lambda: file_path.read_text())
+        # Public so the provenance manifest can hash the real input file
+        # without adapters needing a reporting method (see
+        # provenance/corpus_manifest.py::_adapter_input_paths).
+        self.input_path = file_path
         self._event_comments: dict[str, str] = {}
         super().__init__(
             source_id=source_id,
