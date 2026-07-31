@@ -162,14 +162,47 @@ def _same_station(a: Observation, b: Observation, tolerance_deg: float) -> bool:
 
 
 class DuplicateStationSpecification(Specification):
-    """DOMES-family / NOAA-PANGAEA-mirror dedup (rules 1 & 2): is `candidate`
-    NOT a duplicate of a station already in `corpus`? `corpus` is a live
-    reference (the same list `IngestionPipeline` appends into), so this
-    Specification's decision — and, when a duplicate is found, its in-place
-    replacement of the corpus slot with a merged survivor (D1/D4) — is
-    visible to every subsequent adapter run against the same corpus, which is
-    what makes re-running an adapter against an already-populated corpus
-    idempotent."""
+    """⚠ THIS CLASS MUTATES THE CORPUS. It is an admission POLICY, not a
+    predicate — read this before calling `is_satisfied_by`.
+
+    On a duplicate match, `is_satisfied_by(candidate)` may:
+
+      - REPLACE the matched corpus row in place, when the candidate outranks it
+        on `quality_grade` (the candidate's values become the survivor's);
+      - MERGE fields from the loser into the survivor — gap-fill only, never
+        overwriting a non-null survivor value (D1);
+      - APPEND to the survivor's `notes` a provenance link naming the absorbed
+        row, and its `duplicate_group_id`;
+      - ESCALATE the survivor's `qa_status` to the more severe of the pair, so
+        a `fail`/`flagged` verdict cannot be erased by dedup (2026-07-30).
+
+    ...and then return **False**, which here means "the corpus slot already
+    holds the final row — do not also append this candidate", NOT "this
+    candidate is uninteresting". Returning False is how the merge is committed.
+
+    `corpus` is a LIVE reference (the same list `IngestionPipeline` appends
+    into), which is what makes the decision visible to every subsequent adapter
+    run against the same corpus.
+
+    THE IDEMPOTENCY GUARDS ARE LOAD-BEARING, NOT DEFENSIVE. Two of them exist,
+    and removing either reintroduces a bug that shipped:
+
+      1. `_merge` refuses to re-append a provenance link already present.
+         Without it, every `build_corpus()` re-run grew each merged row's
+         `notes` (1 link -> 3 after two runs), while the row COUNT stayed
+         correct — so the length-only idempotency test passed throughout.
+      2. `is_satisfied_by` short-circuits when the candidate IS the corpus row
+         (same source_id + source_record_id). Without it, a re-run made a row
+         record itself as "duplicate of <its own source_record_id>".
+
+    Both are covered by tests that fail when the guard is removed
+    (`test_dedup_rules.py`'s idempotency tests, `test_corpus_builder.py`'s
+    strengthened `..._adds_nothing`). They make repeated evaluation SAFE; they
+    do not make it FREE, and they do not make this class a predicate. See
+    docs/PATTERNS.md §3.1 and specification.py's ABC docstring.
+
+    Dedup rules 1 & 2 (DOMES families / NOAA-PANGAEA mirrors) are the domain
+    rules this implements."""
 
     def __init__(self, corpus: list[Observation], tolerance_deg: float | None = None) -> None:
         self._corpus = corpus
@@ -225,18 +258,38 @@ class DuplicateStationSpecification(Specification):
         # encodes). A merge may replace a failed row's VALUES with a better
         # measurement's; it may not discard its VERDICT.
         #
-        # Why escalate rather than let the better record stand: the corpus
-        # cannot currently distinguish "this RECORD is bad" (a corrupt area in
-        # one source's transcription — arguably shouldn't propagate) from
-        # "this STATION's sample is bad" (a failed box-core recovery, D5.3 —
-        # must propagate). The costs are asymmetric: escalating wrongly loses
-        # one training row, visibly and reversibly; not escalating trains the
-        # model on a physically failed sample, silently. Every project rule
-        # points the same way (fail is terminal; flag, never drop).
-        # [GEOLOGY — ISAAC] If a fail/flag can be attributed to the RECORD
-        # rather than the STATION, that distinction belongs in the contract
-        # (e.g. a qa_scope field) and this rule should read it. Until then the
-        # conservative default stands.
+        # WHY ESCALATE — stated honestly, because the obvious justification is
+        # weaker than it looks (sharpened 2026-07-30):
+        #
+        # The motivating case is STATION-level failure: a failed box-core
+        # recovery (D5.3, SO268/1_12-2) taints any record of that station, so
+        # the verdict must propagate. But that case does NOT currently need
+        # this rule — [01] and [05] each detect the "failed" header COMMENT
+        # independently (D8-A), so both sides of the pair already carry
+        # qa_status="flagged" and the escalation is a no-op there. Verified:
+        # SO268/1_12-2 is the only flagged event, flagged on both sides.
+        #
+        # Meanwhile the only fail-GENERATOR that exists in code today is D6
+        # (mass_normalizer.py: sampled_area_m2 <= 0), which is RECORD-level —
+        # one source's corrupt transcription — and it does not fire on either
+        # wired source (both use a static 0.25 m2), so no real corpus row is
+        # "fail" at all right now. Record-level is exactly the case where
+        # escalation is CONSERVATIVE rather than obviously correct: a good
+        # measurement of the same station inherits a fail it did not earn.
+        #
+        # The rule is retained on the asymmetric-cost argument, not on the
+        # station-level case: escalating wrongly loses one training row,
+        # visibly and reversibly; not escalating trains the model on a bad
+        # sample, silently. Given the corpus cannot tell the two apart, assume
+        # the worse one.
+        #
+        # [GEOLOGY — ISAAC] A `qa_scope` field on the observation (record |
+        # station) would let this rule read INTENT instead of assuming the
+        # worst — escalate only station-scoped verdicts, leave record-scoped
+        # ones with the record that earned them. That is a Contract 1 change
+        # (schema version bump) and needs your call on whether the distinction
+        # is reliably determinable at ingest. Until then the conservative
+        # default stands.
         if _qa_severity(dropped.qa_status) > _qa_severity(survivor.qa_status):
             updates["qa_status"] = dropped.qa_status
             link_note += (

@@ -178,12 +178,21 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   never matches the naive one the current adapters produce (`2019-03-06 00:00`)
   even though they denote the same instant — the pair reads as a disagreement
   and the merge refuses to fire. Found 2026-07-30 while writing the fail-row
-  collision test. Not a production defect today (no wired source emits a
-  Z-suffixed timestamp, and `test_reconciliation.py`'s key-format guard pins
-  `[01]`/`[05]` agreement), but the DOMES/NOAA families span eras and formats
-  and will hit it. Normalise to a single tz convention at adapt time, or
-  compare instants rather than objects. Owner: E. Trigger: **before wiring
-  `[02][03][04]` or the NOAA mirrors**. Detail:
+  collision test.
+  **THE FAILURE MODE IS SILENT — this is why it should be fixed rather than
+  deferred again.** Nothing raises. The two rows simply don't match, so both
+  are admitted, and the corpus gains **duplicate stations that look like
+  independent samples**: the row count rises, `training_eligible_count` rises,
+  and the same physical station is weighted twice in any model fitted on it.
+  A missed dedup is indistinguishable from correct behaviour by inspection —
+  only a targeted test, or noticing an implausible station count, would reveal
+  it. Contrast a format error that raises, which is self-reporting.
+  Not a production defect today (no wired source emits a Z-suffixed timestamp,
+  and `test_reconciliation.py`'s key-format guard pins `[01]`/`[05]`
+  agreement), but the DOMES/NOAA families span eras and formats and will hit
+  it. Normalise to a single tz convention at adapt time, or compare instants
+  rather than objects. Owner: E. Trigger: **before wiring `[02][03][04]` or
+  the NOAA mirrors**. Detail:
   [dedup_rules.py](../engine/prospectivity/ingestion/dedup_rules.py)
   `_same_station`; `test_corpus_builder.py` collision test's own comment.
 - [ ] **Intra-batch duplicate detection.** `DuplicateStationSpecification`

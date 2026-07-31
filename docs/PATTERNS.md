@@ -24,7 +24,7 @@ buys.
 | Strategy | [`recipe.py:69`](../engine/prospectivity/features/recipe.py#L69) + 8 concrete | terrain math varies / build sequence fixed | **Yes** — 8 impls |
 | Registry | [`normalizer_registry.py:74`](../engine/prospectivity/ingestion/normalizer_registry.py#L74) | which normalizer for a tag / no branching | **Yes** — 5 entries + completeness |
 | Registry | [`registry.py:61`](../engine/prospectivity/features/registry.py#L61) | which recipe for a covariate name | **Yes** — 8 entries + completeness |
-| Specification | [`dedup_rules.py:156`](../engine/prospectivity/ingestion/dedup_rules.py#L156) | dedup predicate varies / pipeline filter fixed | **Yes** — ABC kept; combinators **deleted** (§3.1) |
+| Specification | [`dedup_rules.py:156`](../engine/prospectivity/ingestion/dedup_rules.py#L156) | dedup policy varies / pipeline filter fixed | **Partly** — neither "composable" nor "predicate" held (§3.0); combinators **deleted** (§3.1) |
 | Template Method | [`pipeline.py:69`](../engine/prospectivity/ingestion/pipeline.py#L69) | steps vary / order fixed | **Yes** |
 | Template Method | [`recipe.py:84`](../engine/prospectivity/features/recipe.py#L84) | compute varies / resolve→compute→provenance fixed | **Yes** |
 | Template Method | [`engine.py:94`](../engine/prospectivity/engine.py#L94) | strategies vary / run order fixed | **Not yet** (§3.2) |
@@ -157,6 +157,50 @@ case. Guarded by
 ---
 
 ## 3. Reverse audit — indirection NOT earning its keep
+
+### 3.0 Specification: **neither half of the original justification held**
+
+The Phase-1 cheat sheet justified this pattern as *"composable, named
+predicates."* Both halves have now failed, and it is worth stating together
+because the pair is the finding — a pattern adopted for two reasons, neither of
+which survived contact with the real dedup rules.
+
+| Claimed | Actual |
+|---|---|
+| **Composable** (`&`/`|`/`~`) | Zero production composition sites. Combinators deleted, §3.1. |
+| **Predicate** — pure, side-effect free, safe to evaluate any number of times | **A mutating admission policy.** `is_satisfied_by()` reads the corpus and, on a match, replaces a row in place, merges fields into the survivor, appends a provenance note, escalates `qa_status` — then returns `False` to *commit* that, meaning "don't also append", not "no". |
+
+**This is not academic — it produced a bug directly.** Two calls to something
+named `is_satisfied_by` were assumed to be free, because that is what the name
+and the pattern both promise. E1.5 found the consequence: the provenance note
+was re-appended on the second call, and on a `build_corpus()` re-run a row
+recorded itself as *its own duplicate*. Row counts stayed correct the whole
+time, so the length-only idempotency test never saw it. The advertised contract
+and the actual contract diverged, and the gap was where the defect lived.
+
+**The guards make it safe; they do not make it legible.** Two idempotency
+guards now exist (`_merge` won't re-append a known link; `is_satisfied_by`
+short-circuits a same-record re-offer), both mutation-verified. Repeated
+evaluation is now harmless. But a reader still meets a method named
+`is_satisfied_by` returning a `bool`, with no signal at the call site that
+calling it *rewrote the corpus* — the safety lives in two guards and three
+docstrings rather than in the shape of the code. Documentation records the
+divergence; it does not remove the trap.
+
+Where this is written down, so it survives without this file:
+[`specification.py`](../engine/prospectivity/ingestion/specification.py)'s ABC
+docstring (no future implementer may assume purity; a mutating implementation
+needs a paired idempotency test) and
+[`dedup_rules.py`](../engine/prospectivity/ingestion/dedup_rules.py)'s class
+docstring (what it may remove, merge, append, and escalate — stated first).
+
+> **Assessment for a reviewer:** adopting Specification here was a reasonable
+> Phase-0 bet on rules that turned out to be neither composable nor pure. The
+> honest conclusion is that the dedup rule is an *admission policy*, and the
+> pattern's name is now the least accurate thing about it. Whether to restructure
+> — rename the method, or retire the pattern here for an explicit policy object
+> returning a decision the pipeline applies — is an open decision, not a
+> settled one.
 
 ### 3.1 Specification combinators — DELETED 2026-07-29 ✅
 

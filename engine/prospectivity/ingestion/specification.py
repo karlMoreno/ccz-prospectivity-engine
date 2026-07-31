@@ -47,12 +47,40 @@ from engine.prospectivity.domain.observation import Observation
 
 
 class Specification(ABC):
-    """A named boolean predicate over an Observation.
+    """A named admission rule over an Observation.
 
-    Implementations MAY be stateful (the one production implementation is), so
-    callers must treat `is_satisfied_by` as potentially side-effecting and call
-    it exactly once per candidate, in a defined order. `IngestionPipeline._dedup`
-    documents that contract at its own call site.
+    ⚠ NOT A PURE PREDICATE, despite the name and despite the canonical pattern.
+    In the textbook Specification, `is_satisfied_by` is side-effect free and
+    safe to evaluate any number of times, in any order. **That is false here.**
+    The one shipped implementation (`DuplicateStationSpecification`) READS the
+    corpus and, on a match, MUTATES it — replacing a row in place with a merged
+    survivor and appending a provenance note — then returns False to mean "do
+    not also append this", not "this candidate is uninteresting".
+
+    So a caller must treat `is_satisfied_by` as potentially side-effecting:
+    call it exactly once per candidate, in a defined order.
+    `IngestionPipeline._dedup` documents that contract at its own call site.
+
+    THIS IS NOT A THEORETICAL CAUTION. Two calls to something named
+    `is_satisfied_by` were assumed to be free, and that assumption produced a
+    real bug (E1.5, 2026-07-29): the provenance note was re-appended on the
+    second call, and on a `build_corpus()` re-run a row ended up recording
+    itself as its own duplicate. Row counts stayed correct throughout, so the
+    length-only idempotency test never saw it.
+
+    REQUIREMENTS FOR ANY NEW IMPLEMENTATION:
+
+    - If it is pure, say so in its docstring — that is the exception here, not
+      the assumption, and it is worth stating.
+    - If it mutates, it MUST ship with a paired idempotency test asserting that
+      a second identical call changes nothing: not the corpus length, not any
+      surviving field, and not `notes` (the field that actually broke — an
+      append is the easiest thing to make non-idempotent and the hardest to
+      notice, because every count-based assertion still passes).
+
+    See docs/PATTERNS.md §3.1 for why the AND/OR/NOT combinators were deleted
+    rather than kept: composing a mutating rule with `&`/`|` would make
+    evaluation order decide how many times a merge ran, invisibly.
     """
 
     @abstractmethod
