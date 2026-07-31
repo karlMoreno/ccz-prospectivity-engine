@@ -1,0 +1,94 @@
+---
+title: "From published source to corpus to model — with today's real numbers"
+---
+flowchart TB
+    classDef real fill:#d7f5dd,stroke:#1b7f3b,stroke-width:2px,color:#06280f
+    classDef unwired fill:#fde2e2,stroke:#b3261e,stroke-width:3px,color:#3b0a06
+    classDef synth fill:#fff3d6,stroke:#a8781f,stroke-width:2px,color:#3d2a04
+    classDef stage fill:#e3ecfb,stroke:#2b5fa8,color:#0b1f3d
+    classDef prov fill:#efe6fa,stroke:#6b3fa0,color:#22103d
+    classDef future fill:#f4f4f5,stroke:#8a8a8f,stroke-dasharray:5 4,color:#1c1c1e
+
+    subgraph SRC["PUBLISHED SOURCES — 13 in the queue, 2 wired"]
+        direction TB
+        S01["01 SO268 box-core summary<br/>WIRED — 36 rows fetched"]:::real
+        S05["05 SO268 individual nodules<br/>WIRED — 1658 rows fetched"]:::real
+        S06["06 Dryad chamber<br/>UNWIRED — placeholder was fabricated"]:::unwired
+        S18["18 TS-6 grid<br/>UNWIRED — placeholder was fabricated"]:::unwired
+        S19["19 Washburn grid<br/>NOT YET — GRADE join unresolved"]:::unwired
+    end
+
+    S01 --> AD["adapters<br/>one per source family"]:::stage
+    S05 --> AD
+    AD --> ADAPTED["108 + 72 records<br/>after fan-out and aggregation"]:::stage
+    ADAPTED --> NORM["normalization<br/>per evidence class"]:::stage
+    NORM --> DEDUP["deduplication<br/>same station, different source"]:::stage
+    DEDUP --> CORPUS["MASTER CORPUS — 108 rows<br/>36 MASS, 36 COUNT, 36 COVER"]:::real
+    CORPUS --> ELIG["35 training-eligible<br/>3 rows flagged, kept not dropped"]:::real
+
+    NOTE05["05's 72 records merged into 01<br/>absorbed, not lost"]:::stage
+    DEDUP --- NOTE05
+
+    DEM["synthetic DEM<br/>real GEBCO at Checkpoint 1"]:::synth
+    DEM --> COV["8 Option-A covariates<br/>depth, slope, aspect, roughness,<br/>2 curvatures, TPI, BPI"]:::stage
+
+    ELIG --> PH2
+    COV --> PH2
+
+    subgraph PH2["PHASE 2 ONWARDS — not built yet"]
+        direction TB
+        MODEL["model: kriging, random forest,<br/>mean baseline always alongside"]:::future
+        SURF["prediction surface<br/>always paired with uncertainty"]:::future
+        ECON["economic minability layer"]:::future
+        TS6["compare to TS-6 benchmark"]:::future
+        MODEL --> SURF --> ECON
+        SURF --> TS6
+    end
+
+    S18 -.->|"when digitized"| TS6
+
+    subgraph PROV["PROVENANCE — each artifact quotes the one upstream"]
+        direction LR
+        P1["corpus manifest.json<br/>ingestion"]:::prov
+        P2["stack provenance.json<br/>features"]:::prov
+        P3["run manifest<br/>Phase 2"]:::prov
+        P1 -->|"content hash"| P3
+        P2 -->|"content hash"| P3
+    end
+
+    CORPUS -.-> P1
+    COV -.-> P2
+    MODEL -.-> P3
+
+    LEGEND["LEGEND — green real data | red unwired | amber synthetic | grey not built yet"]:::future
+
+%% ---------------------------------------------------------------------------
+%% CAPTION
+%%
+%% What this shows: the whole pipeline, from published datasets on the left to
+%% a prediction surface on the right, annotated with what is actually true
+%% today rather than what is planned.
+%%
+%% Two of the thirteen queued sources are wired. Source 01 contributes 36
+%% box-core rows that fan out into 108 records (one per evidence class);
+%% source 05 contributes 1,658 individual nodule measurements that aggregate
+%% DOWN to 72 event-level records. Deduplication then recognises that both
+%% describe the same 36 box-core events and merges 05's records into 01's --
+%% which is why the finished corpus is 108 rows from what looks like two
+%% sources. Source 05 is not lost: its mean-nodule-mass values survive inside
+%% the merged rows, and the manifest still lists it as a contributing source.
+%%
+%% Three sources are deliberately not wired. 06 and 18 were removed because
+%% their stand-in files were fabricated placeholders, and a fabricated row has
+%% no place in a citable corpus. 19 is queued but waits on the GRADE join
+%% parameter. The corpus is single-source until Isaac delivers.
+%%
+%% Why it matters: the 108 and the 35 are different numbers and both are
+%% correct. 108 rows are in the corpus; only 35 can train a model, because
+%% only MASS rows with a valid abundance and a clean quality status qualify.
+%% Anything that changes either number should be visible here.
+%%
+%% Every number above is read from data/corpus/manifest.json.
+%% Drawn 2026-07-31, manifest
+%% content_hash sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f
+%% ---------------------------------------------------------------------------

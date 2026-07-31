@@ -1,0 +1,67 @@
+---
+title: "Evidence classes — what each kind of observation may become"
+---
+flowchart TD
+    classDef trains fill:#d7f5dd,stroke:#1b7f3b,stroke-width:3px,color:#06280f
+    classDef hard fill:#fde2e2,stroke:#b3261e,stroke-width:3px,color:#3b0a06
+    classDef support fill:#e3ecfb,stroke:#2b5fa8,color:#0b1f3d
+    classDef gate fill:#fff3d6,stroke:#a8781f,color:#3d2a04
+    classDef plain fill:#f4f4f5,stroke:#8a8a8f,color:#1c1c1e
+
+    OBS["Every ingested row<br/>carries exactly one class"]:::plain
+
+    OBS --> MASS["MASS<br/>recovered nodule mass"]:::trains
+    OBS --> COUNT["COUNT<br/>nodules per square metre"]:::support
+    OBS --> COVER["COVER<br/>percent seafloor covered"]:::hard
+    OBS --> GRID["GRID<br/>compiled regional surface"]:::support
+    OBS --> GRADE["GRADE<br/>Mn Ni Cu Co percent"]:::support
+
+    MASS --> KG["abundance_kg_m2<br/>the training value"]:::trains
+    COUNT -->|"only with a recorded<br/>mean nodule mass"| KG
+    COVER --> COVONLY["covariate only<br/>never a mass value"]:::hard
+    GRID --> BENCH["prior and TS-6 benchmark<br/>never a training station"]:::support
+    GRADE --> ECON["joins to a station<br/>feeds metals and economics"]:::support
+
+    NEVER{{"HARD RULE<br/>cover never becomes kg_m2<br/>enforced in code, not just docs"}}:::hard
+    COVONLY -.-> NEVER
+
+    KG --> SCREEN["screening bounds<br/>0 to 45 kg_m2"]:::gate
+    SCREEN -->|"in range"| QA
+    SCREEN -->|"out of range<br/>flagged, never dropped"| QA["qa_status<br/>pending / pass / flagged / fail"]:::gate
+
+    QA -->|"pending or pass"| TRAIN["TRAINS THE MODEL<br/>35 of 36 MASS rows"]:::trains
+    QA -->|"flagged or fail"| KEPT["kept in the corpus<br/>excluded from training"]:::gate
+
+    BENCH --> COMPARE["Phase 4<br/>compare model to TS-6"]:::plain
+    COVONLY --> FEAT["Phase 2<br/>model input alongside terrain"]:::plain
+    ECON --> ECONL["Phase 4<br/>economic layer"]:::plain
+
+    LEGEND["LEGEND — green trains the model | red hard rule | blue supporting evidence | amber quality gate"]:::plain
+
+%% ---------------------------------------------------------------------------
+%% CAPTION
+%%
+%% What this shows: the five kinds of evidence this project accepts, and the
+%% one path each is allowed to take. Only MASS becomes the number the model
+%% learns from. COUNT can become that number ONLY when a real mean nodule mass
+%% was recorded with the sample — otherwise it stays a count. COVER is the
+%% strict one: a percent-cover reading is never turned into kg per square
+%% metre, because doing so would invent a mass nobody measured. GRID surfaces
+%% (TS-6, Washburn) are used to CHECK the model, never to train it, which is
+%% what keeps the final benchmark comparison honest. GRADE carries the metal
+%% chemistry and joins onto a station.
+%%
+%% Why it matters: these rules are the project's scientific backbone, and they
+%% are enforced by code and tests rather than by convention — a COVER row that
+%% carried an abundance value would fail validation and stop the build. The
+%% screening step flags implausible values but never deletes them: nothing
+%% disappears silently, and a flagged row stays in the corpus for audit while
+%% being kept out of training.
+%%
+%% Numbers on this diagram: 36 MASS rows, of which 35 are training-eligible
+%% (one box core, SO268/1_12-2, was flagged as a failed recovery). Screening
+%% bounds 0-45 kg_m2 come from data/config/normalization.yaml.
+%%
+%% Drawn 2026-07-31 from data/corpus/manifest.json
+%% content_hash sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f
+%% ---------------------------------------------------------------------------

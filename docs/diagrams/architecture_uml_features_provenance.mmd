@@ -1,0 +1,138 @@
+---
+title: "Phase 1 architecture, part 2 of 2 — features and provenance"
+---
+classDiagram
+    direction TB
+
+    class TerrainSource {
+        <<abstract, Strategy>>
+        +load(study_area) TerrainLayer
+    }
+    class FixtureTerrainSource
+    class GEBCOTerrainSource {
+        <<Checkpoint 1>>
+    }
+    note for TerrainSource "STRATEGY - synthetic today, real GEBCO at Checkpoint 1, swapped without touching a recipe"
+
+    TerrainSource <|-- FixtureTerrainSource
+    TerrainSource <|.. GEBCOTerrainSource
+
+    class TerrainLayer {
+        +path
+        +content_hash
+    }
+    class DemGrid {
+        +values
+        +dx_m_per_row
+        +dy_m
+        +from_terrain_layer(layer)
+        +load(path)
+    }
+    note for DemGrid "the ONE home of the CRS decision - degrees to metres, scaled per row of latitude"
+
+    TerrainSource --> TerrainLayer : produces
+    TerrainLayer --> DemGrid : bridged by from_terrain_layer
+
+    class CovariateRecipe {
+        <<abstract, Strategy + Template Method>>
+        +RECIPE_VERSION
+        +build(grid) CovariateResult
+        -_resolve_windows()
+        -_compute()
+    }
+    note for CovariateRecipe "TEMPLATE METHOD - resolve windows, compute, attach provenance. No recipe can skip the provenance step"
+
+    class DepthRecipe
+    class HornSlopeRecipe
+    class BpiRecipe
+    note for BpiRecipe "8 recipes in total - depth, slope, aspect, roughness, profile and plan curvature, TPI, BPI"
+
+    CovariateRecipe <|-- DepthRecipe
+    CovariateRecipe <|-- HornSlopeRecipe
+    CovariateRecipe <|-- BpiRecipe
+
+    class CovariateRegistry {
+        <<Registry>>
+        +build(name, grid)
+        +build_all(grid)
+    }
+    note for CovariateRegistry "REGISTRY - refuses to build if the contract's recipe_version disagrees with the code"
+
+    CovariateRegistry o-- CovariateRecipe
+    CovariateRegistry --> DemGrid : reads
+
+    class PipelineObserver {
+        <<abstract, Observer>>
+        +on_fetched()
+        +on_adapted()
+        +on_resolved()
+        +on_admitted()
+    }
+    class NullObserver {
+        <<Null Object, default>>
+    }
+    class ProvenanceRecorder {
+        +sources()
+    }
+    note for PipelineObserver "OBSERVER - the pipeline reports without owning reporting. Recording never changes a decision"
+    note for NullObserver "NULL OBJECT - the default, so an unobserved pipeline needs no conditionals"
+
+    PipelineObserver <|-- NullObserver
+    PipelineObserver <|-- ProvenanceRecorder
+
+    class ProvenanceArtifact {
+        <<Layer Supertype>>
+        +generated_at
+        +content_hash
+        +contract_versions
+        +upstream_hashes
+        +finalize()
+    }
+    class CorpusManifest {
+        +training_eligible_count
+        +contributing_sources
+    }
+    class FeatureStackManifest {
+        +layers
+        +registry_version
+    }
+    class RunManifest {
+        <<Phase 2>>
+        +seed
+        +cv_scores
+    }
+    note for ProvenanceArtifact "LAYER SUPERTYPE - one set of chaining fields, identically named, so a prediction traces back to exactly one corpus"
+
+    ProvenanceArtifact <|-- CorpusManifest
+    ProvenanceArtifact <|-- FeatureStackManifest
+    ProvenanceArtifact <|-- RunManifest
+
+    ProvenanceRecorder --> CorpusManifest : feeds
+    CovariateRegistry --> FeatureStackManifest : feeds
+    CorpusManifest --> RunManifest : upstream hash
+    FeatureStackManifest --> RunManifest : upstream hash
+
+%% ---------------------------------------------------------------------------
+%% CAPTION
+%%
+%% What this shows: the features and provenance half of the engine. Split from
+%% part 1 because roughly thirty classes in one diagram is unreadable, and the
+%% brief prefers two legible diagrams over one dense one.
+%%
+%% Three things worth a reviewer's attention. First, TerrainSource is a real
+%% seam that is actually used: DemGrid consumes a TerrainLayer, so swapping the
+%% synthetic DEM for real GEBCO at Checkpoint 1 changes one injected object and
+%% nothing else. Second, CovariateRecipe is a Template Method precisely so that
+%% provenance cannot be forgotten -- every recipe records its version, the
+%% window it was asked for, the window it actually resolved to, and the border
+%% policy. Third, the three provenance artifacts share a base class so that the
+%% chaining fields have identical names, which is what lets a future prediction
+%% be traced back to exactly one corpus and one feature stack by machine rather
+%% than by convention.
+%%
+%% GEBCOTerrainSource is drawn with a dashed line because it does not exist
+%% yet - it is what Checkpoint 1 adds.
+%%
+%% Drawn 2026-07-31 from data/corpus/manifest.json
+%% content_hash sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f
+%% ---------------------------------------------------------------------------

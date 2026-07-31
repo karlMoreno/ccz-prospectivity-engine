@@ -1,0 +1,140 @@
+---
+title: "Phase 1 architecture, part 1 of 2 — ingestion"
+---
+classDiagram
+    direction TB
+
+    class IngestionPipeline {
+        <<Template Method>>
+        +run()
+        -_fetch()
+        -_adapt()
+        -_normalize()
+        -_validate()
+        -_dedup()
+        -_append()
+    }
+    note for IngestionPipeline "TEMPLATE METHOD - the step ORDER is fixed, every step is injected"
+
+    class SourceAdapter {
+        <<abstract>>
+        +source_id
+        +fetch()
+        +adapt()
+    }
+    class PangaeaAdapter
+    class BoxcoreSummaryAdapter
+    class NoduleAggregateAdapter
+    class TabularFileAdapter
+    class RegionalGridAdapter
+    note for SourceAdapter "ADAPTER - one class per source FAMILY, not per source"
+
+    SourceAdapter <|-- PangaeaAdapter
+    SourceAdapter <|-- TabularFileAdapter
+    SourceAdapter <|-- RegionalGridAdapter
+    SourceAdapter <|-- NoduleAggregateAdapter
+    PangaeaAdapter <|-- BoxcoreSummaryAdapter
+
+    class AbundanceNormalizer {
+        <<abstract>>
+        +normalize(record)
+    }
+    class MassNormalizer
+    class CountNormalizer
+    class CoverNormalizer
+    class GridNormalizer
+    class GradeNormalizer
+    note for AbundanceNormalizer "STRATEGY - one interchangeable rule per evidence class"
+    note for CoverNormalizer "the hard rule lives here - never sets abundance_kg_m2"
+
+    AbundanceNormalizer <|-- MassNormalizer
+    AbundanceNormalizer <|-- CountNormalizer
+    AbundanceNormalizer <|-- CoverNormalizer
+    AbundanceNormalizer <|-- GridNormalizer
+    AbundanceNormalizer <|-- GradeNormalizer
+
+    class NormalizerRegistry {
+        <<Registry>>
+        +register(evidence_class, normalizer)
+        +normalize(record)
+        +assert_complete()
+    }
+    note for NormalizerRegistry "REGISTRY - selection is data-driven, and assert_complete makes a forgotten class fail loudly"
+
+    NormalizerRegistry o-- AbundanceNormalizer
+
+    class DuplicateResolutionPolicy {
+        <<policy, pure>>
+        +resolve(candidate) Resolution
+    }
+    note for DuplicateResolutionPolicy "PURE - it decides and returns; the pipeline applies. Replaced a Specification that decided and mutated in one call"
+
+    class Resolution {
+        <<sealed base>>
+    }
+    class Admit {
+        +candidate
+    }
+    class AlreadyPresent {
+        +candidate
+        +existing
+    }
+    class AbsorbInto {
+        +merged
+        +donated_fields
+        +note
+        +escalated_status
+    }
+    class Replace {
+        +merged
+        +donated_fields
+        +note
+        +escalated_status
+    }
+    note for Resolution "VALUE OBJECT - names what should happen, so nothing is hidden behind a bool"
+
+    Resolution <|-- Admit
+    Resolution <|-- AlreadyPresent
+    Resolution <|-- AbsorbInto
+    Resolution <|-- Replace
+
+    class Observation {
+        <<domain type>>
+        +evidence_class
+        +abundance_kg_m2
+        +qa_status
+        +is_training_eligible()
+    }
+    note for Observation "enforces the evidence-class rules at construction - a COVER row with a mass value cannot be built"
+
+    IngestionPipeline --> SourceAdapter : fetch and adapt
+    IngestionPipeline --> NormalizerRegistry : normalize
+    IngestionPipeline --> Observation : validate
+    IngestionPipeline --> DuplicateResolutionPolicy : resolve
+    DuplicateResolutionPolicy ..> Resolution : returns
+    IngestionPipeline ..> Resolution : applies
+
+%% ---------------------------------------------------------------------------
+%% CAPTION
+%%
+%% What this shows: the ingestion half of the engine, with the design pattern
+%% each cluster implements. Audience is a reviewer, not Isaac.
+%%
+%% Read it as four seams. ADAPTER absorbs the fact that every published source
+%% has its own file format, so the pipeline never learns what a PANGAEA tab
+%% file looks like. STRATEGY puts each evidence class's scientific rule in its
+%% own small class -- which is why the COVER rule can be tested in isolation
+%% and verified by deliberately breaking it. REGISTRY makes "did we forget an
+%% evidence class" a test that fails rather than a silent gap. TEMPLATE METHOD
+%% fixes the step order while letting every step be swapped.
+%%
+%% The DuplicateResolutionPolicy is the one place a pattern was RETIRED. It
+%% used to implement a Specification with an is_satisfied_by method that
+%% returned a boolean while quietly rewriting the corpus -- and that mismatch
+%% between the advertised contract and the real one caused a live bug. It now
+%% returns a Resolution value object naming exactly what should happen, and
+%% the pipeline is the only thing that writes.
+%%
+%% Drawn 2026-07-31 from data/corpus/manifest.json
+%% content_hash sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f
+%% ---------------------------------------------------------------------------

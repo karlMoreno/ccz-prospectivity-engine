@@ -1,0 +1,92 @@
+---
+title: "Two tracks, seven contracts — who owns what"
+---
+flowchart TB
+    classDef done fill:#d7f5dd,stroke:#1b7f3b,stroke-width:2px,color:#06280f
+    classDef partial fill:#fff3d6,stroke:#a8781f,stroke-width:2px,color:#3d2a04
+    classDef todo fill:#fde2e2,stroke:#b3261e,stroke-width:3px,color:#3b0a06
+    classDef trackE fill:#e3ecfb,stroke:#2b5fa8,color:#0b1f3d
+    classDef trackG fill:#efe6fa,stroke:#6b3fa0,color:#22103d
+    classDef plain fill:#f4f4f5,stroke:#8a8a8f,color:#1c1c1e
+
+    subgraph E["TRACK E — engineering (Karl)"]
+        direction TB
+        E1["builds against synthetic fixtures"]:::trackE
+        E2["adapters, normalizers, dedup, corpus"]:::trackE
+        E3["terrain covariates, provenance"]:::trackE
+    end
+
+    subgraph C["THE SEVEN CONTRACTS — the only coupling"]
+        direction TB
+        C1["1 master_observations<br/>schema v4 — 108 real rows"]:::done
+        C3["3 covariates.yaml v3<br/>Option A: 8 recipes live"]:::done
+        C7["7 normalization.yaml v1<br/>policy live, 2 params blank"]:::partial
+        C5["5 source_queue.yaml v3<br/>13 listed, 2 downloaded"]:::partial
+        C2["2 study_area.geojson<br/>PLACEHOLDER — no real AOI"]:::todo
+        C6["6 ts6_reference.yaml<br/>no raster, no method"]:::todo
+        C4["4 scenarios.yaml<br/>illustrative_only = true"]:::todo
+    end
+
+    subgraph G["TRACK G — geology (Isaac)"]
+        direction TB
+        G1["OUTSTANDING<br/>GEBCO bathymetry .tif"]:::todo
+        G2["OUTSTANDING<br/>TS-6 digitization"]:::todo
+        G3["OUTSTANDING<br/>real Dryad chamber data"]:::todo
+        G4["OUTSTANDING<br/>GEOLOGY-ISAAC parameters"]:::todo
+        G5["DONE<br/>2 PANGAEA sources downloaded"]:::done
+    end
+
+    E1 --> C
+    E2 --> C
+    E3 --> C
+    C --> G
+
+    G1 -.->|"fills"| C5
+    G2 -.->|"fills"| C6
+    G3 -.->|"fills"| C5
+    G4 -.->|"fills"| C7
+    G4 -.->|"fills"| C2
+    G4 -.->|"fills"| C4
+    G5 -.->|"filled"| C1
+
+    CP1{{"NEXT MEETING POINT<br/>Integration Checkpoint 1"}}:::partial
+    C --> CP1
+    CP1 --> SWAP["swap synthetic DEM<br/>for real bathymetry .tif"]:::todo
+    SWAP --> RESULT["8 covariates recompute<br/>on real terrain"]:::plain
+
+    PARAMS["blank GEOLOGY-ISAAC parameters:<br/>join_tolerance_km, mean_nodule_mass_g_source,<br/>real AOI bounds, economic cutoffs"]:::todo
+    G4 --- PARAMS
+
+    LEGEND["LEGEND — green delivered | amber partial | red outstanding, needs Isaac"]:::plain
+
+%% ---------------------------------------------------------------------------
+%% CAPTION
+%%
+%% What this shows: the project is built by two people who deliberately do not
+%% wait on each other. Karl (Track E) writes code against synthetic stand-in
+%% data; Isaac (Track G) supplies the real data and the science parameters.
+%% They meet only at the seven frozen contract files in the middle, and at
+%% numbered integration checkpoints. That is why the engine already runs
+%% end-to-end even though most of the real data has not arrived.
+%%
+%% Why it matters: everything in red is blocked on Isaac, and nothing in Track
+%% E can unblock it. The four outstanding deliverables are the GEBCO
+%% bathymetry grid, the TS-6 surface digitization, the real Dryad chamber
+%% dataset, and the blank GEOLOGY-ISAAC parameters (the GRADE join tolerance,
+%% the mean-nodule-mass source, the real study-area bounds, and the economic
+%% cutoffs). Two of the seven contracts are fully delivered, two are partly
+%% filled, and three are still placeholders.
+%%
+%% The next meeting point is Integration Checkpoint 1, which swaps the
+%% synthetic DEM for real bathymetry. Nothing else changes at that checkpoint
+%% -- the eight terrain recipes simply recompute on real terrain, which is the
+%% whole point of building against a contract.
+%%
+%% Status read from the contract files themselves on 2026-07-31: schema
+%% version 4, covariates registry version 3, normalization policy version 1,
+%% source_queue metadata version 3, study_area still flagged placeholder,
+%% no ts6_abundance.tif present, both economic scenarios illustrative_only.
+%%
+%% Drawn 2026-07-31 from data/corpus/manifest.json
+%% content_hash sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f
+%% ---------------------------------------------------------------------------
