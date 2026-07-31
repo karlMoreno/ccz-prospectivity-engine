@@ -66,12 +66,26 @@ def test_fetch_reads_the_injected_sample_without_network() -> None:
 
 
 def test_adapt_fans_one_native_row_into_mass_count_cover_records() -> None:
+    """PER ROW is the claim. Strengthened 2026-07-30: asserting only the total
+    (12) and the SET of classes let a skewed fan-out through — 6 MASS / 5
+    COUNT / 1 COVER satisfies both. Now every native event must yield exactly
+    one record of each class."""
     adapter = _make_adapter()
     records = adapter.adapt(adapter.fetch())
 
-    # 4 native rows x 3 evidence classes (every row has count + cover present)
-    assert len(records) == 12
-    assert {r["evidence_class"] for r in records} == {"MASS", "COUNT", "COVER"}
+    assert len(records) == 12  # 4 native rows x 3 evidence classes
+    by_event: dict[str, list[str]] = {}
+    for record in records:
+        by_event.setdefault(record["event_id"], []).append(record["evidence_class"])
+
+    assert set(by_event) == {
+        "SO268-1_1-1",
+        "SO268-1_2-1",
+        "SO268-1_3-1",
+        "SO268-1_4-1",
+    }
+    for event_id, classes in by_event.items():
+        assert sorted(classes) == ["COUNT", "COVER", "MASS"], event_id
 
 
 def test_adapt_stamps_source_id_and_queue_provenance() -> None:

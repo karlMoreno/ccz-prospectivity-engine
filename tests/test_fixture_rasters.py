@@ -38,7 +38,11 @@ def test_fixture_terrain_source_returns_a_terrain_layer(synthetic_bathymetry_pat
 
 
 def test_synthetic_ts6_raster_is_a_valid_raster(synthetic_ts6_raster_path: Path) -> None:
+    """Strengthened 2026-07-30 to match its bathymetry sibling above: "is a
+    valid raster" now checks band count and CRS, not only the value range."""
     with rasterio.open(synthetic_ts6_raster_path) as dataset:
+        assert dataset.count == 1
+        assert dataset.crs.to_string() == "EPSG:4326"
         assert (dataset.read(1) > 0).all()
 
 

@@ -63,12 +63,19 @@ def test_fetch_reads_an_xlsx_workbook(tmp_path: Path) -> None:
 
 
 def test_adapt_maps_chamber_footprint_as_sampled_area_per_row() -> None:
+    """PER ROW is the claim, so the fixture now carries three DISTINCT
+    footprints (0.20 / 0.25 / 0.15). Strengthened 2026-07-30: every row
+    previously shared 0.20, so an adapter that hardcoded the value and never
+    read `chamber_footprint_m2` would have passed."""
     adapter = _make_adapter(SAMPLE_CSV)
     records = adapter.adapt(adapter.fetch())
 
     assert len(records) == 3
     assert all(r["evidence_class"] == "MASS" for r in records)
-    assert all(r["sampled_area_m2"] == 0.20 for r in records)
+    by_station = {r["station_id"]: r for r in records}
+    assert by_station["CH-01"]["sampled_area_m2"] == 0.20
+    assert by_station["CH-02"]["sampled_area_m2"] == 0.25
+    assert by_station["CH-03"]["sampled_area_m2"] == 0.15
     assert all(r.get("abundance_kg_m2") is None for r in records)  # no normalization yet
 
 

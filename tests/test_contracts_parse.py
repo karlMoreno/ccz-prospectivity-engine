@@ -35,9 +35,17 @@ def test_scenarios_yaml_parses_and_is_illustrative_only() -> None:
 
 
 def test_source_queue_yaml_parses_with_open_sources() -> None:
+    """Strengthened 2026-07-30: `is_open` was never read, so the name's claim
+    ("with open sources") went unverified. Only is_open=true sources may enter
+    a published run, so the queue containing at least one is the fact worth
+    asserting — and every entry must state the flag explicitly rather than
+    leaving it absent."""
     source_queue = yaml.safe_load((REPO_ROOT / "data/sources/source_queue.yaml").read_text())
-    assert len(source_queue["sources"]) > 0
-    assert all("source_id" in s for s in source_queue["sources"])
+    sources = source_queue["sources"]
+    assert len(sources) > 0
+    assert all("source_id" in s for s in sources)
+    assert all("is_open" in s for s in sources)
+    assert any(s["is_open"] for s in sources)
 
 
 def test_normalization_yaml_forbids_cover_kg_m2() -> None:

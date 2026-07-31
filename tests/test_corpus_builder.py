@@ -75,7 +75,13 @@ def test_real_adapter_builders_does_not_include_unguarded_fixture_sources() -> N
     fail loudly the moment it runs, but this test catches it at collection
     time instead of only during a real build."""
     for build_adapter in REAL_ADAPTER_BUILDERS:
-        build_adapter()  # must not raise
+        adapter = build_adapter()  # must not raise
+        # Strengthened 2026-07-30: no-raise alone would still pass if
+        # _require_production_path itself were removed. Assert the resolved
+        # path directly — the property the name actually claims.
+        resolved = Path(adapter.input_path).resolve()
+        assert not {"tests", "fixtures"} <= {part.lower() for part in resolved.parts}, resolved
+        assert resolved.is_file(), resolved
 
 
 def test_build_corpus_is_single_source_until_track_g_delivers() -> None:
@@ -273,14 +279,17 @@ def test_fail_row_already_in_the_corpus_survives_dedup_unchanged() -> None:
         qa_status="fail",
     )
     corpus: list[Observation] = [pre_existing_fail_row]
+    before = pre_existing_fail_row.model_dump()
 
-    build_corpus(corpus)  # runs all four real adapters against this corpus
+    build_corpus(corpus)  # runs every wired real adapter against this corpus
 
     survivor = next(
         obs for obs in corpus if obs.source_record_id == "src_manual_review_MASS_000000"
     )
-    assert survivor.qa_status == "fail"
-    assert survivor.abundance_kg_m2 == 12.0
+    # "unchanged" means EVERY field, not a chosen few. Strengthened 2026-07-30:
+    # this used to check qa_status and abundance_kg_m2 only — exactly the shape
+    # of the E1.5 bug, where `notes` grew while every selected assertion passed.
+    assert survivor.model_dump() == before
 
 
 def test_write_corpus_csv_is_byte_identical_across_two_independent_builds(
