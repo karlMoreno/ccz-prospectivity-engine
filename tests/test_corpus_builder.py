@@ -137,8 +137,10 @@ def test_mass_and_count_survivors_are_identical_regardless_of_adapter_order(
     """P2 (2026-07-27 audit follow-up): the audit found MASS survivorship was
     order-dependent (reversing REAL_ADAPTER_BUILDERS flipped the winner from
     [01] to [05]) -- this is the test that actually guards the fix, unlike
-    test_build_corpus_wires_all_four_real_adapters_end_to_end above, which
+    test_build_corpus_is_single_source_until_track_g_delivers above, which
     only ever exercises the DEFAULT order and would not have caught the bug.
+    (Reference corrected 2026-07-30: the cited test was renamed at P1b; the
+    old name described a four-adapter wiring that no longer exists.)
 
     Runs the real build_corpus() production code path twice -- once in
     REAL_ADAPTER_BUILDERS's normal order, once reversed -- and asserts the
@@ -180,7 +182,7 @@ def test_build_corpus_normalizes_through_the_e12_registry_not_ad_hoc() -> None:
     end-to-end build actually routes through the registry, not an ad-hoc
     computation. (P1, 2026-07-27 audit follow-up: this test previously used
     src_dryad_chamber's CH-01 -- no longer wired into production, see
-    test_build_corpus_wires_all_four_real_adapters_end_to_end.)"""
+    test_build_corpus_is_single_source_until_track_g_delivers.)"""
     corpus = build_corpus()
     boxcore_row = next(
         obs

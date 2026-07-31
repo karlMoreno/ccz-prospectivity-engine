@@ -48,7 +48,9 @@ def test_source_queue_yaml_parses_with_open_sources() -> None:
     assert any(s["is_open"] for s in sources)
 
 
-def test_normalization_yaml_forbids_cover_kg_m2() -> None:
+def test_normalization_yaml_forbids_cover_and_grade_kg_m2() -> None:
+    """Renamed 2026-07-30: the body asserts BOTH classes; the old name named
+    only COVER."""
     normalization = yaml.safe_load((REPO_ROOT / "data/config/normalization.yaml").read_text())
     assert normalization["normalizers"]["COVER"]["produces_kg_m2"] is False
     assert normalization["normalizers"]["GRADE"]["produces_kg_m2"] is False

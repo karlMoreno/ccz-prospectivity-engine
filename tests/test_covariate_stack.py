@@ -96,8 +96,13 @@ def test_written_rasters_preserve_georeferencing_and_border_nans(tmp_path: Path)
         assert not np.isnan(values[rim:-rim, rim:-rim]).any(), name
 
 
-def test_two_independent_builds_are_byte_identical(tmp_path: Path) -> None:
-    """Rasters must be byte-identical. provenance.json is identical EXCEPT
+def test_two_independent_builds_produce_identical_rasters_and_substance(
+    tmp_path: Path,
+) -> None:
+    """Renamed 2026-07-30: "byte_identical" stopped being true of the sidecar
+    when it moved onto ProvenanceArtifact and gained `generated_at`.
+
+    Rasters must be byte-identical. provenance.json is identical EXCEPT
     `generated_at` (a wall-clock timestamp, added when the sidecar moved onto
     ProvenanceArtifact) — so this asserts the stronger property instead:
     `content_hash` is computed over the substance with the timestamp excluded,
@@ -116,3 +121,27 @@ def test_two_independent_builds_are_byte_identical(tmp_path: Path) -> None:
     assert first_provenance.pop("generated_at") != ""  # present
     second_provenance.pop("generated_at")
     assert first_provenance == second_provenance
+
+
+def test_provenance_sidecar_carries_the_review_critical_keys(tmp_path: Path) -> None:
+    """The keys a reviewer needs to see what was ACTUALLY computed: requested
+    metres AND resolved cells AND the clamp flag (Contract 3 v3), the CRS
+    strategy, and the DEM's sha256 identity.
+
+    Moved here from test_plot_stack.py (2026-07-30, test-name audit): it calls
+    build_covariate_stack, never plot_covariate_stack, so sitting in the plot
+    file made plot coverage look like two tests when only one exercised the
+    plot path."""
+    dem_path = tmp_path / "synthetic.tif"
+    write_synthetic_bathymetry(dem_path)
+    written = build_covariate_stack(dem_path, tmp_path / "stack")
+
+    provenance = json.loads(written["provenance"].read_text())
+    assert provenance["dem"]["content_hash"].startswith("sha256:")
+
+    roughness = next(layer for layer in provenance["layers"] if layer["name"] == "roughness")
+    window = roughness["resolved_windows"]["window"]
+    assert window["requested_m"] == 1400.0
+    assert isinstance(window["cells"], int) and window["cells"] >= 3
+    assert window["clamped"] is True  # the coarse synthetic DEM clamps, by design
+    assert "per_row_longitude_scaling" in roughness["crs_strategy"]

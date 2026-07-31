@@ -78,7 +78,13 @@ def _load_05_per_event() -> dict[str, dict[str, float]]:
 # --- D: the reconciliation test ---------------------------------------------
 
 
-def test_nodule_count_reconciles_exactly_for_at_least_31_of_36_events() -> None:
+def test_nodule_count_matches_the_documented_residual_set_exactly() -> None:
+    """Renamed 2026-07-30 (test-name audit). The old name,
+    `..._for_at_least_31_of_36_events`, understated the body: this pins the
+    EXACT residual set, not a floor of 31. That mattered in the wrong
+    direction — a maintainer facing a failure could have "fixed" it by
+    loosening toward 31, quietly erasing the documented D8 finding (notably
+    SO268/2_205-2) that the assertion below exists to protect."""
     f01 = _load_01_per_event()
     f05 = _load_05_per_event()
     assert set(f01) == set(f05)  # every event present on both sides

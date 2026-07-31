@@ -1,6 +1,20 @@
 """E0.5 CI centerpiece: ingest synthetic sources -> corpus -> assert evidence
 tagging survives the full fetch/adapt/normalize/validate/dedup/append
 sequence (IngestionPipeline.run(), Template Method).
+
+WHAT THESE TESTS CAN AND CANNOT SEE (renamed 2026-07-30, test-name audit).
+The `synthetic_corpus` fixture builds its rows through `Observation(**record)`,
+and `Observation` itself enforces the COVER / GRID / COUNT evidence-class rules
+at construction (domain/observation.py::_enforce_evidence_class_discipline). So
+a violation cannot reach these assertions — it raises during fixture setup
+instead. What they genuinely prove is that the pipeline's output SATISFIES that
+discipline end to end (i.e. the pipeline produces rows the domain type accepts,
+and the expected classes are present), not that the rule is independently
+upheld.
+
+For checks that CAN observe a violation, see `test_corpus_invariants.py`: it
+reads `data/corpus/master_observations.csv` as raw strings with no Pydantic in
+the path, so a row written by anything that bypasses `Observation` is visible.
 """
 
 from __future__ import annotations
@@ -26,7 +40,7 @@ def test_corpus_contains_every_evidence_class_the_fixtures_produce(
     }
 
 
-def test_cover_rows_in_the_corpus_never_carry_abundance_kg_m2(
+def test_pipeline_cover_output_satisfies_evidence_class_discipline(
     synthetic_corpus: list[Observation],
 ) -> None:
     cover_rows = [o for o in synthetic_corpus if o.evidence_class == EvidenceClass.COVER]
@@ -34,7 +48,9 @@ def test_cover_rows_in_the_corpus_never_carry_abundance_kg_m2(
     assert all(o.abundance_kg_m2 is None for o in cover_rows)
 
 
-def test_grid_rows_in_the_corpus_are_never_observed(synthetic_corpus: list[Observation]) -> None:
+def test_pipeline_grid_output_satisfies_evidence_class_discipline(
+    synthetic_corpus: list[Observation],
+) -> None:
     grid_rows = [o for o in synthetic_corpus if o.evidence_class == EvidenceClass.GRID]
     assert grid_rows
     assert all(
@@ -42,7 +58,7 @@ def test_grid_rows_in_the_corpus_are_never_observed(synthetic_corpus: list[Obser
     )
 
 
-def test_count_rows_only_carry_abundance_with_a_recorded_mean_mass(
+def test_pipeline_count_output_satisfies_evidence_class_discipline(
     synthetic_corpus: list[Observation],
 ) -> None:
     count_rows = [o for o in synthetic_corpus if o.evidence_class == EvidenceClass.COUNT]
@@ -52,7 +68,15 @@ def test_count_rows_only_carry_abundance_with_a_recorded_mean_mass(
             assert obs.mean_nodule_mass_g is not None
 
 
-def test_mass_rows_are_training_eligible(synthetic_corpus: list[Observation]) -> None:
+def test_synthetic_fixture_mass_rows_all_qualify_for_training(
+    synthetic_corpus: list[Observation],
+) -> None:
+    """A property of THIS FIXTURE, not a general rule (renamed 2026-07-30).
+    The old name, `test_mass_rows_are_training_eligible`, stated a rule that is
+    false since P1 — a MASS row with qa_status fail/flagged is NOT
+    training-eligible — and contradicted `test_sample_source.py`'s
+    `test_flagged_row_is_excluded_from_training`, which asserts exactly that.
+    """
     mass_rows = [o for o in synthetic_corpus if o.evidence_class == EvidenceClass.MASS]
     assert mass_rows
     assert all(o.is_training_eligible() for o in mass_rows)

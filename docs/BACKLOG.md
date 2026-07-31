@@ -300,6 +300,16 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
 ## Recently closed
 
+- [x] **Test-name audit, fully closed** (Tasks A + B, 2026-07-30). All 17
+  findings addressed: 7 assertions strengthened (each mutation-verified), 9
+  tests renamed to match their bodies, 1 misplaced test moved out of
+  `test_plot_stack.py`. The 18th, `test_contracts_parse.py:24`, was
+  deliberately skipped — already covered by `test_covariate_registry.py`.
+  Task A also surfaced a live defect (fail-verdict erasure under dedup) and a
+  latent one (naive-vs-aware datetime blocking dedup, now §3). The durable fix
+  is the new **Testing conventions** section in
+  [CLAUDE.md](../CLAUDE.md) — three rules, each citing the finding that
+  motivated it.
 - [x] **E1.5** test traceability audit: three real gaps found and filled —
   corpus rules were asserted through the model that enforces them, three-way
   evidence-class agreement was missing the schema leg, and reachability was

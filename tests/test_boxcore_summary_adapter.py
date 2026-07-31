@@ -106,11 +106,19 @@ def test_cover_notes_record_it_is_measurement_derived_not_image_derived() -> Non
     assert records["COVER"].get("abundance_kg_m2") is None
 
 
-def test_cover_hard_rule_still_holds_through_full_schema_validation() -> None:
+def test_every_adapted_record_validates_against_the_master_schema() -> None:
+    """Renamed 2026-07-30 (test-name audit). The old name,
+    `test_cover_hard_rule_still_holds_through_full_schema_validation`, claimed
+    a COVER-specific check; the body has no assert at all and validates EVERY
+    record, relying on Observation's constructor to raise. That is a real
+    check, just a broader and less specific one than the name implied. The
+    COVER rule itself is asserted directly on the adapter's dict output in
+    `test_cover_notes_record_it_is_measurement_derived_not_image_derived`
+    above, and against the corpus bytes in `test_corpus_invariants.py`."""
     adapter = _build_adapter()
     records = adapter.adapt(adapter.fetch())
     for record in records:
-        Observation(**record)
+        Observation(**record)  # raises if the adapter produced something invalid
 
 
 # --- D5.3 flag, re-applied independently for [01] ---------------------------

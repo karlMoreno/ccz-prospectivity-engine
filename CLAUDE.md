@@ -133,6 +133,51 @@ and are the whole point of the project. Encode them in code + tests, not just do
 
 ---
 
+## Testing conventions (a test that guards nothing is worse than no test)
+
+Three separate audits have now found the same class of defect in this repo: a test
+that **counts as coverage while guarding nothing**. It is worse than a missing test,
+because a missing test is visible. These rules exist because each one was learned the
+hard way — the evidence is cited, not asserted.
+
+1. **A test's name must describe what its assertions verify** — not what the author
+   intended to verify, and not the rule the test sits near.
+   *Evidence:* the test-name audit (2026-07-30) found **17** names claiming more, less,
+   or other than their bodies checked. Two could have caused a wrong action rather than
+   mere confusion: `test_mass_rows_are_training_eligible` stated a rule that is FALSE
+   since P1 (a flagged MASS row is not eligible) and contradicted
+   `test_sample_source.py`'s opposite assertion; and
+   `..._reconciles_exactly_for_at_least_31_of_36_events` invited a maintainer to
+   "fix" a failure by loosening toward 31, quietly erasing the documented D8 residual
+   the body exists to pin.
+
+2. **A test asserting a rule must not load its data through the class that enforces
+   that rule.** It can never observe a violation — the loader raises first, so the
+   assertion is decorative and the failure it reports names the wrong thing.
+   *Evidence:* E1.5 found `test_observation_schema.py`'s COVER/GRID assertions read the
+   corpus via `Observation(**row)`, whose validator forbids exactly those violations.
+   Fix: assert against the raw artifact (see `tests/test_corpus_invariants.py`, which
+   reads the corpus CSV as strings with no Pydantic in the path).
+
+3. **An assertion that something is "unchanged" must compare full state**, not selected
+   fields. Same for "identical", "adds nothing", "survives untouched".
+   *Evidence:* E1.5's `..._adds_nothing` compared row count and IDs only, and passed
+   while every merged row's `notes` tripled on re-runs — one of them recording the row
+   as a duplicate of ITSELF.
+
+Corollaries worth keeping in mind:
+
+- **A fixture must be able to distinguish the claim from its negation.** If every
+  fixture row shares a value, a test asserting that value is read "per row" cannot fail
+  when the code hardcodes it.
+- **Aggregate assertions do not prove per-item claims.** A total and a set of classes
+  are satisfied by a skewed distribution; group and assert per item.
+- **Prefer a mutation check to a green run.** Break the thing on purpose, watch the test
+  fail, restore it. This project's established practice, and it is how every guard above
+  was verified.
+
+---
+
 ## Workflow conventions
 
 - **Research/read before writing.** Before implementing against a contract, read that
