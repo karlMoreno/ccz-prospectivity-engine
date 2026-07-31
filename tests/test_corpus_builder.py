@@ -18,7 +18,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from engine.prospectivity.domain.evidence import EvidenceClass
+from engine.prospectivity.domain.evidence import EvidenceClass, QAStatus
 from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.ingestion.corpus_builder import (
     REAL_ADAPTER_BUILDERS,
@@ -290,6 +290,66 @@ def test_fail_row_already_in_the_corpus_survives_dedup_unchanged() -> None:
     # this used to check qa_status and abundance_kg_m2 only — exactly the shape
     # of the E1.5 bug, where `notes` grew while every selected assertion passed.
     assert survivor.model_dump() == before
+
+
+def test_fail_row_that_actually_collides_with_a_real_event_keeps_its_verdict() -> None:
+    """The companion the test above could NOT provide (2026-07-30).
+
+    `test_fail_row_already_in_the_corpus_survives_dedup_unchanged` places its
+    row at lat -40 / lon 10 — deliberately outside every adapter's coverage —
+    so dedup never matches it and "fail survives dedup" was never actually
+    exercised END TO END. This row uses [01]'s REAL key for SO268/1_24-3, so a
+    merge genuinely fires against real adapter output.
+
+    [01]'s row is quality_grade="A" (D8-F) and this one is "C", so the real
+    row wins the slot and its 19.6 kg/m2 measurement is kept — but the fail
+    verdict must survive onto the survivor, and the station must drop out of
+    training."""
+    manual_fail_row = Observation(
+        source_record_id="src_manual_review_MASS_000001",
+        source_id="src_manual_review",
+        evidence_class="MASS",
+        cruise="SO268/1",
+        event_id="SO268/1_24-3",  # a real [01] event
+        latitude=11.9311,
+        longitude=-117.0273,
+        # The adapter's own format. NOT "2019-03-06T00:00:00Z": that parses to
+        # a timezone-AWARE datetime, while the adapter yields a naive one, and
+        # the two compare unequal even though they denote the same instant —
+        # so _same_station would see a disagreement and refuse the match. See
+        # test_reconciliation.py's key-format guard for the same hazard.
+        sample_datetime_utc="2019-03-06",
+        abundance_kg_m2=99.0,  # deliberately wrong; this is why it's failed
+        observation_or_prediction="observed",
+        is_open=True,
+        qa_status="fail",
+        quality_grade="C",  # loses the slot to [01]'s "A"
+    )
+    corpus: list[Observation] = [manual_fail_row]
+    build_corpus(corpus)
+
+    survivor = next(
+        obs
+        for obs in corpus
+        if obs.event_id == "SO268/1_24-3" and obs.evidence_class == EvidenceClass.MASS
+    )
+    # The better measurement won the slot...
+    assert survivor.source_id == "src_so268_boxcore"
+    assert survivor.abundance_kg_m2 == pytest.approx(19.6)
+    # ...but the verdict was not laundered away, and the trace is auditable.
+    assert survivor.qa_status == QAStatus.FAIL
+    assert not survivor.is_training_eligible()
+    assert "escalated" in survivor.notes
+    assert "src_manual_review_MASS_000001" in survivor.notes
+
+    # Exactly one row for the event's MASS class — the fail row was absorbed,
+    # not left alongside as a second station.
+    mass_rows = [
+        obs
+        for obs in corpus
+        if obs.event_id == "SO268/1_24-3" and obs.evidence_class == EvidenceClass.MASS
+    ]
+    assert len(mass_rows) == 1
 
 
 def test_write_corpus_csv_is_byte_identical_across_two_independent_builds(

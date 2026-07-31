@@ -82,7 +82,7 @@ correct, not a bug).
 
 from __future__ import annotations
 
-from engine.prospectivity.domain.evidence import EvidenceClass, QualityGrade
+from engine.prospectivity.domain.evidence import EvidenceClass, QAStatus, QualityGrade
 from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.ingestion._contract_paths import load_normalization_yaml
 from engine.prospectivity.ingestion.specification import Specification
@@ -100,6 +100,14 @@ def default_coordinate_tolerance_deg() -> float:
     """normalization.yaml's `deduplication.coordinate_tolerance_deg` (~100m),
     loaded rather than duplicated as a Python literal."""
     return load_normalization_yaml()["deduplication"]["coordinate_tolerance_deg"]
+
+
+def _qa_severity(status: QAStatus) -> int:
+    """QA verdict severity, mirroring E1.2's screening precedence
+    (normalizer_registry._SCREENING_MAY_OVERWRITE): "fail" is terminal and
+    outranks "flagged"; pass/pending are the unadjudicated baseline. Used by
+    _merge to keep a verdict from being erased by dedup."""
+    return {QAStatus.FAIL: 2, QAStatus.FLAGGED: 1}.get(QAStatus(status), 0)
 
 
 def _quality_rank(grade: QualityGrade | None) -> int:
@@ -200,6 +208,42 @@ class DuplicateStationSpecification(Specification):
         link_note = f"duplicate of {dropped.source_record_id} ({dropped.source_id})"
         if donated_fields:
             link_note += f"; merged fields: {', '.join(sorted(donated_fields))}"
+
+        # QA VERDICTS ARE STICKY ACROSS A MERGE (2026-07-30).
+        #
+        # The bug this fixes: qa_status is never null, so the gap-fill above
+        # could never carry it — and survivorship is decided by quality_grade,
+        # which says nothing about QA. So a row adjudicated qa_status="fail"
+        # that lost the slot to a higher-grade candidate had its verdict
+        # ERASED: the survivor came out "pending" and TRAINING-ELIGIBLE, with
+        # notes recording only "duplicate of ...", no trace of the failure.
+        # Whether a fail survived was decided by an unrelated field.
+        #
+        # The rule: the merged row carries the MOST SEVERE status of the pair,
+        # using E1.2's established precedence (fail > flagged > pass/pending —
+        # the same ordering apply_screening's _SCREENING_MAY_OVERWRITE
+        # encodes). A merge may replace a failed row's VALUES with a better
+        # measurement's; it may not discard its VERDICT.
+        #
+        # Why escalate rather than let the better record stand: the corpus
+        # cannot currently distinguish "this RECORD is bad" (a corrupt area in
+        # one source's transcription — arguably shouldn't propagate) from
+        # "this STATION's sample is bad" (a failed box-core recovery, D5.3 —
+        # must propagate). The costs are asymmetric: escalating wrongly loses
+        # one training row, visibly and reversibly; not escalating trains the
+        # model on a physically failed sample, silently. Every project rule
+        # points the same way (fail is terminal; flag, never drop).
+        # [GEOLOGY — ISAAC] If a fail/flag can be attributed to the RECORD
+        # rather than the STATION, that distinction belongs in the contract
+        # (e.g. a qa_scope field) and this rule should read it. Until then the
+        # conservative default stands.
+        if _qa_severity(dropped.qa_status) > _qa_severity(survivor.qa_status):
+            updates["qa_status"] = dropped.qa_status
+            link_note += (
+                f"; qa_status escalated {survivor.qa_status.value} -> "
+                f"{dropped.qa_status.value} from {dropped.source_record_id}"
+            )
+
         updates["duplicate_group_id"] = group_id
         # IDEMPOTENCY (2026-07-29, E1.5 follow-up): only append a provenance
         # link that isn't already recorded. The gap-fill above is naturally

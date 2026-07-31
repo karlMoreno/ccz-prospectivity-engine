@@ -13,9 +13,9 @@ docstrings, and review chat. Rules of the file:
 - Every entry cites where the detail lives (`file:line` or walkthrough §) so
   it is verifiable. Do not add entries that trace to nothing.
 
-Last consolidated: 2026-07-29 (through **E1.5 + its follow-ups — Phase 1
-Track E complete**). **28 open items**: §1 Track G 10, §2 Karl 1, §3
-Engineering 12, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+Last consolidated: 2026-07-30 (through **E1.5 follow-ups + Phase-1 closeout
+Task A**). **29 open items**: §1 Track G 10, §2 Karl 1, §3
+Engineering 13, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
@@ -173,6 +173,19 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   2's training matrix is the natural consumer. Owner: E. Trigger: Phase-2
   training-matrix task. Detail: [PATTERNS.md](PATTERNS.md) §3.2;
   phase-0-and-E1.1.md:703.
+- [ ] **Datetime format mismatch silently blocks dedup.** `sample_datetime_utc`
+  is compared for exact equality, so a timezone-AWARE value (`"…T00:00:00Z"`)
+  never matches the naive one the current adapters produce (`2019-03-06 00:00`)
+  even though they denote the same instant — the pair reads as a disagreement
+  and the merge refuses to fire. Found 2026-07-30 while writing the fail-row
+  collision test. Not a production defect today (no wired source emits a
+  Z-suffixed timestamp, and `test_reconciliation.py`'s key-format guard pins
+  `[01]`/`[05]` agreement), but the DOMES/NOAA families span eras and formats
+  and will hit it. Normalise to a single tz convention at adapt time, or
+  compare instants rather than objects. Owner: E. Trigger: **before wiring
+  `[02][03][04]` or the NOAA mirrors**. Detail:
+  [dedup_rules.py](../engine/prospectivity/ingestion/dedup_rules.py)
+  `_same_station`; `test_corpus_builder.py` collision test's own comment.
 - [ ] **Intra-batch duplicate detection.** `DuplicateStationSpecification`
   only checks candidates against the existing corpus — two duplicate rows in
   the SAME adapter fetch don't catch each other. None of the wired sources

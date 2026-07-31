@@ -6,6 +6,7 @@ module docstring for why it isn't a Specification here at all).
 
 from __future__ import annotations
 
+from engine.prospectivity.domain.evidence import QAStatus
 from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.ingestion.dedup_rules import DuplicateStationSpecification
 
@@ -530,3 +531,105 @@ def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> 
     assert after_second == after_first  # every field, not just the counts
     assert after_second["notes"].count("src_b_MASS_000001") == 1  # not 2
     assert after_second["notes"].count("merged fields") == 1
+
+
+# --- fail-is-terminal UNDER DEDUP (2026-07-30) -----------------------------
+#
+# The gap: qa_status is never null, so _merge's gap-fill could never carry it,
+# and survivorship is decided by quality_grade — a field that says nothing
+# about QA. A row adjudicated "fail" that lost the slot to a higher-grade
+# candidate therefore had its verdict ERASED and became training-eligible.
+# Decision: a merge may replace a failed row's VALUES, never its VERDICT.
+
+
+def _pair(existing_qa: str, existing_grade: str, candidate_qa: str, candidate_grade: str):
+    existing = _obs(
+        source_record_id="src_a_MASS_000001",
+        source_id="src_a",
+        evidence_class="MASS",
+        abundance_kg_m2=12.0,
+        qa_status=existing_qa,
+        quality_grade=existing_grade,
+    )
+    candidate = _obs(
+        source_record_id="src_b_MASS_000001",
+        source_id="src_b",
+        evidence_class="MASS",
+        abundance_kg_m2=14.0,
+        qa_status=candidate_qa,
+        quality_grade=candidate_grade,
+    )
+    corpus: list[Observation] = [existing]
+    spec = DuplicateStationSpecification(corpus)
+    assert not spec.is_satisfied_by(candidate)
+    return corpus[0]
+
+
+def test_fail_verdict_survives_being_outranked_by_a_higher_grade_candidate() -> None:
+    """THE case the old end-to-end test could not reach (its fail row sat at
+    coordinates no adapter covers, so no merge ever fired). A clean grade-A
+    candidate wins the slot on quality_grade; it must NOT win away the fail."""
+    survivor = _pair("fail", "B", "pending", "A")
+
+    assert survivor.source_record_id == "src_b_MASS_000001"  # candidate won the slot
+    assert survivor.abundance_kg_m2 == 14.0  # ... and its better measurement
+    assert survivor.qa_status == QAStatus.FAIL  # but NOT the verdict
+    assert not survivor.is_training_eligible()
+    # An auditor must be able to see WHY a grade-A row is failed.
+    assert "escalated pending -> fail" in survivor.notes
+    assert "src_a_MASS_000001" in survivor.notes
+
+
+def test_fail_verdict_survives_when_the_failed_row_wins_the_slot() -> None:
+    survivor = _pair("fail", "A", "pending", "A")  # tie -> existing wins
+    assert survivor.source_record_id == "src_a_MASS_000001"
+    assert survivor.qa_status == QAStatus.FAIL
+    assert not survivor.is_training_eligible()
+    # No escalation happened, so no escalation note is written.
+    assert "escalated" not in (survivor.notes or "")
+    assert "duplicate of src_b_MASS_000001" in survivor.notes
+
+
+def test_a_failed_candidate_escalates_a_clean_existing_row() -> None:
+    """Symmetric: the verdict is sticky in both directions, so which row
+    happens to arrive first cannot decide whether a failure is recorded."""
+    survivor = _pair("pending", "A", "fail", "B")
+    assert survivor.source_record_id == "src_a_MASS_000001"  # existing won the slot
+    assert survivor.qa_status == QAStatus.FAIL
+    assert not survivor.is_training_eligible()
+    assert "escalated pending -> fail" in survivor.notes
+
+
+def test_flagged_verdict_is_sticky_the_same_way() -> None:
+    survivor = _pair("flagged", "B", "pending", "A")
+    assert survivor.qa_status == QAStatus.FLAGGED
+    assert not survivor.is_training_eligible()
+    assert "escalated pending -> flagged" in survivor.notes
+
+
+def test_fail_outranks_flagged_when_both_sides_are_adjudicated() -> None:
+    """E1.2's precedence (fail is terminal, stronger than flagged) holds
+    through a merge too — a merge must not launder a fail into a flagged."""
+    survivor = _pair("flagged", "A", "fail", "B")
+    assert survivor.qa_status == QAStatus.FAIL
+    assert "escalated flagged -> fail" in survivor.notes
+
+
+def test_escalation_is_idempotent_across_repeated_merges() -> None:
+    existing = _obs(
+        source_record_id="src_a_MASS_000001", source_id="src_a", evidence_class="MASS",
+        abundance_kg_m2=12.0, qa_status="fail", quality_grade="B",
+    )
+    candidate = _obs(
+        source_record_id="src_b_MASS_000001", source_id="src_b", evidence_class="MASS",
+        abundance_kg_m2=14.0, qa_status="pending", quality_grade="A",
+    )
+    corpus: list[Observation] = [existing]
+    spec = DuplicateStationSpecification(corpus)
+
+    spec.is_satisfied_by(candidate)
+    after_first = corpus[0].model_dump()
+    spec.is_satisfied_by(candidate)
+
+    assert corpus[0].model_dump() == after_first
+    assert corpus[0].notes.count("escalated") == 1
