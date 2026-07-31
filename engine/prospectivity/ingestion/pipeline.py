@@ -38,7 +38,12 @@ from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.ingestion.normalizer_registry import NormalizerRegistry
 from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapter
 from engine.prospectivity.ingestion.dedup_rules import DuplicateResolutionPolicy
-from engine.prospectivity.ingestion.resolution import AbsorbInto, Admit, Replace
+from engine.prospectivity.ingestion.resolution import (
+    AbsorbInto,
+    Admit,
+    AlreadyPresent,
+    Replace,
+)
 from engine.prospectivity.provenance.recorder import NullObserver, PipelineObserver
 
 
@@ -112,9 +117,8 @@ class IngestionPipeline:
         rather than a pair of defensive patches:
 
           * "this exact record is already here" is the `AlreadyPresent`
-            variant, and the guard is simply that this method has no branch
-            writing anything for it. Previously an early `return False` that
-            read like "not a duplicate".
+            variant, handled by an EXPLICIT no-op branch below. Previously an
+            early `return False` that read like "not a duplicate".
           * "don't record the same provenance link twice" is folded into the
             pure merge computation, so `merged` is already correct when it
             arrives here; applying the same Resolution twice writes the same
@@ -128,11 +132,33 @@ class IngestionPipeline:
         kept: list[Observation] = []
         for observation in observations:
             resolution = self._policy.resolve(observation)
-            if isinstance(resolution, Admit):
-                kept.append(observation)
-            elif isinstance(resolution, (AbsorbInto, Replace)):
-                self._corpus[self._corpus.index(resolution.existing)] = resolution.merged
-            # AlreadyPresent: deliberately nothing — see the docstring above.
+            match resolution:
+                case Admit():
+                    kept.append(observation)
+                case AlreadyPresent():
+                    # EXPLICIT NO-OP, not an absence. This row is already in
+                    # the corpus (an adapter re-run offering what it produced
+                    # last time); writing anything would re-merge it and make
+                    # it its own duplicate. Spelled out as a branch so that
+                    # "nothing happens here" is a decision a reader can see,
+                    # and so a future variant cannot inherit this behavior by
+                    # simply having no branch.
+                    pass
+                case AbsorbInto() | Replace():
+                    self._corpus[self._corpus.index(resolution.existing)] = resolution.merged
+                case _:
+                    # EXHAUSTIVENESS. A new Resolution variant added without a
+                    # branch here would otherwise fall through silently and
+                    # drop the row — the failure mode with no symptom, which
+                    # is how rows go missing. Fail loudly instead.
+                    # `test_ingestion_pipeline.py` drives every concrete
+                    # Resolution subclass through this dispatch, so a variant
+                    # added without a branch fails in CI, not in a corpus.
+                    raise TypeError(
+                        f"{type(self).__name__}._dedup has no branch for "
+                        f"{type(resolution).__name__}; every Resolution variant needs "
+                        "an explicit disposition (see resolution.py)"
+                    )
             self._observer.on_resolved(self._adapter.source_id, resolution)
         return kept
 
