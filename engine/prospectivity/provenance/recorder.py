@@ -20,7 +20,7 @@ nothing at all.
     │    IngestionPipeline        │───────►│   PipelineObserver (ABC)  │
     │  (Template Method; emits    │ notify │  on_fetched/on_adapted/   │
     │   events, never reads them) │        │  on_normalized/on_admitted│
-    └───────────────────────────┘        │  on_absorbed/on_rejected  │
+    └───────────────────────────┘        │  on_resolved/on_rejected  │
                                            └──────────────────────────┘
                                               ▲                  ▲
                                     ┌────────────────┐  ┌──────────────────┐
@@ -41,6 +41,13 @@ from abc import ABC
 from dataclasses import dataclass, field
 
 from engine.prospectivity.domain.observation import Observation
+from engine.prospectivity.ingestion.resolution import (
+    AbsorbInto,
+    Admit,
+    AlreadyPresent,
+    Replace,
+    Resolution,
+)
 from engine.prospectivity.ingestion.source_adapter import RawRecord
 
 
@@ -58,7 +65,10 @@ class PipelineObserver(ABC):
 
     def on_rejected(self, source_id: str, record: RawRecord, error: Exception) -> None: ...
 
-    def on_absorbed(self, source_id: str, observation: Observation) -> None: ...
+    def on_resolved(self, source_id: str, resolution: Resolution) -> None:
+        """The dedup decision for one candidate (C2, 2026-07-30). Replaced
+        `on_absorbed`, which announced only that SOMETHING was dropped and
+        left the recorder to infer what it meant."""
 
     def on_admitted(self, source_id: str, observations: list[Observation]) -> None: ...
 
@@ -72,21 +82,21 @@ class NullObserver(PipelineObserver):
 
 @dataclass
 class SourceRecord:
-    """What the observer SAW happen to one source, as raw pipeline events.
+    """What the observer SAW happen to one source.
 
-    These are process counts, not outcome counts, and the difference matters.
-    `appended_rows` counts rows this source's own `_append` step added to the
-    corpus list — which is NOT the same as "rows in the finished corpus
-    carrying this source_id", because the dedup merge can later overwrite a
-    corpus slot IN PLACE with a higher-quality row from a different source
-    (D1/D4: the winner is written into the loser's slot and never appended).
+    Dispositions are now OBSERVED, not inferred (C2, 2026-07-30). Before this,
+    the recorder only learned that something had been dropped, so the manifest
+    had to recompute `admitted`/`absorbed` by counting the finished corpus and
+    subtracting — and an earlier version of that inference, based on append
+    order, was wrong: the dedup merge writes a winning row into the loser's
+    slot without appending it, so attribution flipped when adapter order
+    changed while the corpus stayed identical (found by the reversed-order
+    manifest test, 2026-07-29).
 
-    So attribution flips with adapter order here while the finished corpus
-    stays identical — found by the reversed-order manifest test, 2026-07-29.
-    The manifest therefore derives `admitted`/`absorbed` from the FINAL CORPUS
-    (see corpus_manifest.build_corpus_manifest) and uses these event counts
-    only for the stages the corpus cannot show: fetched, adapted, normalized,
-    rejected.
+    `Replace` is what made this hard, and it is now explicit: the candidate's
+    source gains a row and the displaced row's source loses one. Booking both
+    sides as they are decided makes these tallies match the finished corpus
+    regardless of order, with no subtraction anywhere.
     """
 
     source_id: str
@@ -94,18 +104,21 @@ class SourceRecord:
     adapted_records: int = 0
     normalized_records: int = 0
     rejected_rows: int = 0
-    # Order-dependent process bookkeeping — see the class docstring. Never
-    # published as "admitted"; the manifest recomputes that from the corpus.
-    appended_rows: int = 0
     adapted_by_evidence_class: dict[str, int] = field(default_factory=dict)
-    dropped_by_dedup_rows: int = 0
+
+    # Dispositions, OBSERVED from the Resolution rather than inferred (C2).
+    admitted_rows: int = 0
+    absorbed_rows: int = 0
+    already_present_rows: int = 0
+    admitted_by_evidence_class: dict[str, int] = field(default_factory=dict)
+    absorbed_by_evidence_class: dict[str, int] = field(default_factory=dict)
 
 
 class ProvenanceRecorder(PipelineObserver):
     """Accumulates per-source counts across every pipeline run it observes.
 
     One recorder instance is shared across all of a build's adapters (the way
-    the dedup Specification is), so it sees the whole corpus assembly and can
+    the dedup policy is), so it sees the whole corpus assembly and can
     report sources whose rows were entirely absorbed — the `[05]` case this
     module exists for.
     """
@@ -136,14 +149,56 @@ class ProvenanceRecorder(PipelineObserver):
     def on_rejected(self, source_id: str, record: RawRecord, error: Exception) -> None:
         self._record(source_id).rejected_rows += 1
 
-    def on_absorbed(self, source_id: str, observation: Observation) -> None:
-        # Dedup declined to append this row (it merged into a corpus row
-        # instead). Order-dependent by itself — the manifest cross-checks it
-        # against the finished corpus rather than publishing it directly.
-        self._record(source_id).dropped_by_dedup_rows += 1
+    @staticmethod
+    def _bump(counts: dict[str, int], evidence_class: str, delta: int) -> None:
+        """Add `delta`, then DROP the key if it nets to zero.
+
+        The prune is not cosmetic. A `Replace` decrements the displaced
+        source's count, so a source that was admitted and then wholly
+        displaced ends at zero — and `{"MASS": 0}` is a different dict from
+        `{}` even though it is the same fact. Without this, the manifest's
+        content_hash differed between a forward and a reversed build purely by
+        dict shape, while every published number was identical. Caught by the
+        order-invariance test, 2026-07-30."""
+        if not delta:
+            return
+        total = counts.get(evidence_class, 0) + delta
+        if total:
+            counts[evidence_class] = total
+        else:
+            counts.pop(evidence_class, None)
+
+    def _tally(self, source_id: str, evidence_class: str, *, admitted: int, absorbed: int) -> None:
+        record = self._record(source_id)
+        record.admitted_rows += admitted
+        record.absorbed_rows += absorbed
+        self._bump(record.admitted_by_evidence_class, evidence_class, admitted)
+        self._bump(record.absorbed_by_evidence_class, evidence_class, absorbed)
+
+    def on_resolved(self, source_id: str, resolution: Resolution) -> None:
+        """Record the disposition the policy actually decided.
+
+        The one subtlety is `Replace`: the candidate takes the slot, so its
+        source gains an admitted row AND the displaced row's source loses one
+        — it was admitted earlier in this same build and is no longer in the
+        corpus. Booking both sides is what makes the tallies match the
+        finished corpus regardless of adapter order, which is exactly what the
+        manifest used to have to recompute (and got wrong once)."""
+        evidence_class = resolution.candidate.evidence_class.value
+        if isinstance(resolution, Admit):
+            self._tally(source_id, evidence_class, admitted=1, absorbed=0)
+        elif isinstance(resolution, AbsorbInto):
+            self._tally(source_id, evidence_class, admitted=0, absorbed=1)
+        elif isinstance(resolution, Replace):
+            self._tally(source_id, evidence_class, admitted=1, absorbed=0)
+            displaced = resolution.existing
+            self._tally(displaced.source_id, displaced.evidence_class.value, admitted=-1, absorbed=1)
+        elif isinstance(resolution, AlreadyPresent):
+            self._record(source_id).already_present_rows += 1
 
     def on_admitted(self, source_id: str, observations: list[Observation]) -> None:
-        self._record(source_id).appended_rows += len(observations)
+        """The append step. Dispositions are recorded in on_resolved; this
+        exists so an observer can still see the batch boundary."""
 
     def sources(self) -> list[SourceRecord]:
         """Every source observed, INCLUDING ones whose rows were all absorbed

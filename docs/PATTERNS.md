@@ -24,7 +24,7 @@ buys.
 | Strategy | [`recipe.py:69`](../engine/prospectivity/features/recipe.py#L69) + 8 concrete | terrain math varies / build sequence fixed | **Yes** — 8 impls |
 | Registry | [`normalizer_registry.py:74`](../engine/prospectivity/ingestion/normalizer_registry.py#L74) | which normalizer for a tag / no branching | **Yes** — 5 entries + completeness |
 | Registry | [`registry.py:61`](../engine/prospectivity/features/registry.py#L61) | which recipe for a covariate name | **Yes** — 8 entries + completeness |
-| Specification | [`dedup_rules.py:156`](../engine/prospectivity/ingestion/dedup_rules.py#L156) | dedup policy varies / pipeline filter fixed | **Partly** — neither "composable" nor "predicate" held (§3.0); combinators **deleted** (§3.1) |
+| ~~Specification~~ → **policy object** | [`dedup_rules.py`](../engine/prospectivity/ingestion/dedup_rules.py) + [`resolution.py`](../engine/prospectivity/ingestion/resolution.py) | dedup decision varies / pipeline applies it | **Retired 2026-07-30** — pattern didn't fit; shipped an honest policy (§3.0) |
 | Template Method | [`pipeline.py:69`](../engine/prospectivity/ingestion/pipeline.py#L69) | steps vary / order fixed | **Yes** |
 | Template Method | [`recipe.py:84`](../engine/prospectivity/features/recipe.py#L84) | compute varies / resolve→compute→provenance fixed | **Yes** |
 | Template Method | [`engine.py:94`](../engine/prospectivity/engine.py#L94) | strategies vary / run order fixed | **Not yet** (§3.2) |
@@ -158,7 +158,7 @@ case. Guarded by
 
 ## 3. Reverse audit — indirection NOT earning its keep
 
-### 3.0 Specification: **neither half of the original justification held**
+### 3.0 Specification: retired — **neither half of the justification held** ✅
 
 The Phase-1 cheat sheet justified this pattern as *"composable, named
 predicates."* Both halves have now failed, and it is worth stating together
@@ -178,14 +178,15 @@ recorded itself as *its own duplicate*. Row counts stayed correct the whole
 time, so the length-only idempotency test never saw it. The advertised contract
 and the actual contract diverged, and the gap was where the defect lived.
 
-**The guards make it safe; they do not make it legible.** Two idempotency
-guards now exist (`_merge` won't re-append a known link; `is_satisfied_by`
-short-circuits a same-record re-offer), both mutation-verified. Repeated
-evaluation is now harmless. But a reader still meets a method named
+**The guards made it safe; they did not make it legible.** Two idempotency
+guards were added (the merge wouldn't re-append a known link; the resolver
+short-circuited a same-record re-offer), both mutation-verified, so repeated
+evaluation became harmless. But a reader still met a method named
 `is_satisfied_by` returning a `bool`, with no signal at the call site that
-calling it *rewrote the corpus* — the safety lives in two guards and three
-docstrings rather than in the shape of the code. Documentation records the
-divergence; it does not remove the trap.
+calling it *rewrote the corpus* — the safety lived in two guards and three
+docstrings rather than in the shape of the code. Documentation recorded the
+divergence; it did not remove the trap. **That is what the C2 refactor below
+fixed.**
 
 Where this is written down, so it survives without this file:
 [`specification.py`](../engine/prospectivity/ingestion/specification.py)'s ABC
@@ -194,13 +195,50 @@ needs a paired idempotency test) and
 [`dedup_rules.py`](../engine/prospectivity/ingestion/dedup_rules.py)'s class
 docstring (what it may remove, merge, append, and escalate — stated first).
 
-> **Assessment for a reviewer:** adopting Specification here was a reasonable
-> Phase-0 bet on rules that turned out to be neither composable nor pure. The
-> honest conclusion is that the dedup rule is an *admission policy*, and the
-> pattern's name is now the least accurate thing about it. Whether to restructure
-> — rename the method, or retire the pattern here for an explicit policy object
-> returning a decision the pipeline applies — is an open decision, not a
-> settled one.
+**RESOLVED 2026-07-30 (Option C2).** The pattern is retired here and the ABC is
+deleted. `DuplicateStationSpecification` became
+**`DuplicateResolutionPolicy`**, exposing a **pure** `resolve(candidate) ->
+Resolution`; `IngestionPipeline._dedup` applies the decision. `Resolution` is a
+closed set of value objects — `Admit`, `AlreadyPresent`, `AbsorbInto`,
+`Replace` — each naming what should happen, with the five previously-hidden
+effects now explicit fields: which row is affected (`existing`), what the slot
+must hold (`merged`), what was gap-filled (`donated_fields`), the provenance
+link (`note`), and the sticky QA verdict (`escalated_status`).
+
+What that bought, beyond honesty:
+
+- **Idempotency became structural.** The same-record re-offer is the
+  `AlreadyPresent` variant, and the guard is that `_dedup` has no branch
+  writing anything for it — where it used to be an early `return False` that
+  read like "not a duplicate". The note guard is now a property of a pure
+  computation, so `merged` is already correct before any write.
+- **The recorder stopped inferring.** ~20 lines in `corpus_manifest.py`
+  recomputed `admitted`/`absorbed` by counting the finished corpus and
+  subtracting, because the event stream couldn't be trusted — that inference
+  is where the attribution bug lived. `Replace` now books both sides as it is
+  decided, so the tallies match the corpus with no subtraction anywhere.
+- **The policy is testable without a mutable corpus.** Its tests assert on
+  decisions; only the few that care about corpus *effect* apply one.
+
+The `Specification` ABC is **deleted**: zero implementations after this, and it
+had already lost its combinators (§3.1). A genuinely pure future rule
+(AOI/exclusion-zone against `exclusions.geojson`, or an `is_open` publication
+gate) should get a fresh base class whose docstring can promise purity without
+caveats — not inherit one whose documentation had become a warning about the
+class that left.
+
+> **Assessment for a reviewer:** adopting Specification in Phase 0 was a
+> reasonable bet on rules that turned out to be neither composable nor pure.
+> Recognising that from the shipped code and replacing it with a policy object
+> that says what it does is the outcome that demonstrates pattern *judgment*
+> rather than pattern *application*.
+
+**A note on the dated walkthroughs.** `docs/walkthroughs/E1.2.md`, `E1.3.md`,
+`E1.5.md`, `phase-0-and-E1.1.md` and `provenance.md` describe the
+**pre-refactor** state — `Specification`, `is_satisfied_by`,
+`DuplicateStationSpecification`. They are deliberately left as historical
+records of what was true when each task shipped; this file and the code are
+authoritative for what is true now.
 
 ### 3.1 Specification combinators — DELETED 2026-07-29 ✅
 

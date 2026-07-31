@@ -6,10 +6,10 @@ observation (source_queue.yaml: "aggregate nodules to event -> event mass;
 kg/m2 = event_mass / 0.25; also yields mean_nodule_mass_g"; "TRAIN_AGGREGATE").
 This is dedup rule 3 ("individual nodules are nested within box-core events:
 the event is the sample") — implemented here, in the adapter, rather than as
-a dedup Specification, per the engineer of record's decision (2026-07-27
+a dedup rule, per the engineer of record's decision (2026-07-27
 E1.3 review): collapsing many nodule-level rows into one event-level row is
-a many-to-one reduction, not a fit for Specification's boolean
-is_satisfied_by(one_observation) contract. By the time an aggregated row
+a many-to-one reduction, not a fit for a per-observation dedup decision.
+By the time an aggregated row
 reaches dedup, it is already one row per event — there is nothing left for
 dedup to nest.
 

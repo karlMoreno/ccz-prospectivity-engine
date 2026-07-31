@@ -1,6 +1,6 @@
 """corpus_builder (E1.3) — the end-to-end wiring test: IngestionPipeline.run()
 through the real adapters, the E1.2 NormalizerRegistry, and the E1.3
-DuplicateStationSpecification, into one corpus. Plus the three required
+DuplicateResolutionPolicy, into one corpus. Plus the three required
 end-to-end properties: idempotency, flagged/failed retention, and
 deterministic (byte-identical, stably-sorted) CSV output.
 
@@ -30,7 +30,7 @@ from engine.prospectivity.ingestion.corpus_builder import (
     write_corpus_csv,
 )
 from engine.prospectivity.ingestion.corpus_builder import _require_production_path
-from engine.prospectivity.ingestion.dedup_rules import DuplicateStationSpecification
+from engine.prospectivity.ingestion.dedup_rules import DuplicateResolutionPolicy
 from engine.prospectivity.ingestion.normalizer_registry import build_default_registry
 from engine.prospectivity.ingestion.pipeline import IngestionPipeline
 from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapter
@@ -257,7 +257,7 @@ def test_flagged_row_from_screening_is_retained_with_qa_status_intact() -> None:
         adapter=adapter,
         normalizers=build_default_registry(),
         corpus=corpus,
-        dedup_specification=DuplicateStationSpecification(corpus),
+        dedup_policy=DuplicateResolutionPolicy(corpus),
     ).run()
 
     assert len(corpus) == 1

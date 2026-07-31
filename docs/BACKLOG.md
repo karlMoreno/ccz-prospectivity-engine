@@ -13,8 +13,7 @@ docstrings, and review chat. Rules of the file:
 - Every entry cites where the detail lives (`file:line` or walkthrough §) so
   it is verifiable. Do not add entries that trace to nothing.
 
-Last consolidated: 2026-07-30 (through **E1.5 follow-ups + Phase-1 closeout
-Task A**). **29 open items**: §1 Track G 10, §2 Karl 1, §3
+Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**). **29 open items**: §1 Track G 10, §2 Karl 1, §3
 Engineering 13, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
@@ -124,7 +123,7 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   proposal: contract-driven `preference_rank` in `source_queue.yaml`
   (implements rule 2's "prefer clearest methods" literally), lexicographic
   `source_id` as documented fallback, third branch in
-  `dedup_rules.py::is_satisfied_by`, merge-notes record "unranked, used
+  `dedup_rules.py::resolve`, merge-notes record "unranked, used
   fallback". Needed before DOMES families / NOAA-PANGAEA mirrors land — they
   collide by design with no quality-grade asymmetry. Owner: E (+ G ranks).
   Trigger: **before wiring `[02][03][04]` or mirrors**. Detail: E1.3.md §14.
@@ -195,7 +194,7 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   the NOAA mirrors**. Detail:
   [dedup_rules.py](../engine/prospectivity/ingestion/dedup_rules.py)
   `_same_station`; `test_corpus_builder.py` collision test's own comment.
-- [ ] **Intra-batch duplicate detection.** `DuplicateStationSpecification`
+- [ ] **Intra-batch duplicate detection.** `DuplicateResolutionPolicy`
   only checks candidates against the existing corpus — two duplicate rows in
   the SAME adapter fetch don't catch each other. None of the wired sources
   have that shape; DOMES might. Owner: E. Trigger: before wiring
@@ -309,6 +308,17 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
 ## Recently closed
 
+- [x] **Specification retired for an honest policy object** (Task D / Option
+  C2, 2026-07-30). `DuplicateStationSpecification` →
+  `DuplicateResolutionPolicy` with a **pure** `resolve(candidate) ->
+  Resolution` (`Admit` / `AlreadyPresent` / `AbsorbInto` / `Replace`);
+  `IngestionPipeline._dedup` applies the decision. The `Specification` ABC is
+  deleted — zero implementations, combinators already gone. Idempotency became
+  structural (the `AlreadyPresent` variant; no write branch for it), and the
+  manifest's ~20 lines of attribution inference — where the attribution bug
+  lived — are gone, because the recorder now observes each decision including
+  which source a `Replace` displaced. Corpus CSV byte-identical; manifest
+  substantively unchanged. Detail: [PATTERNS.md](PATTERNS.md) §3.0.
 - [x] **Test-name audit, fully closed** (Tasks A + B, 2026-07-30). All 17
   findings addressed: 7 assertions strengthened (each mutation-verified), 9
   tests renamed to match their bodies, 1 misplaced test moved out of

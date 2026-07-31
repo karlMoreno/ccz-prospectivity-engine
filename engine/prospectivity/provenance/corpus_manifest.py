@@ -181,33 +181,33 @@ def build_corpus_manifest(
 
     training_eligible = [obs for obs in corpus if obs.is_training_eligible()]
 
-    # Final attribution, counted from the FINISHED corpus so it cannot depend
-    # on adapter run order (see SourceProvenance's docstring).
-    in_corpus_by_source: dict[str, int] = {}
-    in_corpus_by_source_class: dict[str, dict[str, int]] = {}
+    # The ~20 lines of attribution INFERENCE that used to sit here are gone
+    # (C2, 2026-07-30). They counted the finished corpus and subtracted to
+    # recover admitted/absorbed, because the event stream could not be trusted
+    # — and an earlier version of that inference, based on append order, was
+    # the manifest attribution bug. The recorder now observes each `Resolution`
+    # as it is decided, including which source a `Replace` displaced, so these
+    # are read directly. `test_corpus_row_count_equals_total_admitted_across_sources`
+    # is the cross-check that they still agree with the corpus.
+    #
+    # qa_status remains a property of the FINISHED row rather than a
+    # disposition — a row's verdict can be escalated by a later merge — so it
+    # is still counted from the corpus. That is a direct count, not an
+    # inference.
     flagged_by_source: dict[str, int] = {}
     for observation in corpus:
-        source_id = observation.source_id
-        evidence_class = observation.evidence_class.value
-        in_corpus_by_source[source_id] = in_corpus_by_source.get(source_id, 0) + 1
-        per_class = in_corpus_by_source_class.setdefault(source_id, {})
-        per_class[evidence_class] = per_class.get(evidence_class, 0) + 1
         if observation.qa_status in (QAStatus.FLAGGED, QAStatus.FAIL):
-            flagged_by_source[source_id] = flagged_by_source.get(source_id, 0) + 1
+            flagged_by_source[observation.source_id] = (
+                flagged_by_source.get(observation.source_id, 0) + 1
+            )
 
     sources: list[SourceProvenance] = []
     for record in recorder.sources():
         entry = queue.get(record.source_id, {})
-        admitted_rows = in_corpus_by_source.get(record.source_id, 0)
-        admitted_by_class = dict(sorted(in_corpus_by_source_class.get(record.source_id, {}).items()))
-        absorbed_rows = record.adapted_records - admitted_rows - record.rejected_rows
-        absorbed_by_class = {
-            evidence_class: adapted_count - admitted_by_class.get(evidence_class, 0)
-            for evidence_class, adapted_count in sorted(
-                record.adapted_by_evidence_class.items()
-            )
-            if adapted_count - admitted_by_class.get(evidence_class, 0) > 0
-        }
+        admitted_rows = record.admitted_rows
+        absorbed_rows = record.absorbed_rows
+        admitted_by_class = dict(sorted(record.admitted_by_evidence_class.items()))
+        absorbed_by_class = dict(sorted(record.absorbed_by_evidence_class.items()))
         input_path = input_paths.get(record.source_id)
         license_text = entry.get("license")
         sources.append(

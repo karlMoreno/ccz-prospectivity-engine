@@ -1,14 +1,14 @@
-"""Concrete dedup Specifications — SPECIFICATION (Phase 1, E1.3), implementing
+"""Concrete dedup policy (Phase 1, E1.3; restructured C2 2026-07-30), implementing
 normalization.yaml's `deduplication:` block (Contract 7) as composable
 predicates over an Observation, per specification.py's frozen ABC.
 
-`DuplicateStationSpecification` implements rules 1 and 2 together (DOMES
+`DuplicateResolutionPolicy` implements rules 1 and 2 together (DOMES
 families dedupe by cruise+station/event+coords+date, NOT DOI; NOAA/PANGAEA
 mirrors prefer the clearer record but retain both provenance links) — their
 underlying mechanics are identical (same key match, same survivor rule), so
 one class serves both named rules. Rules 4 and 5 (GRID never merged with an
 observed station; COVER/COUNT never merged with MASS) are NOT separate
-Specifications — they're expressed as `_comparable_evidence()`, a guard on
+separate rules — they're expressed as `_comparable_evidence()`, a guard on
 what counts as a "match" at all, because a single box-core event fans out
 into MASS+COUNT+COVER RawRecords that legitimately share the same
 cruise/station/event/coords/date (E1.1's `_column_mapping.build_records`) —
@@ -25,24 +25,25 @@ engineer of record's decision (2026-07-27 E1.3 review), it's a many-to-one
 aggregation (sum nodule masses per event, derive mean_nodule_mass_g), which
 doesn't fit a per-observation boolean predicate. That lives in
 `nodule_aggregate_adapter.py`, upstream of dedup, so by the time an
-aggregated [05] row reaches this Specification it's already one row per
+aggregated [05] row reaches this policy it's already one row per
 event — there is nothing left for dedup to collapse.
 
     ┌────────────────────────────────────────────────────────────┐
-    │            DuplicateStationSpecification(corpus)               │
-    │  is_satisfied_by(candidate):                                    │
+    │             DuplicateResolutionPolicy(corpus)                  │
+    │  resolve(candidate) -> Resolution:   # PURE: reads, never writes │
     │    existing = _find_duplicate(candidate)  # scans the live corpus │
-    │    if existing is None: return True          # not a duplicate    │
+    │    if existing is None:      return Admit(...)                    │
+    │    if existing IS candidate: return AlreadyPresent(...)           │
     │    survivor = candidate if quality(candidate) > quality(existing) │
     │               else existing               # existing keeps ties   │
-    │    merged = _merge(survivor, loser)   # D1: gap-fill: donate every │
-    │             non-null field the loser carries that survivor lacks; │
-    │             D4: record loser's provenance regardless of direction │
-    │    corpus[index of existing] = merged; return False               │
-    │        # (False always: the corpus slot already holds the final   │
-    │        # row, whichever one won -- the pipeline must not ALSO     │
-    │        # append the raw candidate via its normal append step)     │
+    │    merged = _build_merge(survivor, loser)  # D1 gap-fill + D4     │
+    │             provenance + sticky qa_status, all computed, none     │
+    │             applied                                               │
+    │    return Replace(...) if candidate won else AbsorbInto(...)      │
     └────────────────────────────────────────────────────────────┘
+              │
+              ▼  IngestionPipeline._dedup APPLIES the decision
+       corpus[index of existing] = resolution.merged
 
 Survivor precedence (confirmed with the engineer of record, 2026-07-27):
 highest `quality_grade` wins (A > B > C); ties (the common case today, since
@@ -50,8 +51,8 @@ E1.2's normalizers set one quality_grade default per evidence class,
 independent of source) go to whichever row was accepted first.
 
 Merge-on-dedup (D1) and symmetric provenance (D4) — confirmed with the
-engineer of record, 2026-07-27 review, sharing one code path (`_merge`,
-called from `is_satisfied_by` regardless of which side wins) since both
+engineer of record, 2026-07-27 review, sharing one code path
+(`_build_merge`, called from `resolve` regardless of which side wins) since both
 decisions apply at the exact moment a survivor is chosen: the survivor
 absorbs any non-null field the dropped row carries that the survivor itself
 lacks (gap-fill only — a non-null value already on the survivor is never
@@ -85,7 +86,13 @@ from __future__ import annotations
 from engine.prospectivity.domain.evidence import EvidenceClass, QAStatus, QualityGrade
 from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.ingestion._contract_paths import load_normalization_yaml
-from engine.prospectivity.ingestion.specification import Specification
+from engine.prospectivity.ingestion.resolution import (
+    AbsorbInto,
+    Admit,
+    AlreadyPresent,
+    Replace,
+    Resolution,
+)
 
 _KEY_FIELDS = ("cruise", "station_id", "event_id", "sample_datetime_utc")
 
@@ -161,48 +168,30 @@ def _same_station(a: Observation, b: Observation, tolerance_deg: float) -> bool:
     return _within_coordinate_tolerance(a, b, tolerance_deg)
 
 
-class DuplicateStationSpecification(Specification):
-    """⚠ THIS CLASS MUTATES THE CORPUS. It is an admission POLICY, not a
-    predicate — read this before calling `is_satisfied_by`.
+class DuplicateResolutionPolicy:
+    """Decides what should happen to one candidate observation; changes
+    nothing. `IngestionPipeline._dedup` applies the returned Resolution.
 
-    On a duplicate match, `is_satisfied_by(candidate)` may:
+    Replaced `DuplicateStationSpecification` on 2026-07-30 (C2 refactor,
+    docs/PATTERNS.md §3.0). The old class implemented a `Specification` ABC and
+    exposed `is_satisfied_by(candidate) -> bool`, but was neither composable
+    nor a predicate: it read the corpus and, on a match, rewrote a row in place
+    and returned False to COMMIT that. Two calls to something named
+    `is_satisfied_by` were assumed to be free, and that assumption produced a
+    real bug (E1.5). `resolve()` is a pure function of (candidate, corpus): it
+    is safe to call any number of times, and the mutation it implies is
+    explicit in the value object it returns.
 
-      - REPLACE the matched corpus row in place, when the candidate outranks it
-        on `quality_grade` (the candidate's values become the survivor's);
-      - MERGE fields from the loser into the survivor — gap-fill only, never
-        overwriting a non-null survivor value (D1);
-      - APPEND to the survivor's `notes` a provenance link naming the absorbed
-        row, and its `duplicate_group_id`;
-      - ESCALATE the survivor's `qa_status` to the more severe of the pair, so
-        a `fail`/`flagged` verdict cannot be erased by dedup (2026-07-30).
+        resolve(candidate) -> Admit | AlreadyPresent | AbsorbInto | Replace
 
-    ...and then return **False**, which here means "the corpus slot already
-    holds the final row — do not also append this candidate", NOT "this
-    candidate is uninteresting". Returning False is how the merge is committed.
-
-    `corpus` is a LIVE reference (the same list `IngestionPipeline` appends
-    into), which is what makes the decision visible to every subsequent adapter
-    run against the same corpus.
-
-    THE IDEMPOTENCY GUARDS ARE LOAD-BEARING, NOT DEFENSIVE. Two of them exist,
-    and removing either reintroduces a bug that shipped:
-
-      1. `_merge` refuses to re-append a provenance link already present.
-         Without it, every `build_corpus()` re-run grew each merged row's
-         `notes` (1 link -> 3 after two runs), while the row COUNT stayed
-         correct — so the length-only idempotency test passed throughout.
-      2. `is_satisfied_by` short-circuits when the candidate IS the corpus row
-         (same source_id + source_record_id). Without it, a re-run made a row
-         record itself as "duplicate of <its own source_record_id>".
-
-    Both are covered by tests that fail when the guard is removed
-    (`test_dedup_rules.py`'s idempotency tests, `test_corpus_builder.py`'s
-    strengthened `..._adds_nothing`). They make repeated evaluation SAFE; they
-    do not make it FREE, and they do not make this class a predicate. See
-    docs/PATTERNS.md §3.1 and specification.py's ABC docstring.
+    The five effects that used to be hidden are now all named on the
+    Resolution: which corpus row is affected (`existing`), what the slot must
+    hold (`merged`), which fields were gap-filled (`donated_fields`), the
+    provenance link (`note`), and the sticky QA verdict (`escalated_status`).
 
     Dedup rules 1 & 2 (DOMES families / NOAA-PANGAEA mirrors) are the domain
-    rules this implements."""
+    rules this implements; rules 4 & 5 live in `_comparable_evidence`, and
+    rule 3 is handled upstream by `NoduleAggregateAdapter`."""
 
     def __init__(self, corpus: list[Observation], tolerance_deg: float | None = None) -> None:
         self._corpus = corpus
@@ -218,7 +207,9 @@ class DuplicateStationSpecification(Specification):
                 return existing
         return None
 
-    def _merge(self, survivor: Observation, dropped: Observation) -> Observation:
+    def _build_merge(
+        self, survivor: Observation, dropped: Observation
+    ) -> tuple[Observation, tuple[str, ...], str | None, QAStatus | None]:
         """D1 (merge-on-dedup): survivor absorbs any non-null field `dropped`
         carries that survivor lacks — gap-fill only; a non-null value already
         on survivor is never overwritten, so this cannot arbitrate a
@@ -290,7 +281,9 @@ class DuplicateStationSpecification(Specification):
         # (schema version bump) and needs your call on whether the distinction
         # is reliably determinable at ingest. Until then the conservative
         # default stands.
+        escalated_status: QAStatus | None = None
         if _qa_severity(dropped.qa_status) > _qa_severity(survivor.qa_status):
+            escalated_status = QAStatus(dropped.qa_status)
             updates["qa_status"] = dropped.qa_status
             link_note += (
                 f"; qa_status escalated {survivor.qa_status.value} -> "
@@ -309,36 +302,54 @@ class DuplicateStationSpecification(Specification):
         already_linked = survivor.notes is not None and (
             f"duplicate of {dropped.source_record_id}" in survivor.notes
         )
+        applied_note: str | None = None
         if not already_linked:
+            applied_note = link_note
             updates["notes"] = f"{survivor.notes}; {link_note}" if survivor.notes else link_note
-        return survivor.model_copy(update=updates)
+        return (
+            survivor.model_copy(update=updates),
+            tuple(sorted(donated_fields)),
+            applied_note,
+            escalated_status,
+        )
 
-    def is_satisfied_by(self, candidate: Observation) -> bool:
+    def resolve(self, candidate: Observation) -> Resolution:
+        """PURE. Reads the corpus, decides, returns — never writes.
+
+        Safe to call any number of times for the same candidate: the returned
+        Resolution is a function of (candidate, current corpus contents), so
+        repeated calls against an unchanged corpus produce equal decisions."""
         existing = self._find_duplicate(candidate)
         if existing is None:
-            return True
-        # Same RECORD being re-offered, not a duplicate PAIR (2026-07-29, E1.5
-        # follow-up). On a re-run of the same adapter against an
-        # already-populated corpus, a candidate matches the very row it
-        # produced last time. Merging that pair made the row record itself as
-        # "duplicate of <its own source_record_id>" — corrupt provenance, and
-        # invisible to a length-only idempotency check. Nothing to merge here:
-        # the corpus already holds this record.
+            return Admit(candidate=candidate)
+
+        # Same RECORD re-offered, not a duplicate PAIR. On a re-run of the
+        # same adapter against an already-populated corpus, a candidate matches
+        # the very row it produced last time. Merging that pair made the row
+        # record itself as "duplicate of <its own source_record_id>" — corrupt
+        # provenance, invisible to a length-only idempotency check (E1.5).
+        # Now it is a NAMED OUTCOME rather than an early `return False`, so the
+        # pipeline can distinguish "nothing to do" from "absorbed by another
+        # source" — which is what the recorder needs to stop inferring.
         if (
             candidate.source_id == existing.source_id
             and candidate.source_record_id == existing.source_record_id
         ):
-            return False
-        if _quality_rank(candidate.quality_grade) > _quality_rank(existing.quality_grade):
-            survivor, dropped = candidate, existing
-        else:
-            # existing wins (higher or equal quality; ties go to first-encountered).
-            survivor, dropped = existing, candidate
-        index = self._corpus.index(existing)
-        self._corpus[index] = self._merge(survivor, dropped)
-        # Always False: the corpus slot above already holds the final
-        # (possibly merged) survivor, whichever row won. The pipeline's own
-        # append step must not ALSO add the raw candidate — that would
-        # either duplicate it (existing won) or add an un-merged copy
-        # alongside the merged one already in the corpus (candidate won).
-        return False
+            return AlreadyPresent(candidate=candidate, existing=existing)
+
+        candidate_wins = _quality_rank(candidate.quality_grade) > _quality_rank(
+            existing.quality_grade
+        )
+        # Ties go to first-encountered, i.e. the row already in the corpus.
+        survivor, dropped = (candidate, existing) if candidate_wins else (existing, candidate)
+        merged, donated_fields, note, escalated_status = self._build_merge(survivor, dropped)
+
+        outcome = Replace if candidate_wins else AbsorbInto
+        return outcome(
+            candidate=candidate,
+            existing=existing,
+            merged=merged,
+            donated_fields=donated_fields,
+            note=note,
+            escalated_status=escalated_status,
+        )

@@ -63,7 +63,8 @@ Paste this to start next session:
 > always flagged `observation_or_prediction` compiled/interpolated, never training-eligible;
 > GRADE: never produce `abundance_kg_m2`, only join `mn/ni/cu/co_pct`). Keep the
 > Strategy-pattern comment explaining what each class does and why, matching the style in
-> `normalizer.py` and the three E1.1 adapters. Do NOT touch dedup (`Specification`) or the
+> `normalizer.py` and the three E1.1 adapters. Do NOT touch dedup (then a `Specification`;
+> since 2026-07-30 a `DuplicateResolutionPolicy` — see docs/PATTERNS.md §3.0) or the
 > `SourceAdapter` classes — normalizers only. Write one test per normalizer proving its
 > formula against a hand-built `RawRecord`, plus a regression test proving the
 > COVER/GRADE normalizers never set `abundance_kg_m2` even when handed a record that

@@ -1,14 +1,26 @@
-"""Real dedup Specification (SPECIFICATION, E1.3) tests — one per
-normalization.yaml dedup rule, run directly against hand-built Observations
-(rule 3's test lives in test_nodule_aggregate_adapter.py; see dedup_rules.py's
-module docstring for why it isn't a Specification here at all).
+"""DuplicateResolutionPolicy tests — one per normalization.yaml dedup rule,
+run directly against hand-built Observations.
+
+Rewritten for C2 (2026-07-30): the policy is now PURE, so these assert on the
+returned `Resolution` — the decision — rather than on a corpus the call
+mutated behind a bool. Where a test genuinely cares about the corpus EFFECT it
+says so by calling `_apply`, which mirrors `IngestionPipeline._dedup` exactly.
+
+Rule 3's test lives in test_nodule_aggregate_adapter.py; see dedup_rules.py's
+module docstring for why it is an adapter concern, not a dedup decision.
 """
 
 from __future__ import annotations
 
 from engine.prospectivity.domain.evidence import QAStatus
 from engine.prospectivity.domain.observation import Observation
-from engine.prospectivity.ingestion.dedup_rules import DuplicateStationSpecification
+from engine.prospectivity.ingestion.dedup_rules import DuplicateResolutionPolicy
+from engine.prospectivity.ingestion.resolution import (
+    AbsorbInto,
+    Admit,
+    AlreadyPresent,
+    Replace,
+)
 
 _SHARED = dict(
     cruise="SO268",
@@ -29,6 +41,18 @@ def _obs(**overrides: object) -> Observation:
     return Observation(**fields)
 
 
+def _apply(corpus: list[Observation], resolution) -> None:
+    """Apply a Resolution exactly as IngestionPipeline._dedup does.
+
+    The policy is pure now, so a test that cares about the corpus EFFECT has
+    to say so explicitly. Most tests below don't — they assert on the returned
+    Resolution, which is the decision itself."""
+    if isinstance(resolution, Admit):
+        corpus.append(resolution.candidate)
+    elif isinstance(resolution, (AbsorbInto, Replace)):
+        corpus[corpus.index(resolution.existing)] = resolution.merged
+
+
 # --- rule 1: DOMES families dedupe by key, not DOI -------------------------
 
 
@@ -37,7 +61,7 @@ def test_domes_family_duplicate_by_key_not_doi_is_rejected() -> None:
     the second one is recognized as a duplicate, not admitted as a second
     station, even though nothing about their source_id/DOI matches."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_domes_fewkes1980_MASS_000001",
@@ -46,7 +70,7 @@ def test_domes_family_duplicate_by_key_not_doi_is_rejected() -> None:
         abundance_kg_m2=9.2,
         quality_grade="A",
     )
-    assert spec.is_satisfied_by(first)
+    assert isinstance(policy.resolve(first), Admit)
     corpus.append(first)
 
     second = _obs(
@@ -56,7 +80,7 @@ def test_domes_family_duplicate_by_key_not_doi_is_rejected() -> None:
         abundance_kg_m2=9.0,
         quality_grade="A",
     )
-    assert not spec.is_satisfied_by(second)  # tie on quality -> first-encountered wins
+    assert not isinstance(policy.resolve(second), Admit)  # tie on quality -> first-encountered wins
     assert len(corpus) == 1
 
 
@@ -64,11 +88,11 @@ def test_domes_family_duplicate_by_key_not_doi_is_rejected() -> None:
 
 
 def test_higher_quality_grade_survivor_replaces_lower_quality_existing() -> None:
-    """Post-D1/D4: is_satisfied_by ALWAYS returns False on a duplicate match
-    (merged or not) -- the Specification replaces the corpus slot itself, so
-    the pipeline's normal append step must not also add the raw candidate."""
+    """The candidate outranks the row in the slot, so the decision is
+    `Replace` — named, rather than the old bare `False` that meant "merged,
+    don't append" and read like "not a duplicate" (C2, 2026-07-30)."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     weaker = _obs(
         source_record_id="src_noaa_mirror_MASS_000001",
@@ -77,7 +101,7 @@ def test_higher_quality_grade_survivor_replaces_lower_quality_existing() -> None
         abundance_kg_m2=9.0,
         quality_grade="B",
     )
-    assert spec.is_satisfied_by(weaker)
+    assert isinstance(policy.resolve(weaker), Admit)
     corpus.append(weaker)
 
     clearer = _obs(
@@ -87,7 +111,11 @@ def test_higher_quality_grade_survivor_replaces_lower_quality_existing() -> None
         abundance_kg_m2=9.1,
         quality_grade="A",
     )
-    assert not spec.is_satisfied_by(clearer)  # higher quality -> wins, but corpus already updated
+    resolution = policy.resolve(clearer)
+    assert isinstance(resolution, Replace)  # higher quality -> candidate wins the slot
+    assert resolution.existing is weaker
+
+    _apply(corpus, resolution)
     assert len(corpus) == 1  # weaker row replaced in place, not kept alongside
     survivor = corpus[0]
     assert survivor.source_record_id == "src_pangaea_mirror_MASS_000001"
@@ -99,7 +127,7 @@ def test_survivor_retains_provenance_link_to_the_dropped_duplicate() -> None:
     """Rule 2's "retain both provenance links": the surviving row records the
     dropped row's source, rather than keeping a second corpus row."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_noaa_mirror_MASS_000001",
@@ -117,7 +145,11 @@ def test_survivor_retains_provenance_link_to_the_dropped_duplicate() -> None:
         abundance_kg_m2=9.05,
         quality_grade="A",  # tie -> existing (first) wins
     )
-    assert not spec.is_satisfied_by(duplicate)
+    resolution = policy.resolve(duplicate)
+    assert isinstance(resolution, AbsorbInto)  # tie -> existing keeps the slot
+    assert resolution.note is not None
+    _apply(corpus, resolution)
+
     survivor = corpus[0]
     assert survivor.duplicate_group_id is not None
     assert "src_pangaea_mirror_MASS_000001" in survivor.notes
@@ -129,7 +161,7 @@ def test_survivor_retains_provenance_link_to_the_dropped_duplicate() -> None:
 
 def test_grid_row_never_merged_with_an_observed_station() -> None:
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     mass_row = _obs(
         source_record_id="src_so268_boxcore_MASS_000001",
@@ -138,7 +170,7 @@ def test_grid_row_never_merged_with_an_observed_station() -> None:
         abundance_kg_m2=14.6,
         quality_grade="A",
     )
-    assert spec.is_satisfied_by(mass_row)
+    assert isinstance(policy.resolve(mass_row), Admit)
     corpus.append(mass_row)
 
     grid_row = _obs(
@@ -149,7 +181,7 @@ def test_grid_row_never_merged_with_an_observed_station() -> None:
         observation_or_prediction="compiled",
         quality_grade="C",
     )
-    assert spec.is_satisfied_by(grid_row)  # not treated as a duplicate of the MASS row
+    assert isinstance(policy.resolve(grid_row), Admit)  # not treated as a duplicate of the MASS row
     corpus.append(grid_row)
     assert len(corpus) == 2
 
@@ -160,7 +192,7 @@ def test_two_grid_rows_at_the_same_cell_still_dedupe_against_each_other() -> Non
     twice must still be recognized as a duplicate (this is what idempotency
     depends on for GRID sources)."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_ts6_grid_GRID_000001",
@@ -170,7 +202,7 @@ def test_two_grid_rows_at_the_same_cell_still_dedupe_against_each_other() -> Non
         observation_or_prediction="compiled",
         quality_grade="C",
     )
-    assert spec.is_satisfied_by(first)
+    assert isinstance(policy.resolve(first), Admit)
     corpus.append(first)
 
     reingested = _obs(
@@ -181,7 +213,7 @@ def test_two_grid_rows_at_the_same_cell_still_dedupe_against_each_other() -> Non
         observation_or_prediction="compiled",
         quality_grade="C",
     )
-    assert not spec.is_satisfied_by(reingested)  # recognized as the same cell, not a 2nd row
+    assert not isinstance(policy.resolve(reingested), Admit)  # recognized as the same cell, not a 2nd row
     assert len(corpus) == 1
 
 
@@ -191,7 +223,7 @@ def test_grid_rows_from_different_sources_never_dedupe_even_at_the_same_cell() -
     independent estimates worth comparing, not two observations of one
     sample -- deduping them would silently delete benchmark data."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     ts6_cell = _obs(
         source_record_id="src_ts6_grid_GRID_000001",
@@ -201,7 +233,7 @@ def test_grid_rows_from_different_sources_never_dedupe_even_at_the_same_cell() -
         observation_or_prediction="compiled",
         quality_grade="C",
     )
-    assert spec.is_satisfied_by(ts6_cell)
+    assert isinstance(policy.resolve(ts6_cell), Admit)
     corpus.append(ts6_cell)
 
     washburn_cell = _obs(
@@ -212,7 +244,7 @@ def test_grid_rows_from_different_sources_never_dedupe_even_at_the_same_cell() -
         observation_or_prediction="interpolated",
         quality_grade="C",
     )
-    assert spec.is_satisfied_by(washburn_cell)  # a different model product, not a duplicate
+    assert isinstance(policy.resolve(washburn_cell), Admit)  # a different model product, not a duplicate
     corpus.append(washburn_cell)
     assert len(corpus) == 2  # neither dropped
 
@@ -225,7 +257,7 @@ def test_cover_row_never_merged_with_a_mass_row_from_the_same_event() -> None:
     share cruise+station+event+coords+date (E1.1's fan-out) -- they must NOT
     be treated as duplicates of each other."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     mass_row = _obs(
         source_record_id="src_so268_boxcore_MASS_000001",
@@ -234,7 +266,7 @@ def test_cover_row_never_merged_with_a_mass_row_from_the_same_event() -> None:
         abundance_kg_m2=14.6,
         quality_grade="A",
     )
-    assert spec.is_satisfied_by(mass_row)
+    assert isinstance(policy.resolve(mass_row), Admit)
     corpus.append(mass_row)
 
     cover_row = _obs(
@@ -244,7 +276,7 @@ def test_cover_row_never_merged_with_a_mass_row_from_the_same_event() -> None:
         visible_cover_percent=35.0,
         quality_grade="B",
     )
-    assert spec.is_satisfied_by(cover_row)  # not a duplicate of the MASS row
+    assert isinstance(policy.resolve(cover_row), Admit)  # not a duplicate of the MASS row
     corpus.append(cover_row)
     assert len(corpus) == 2
 
@@ -257,7 +289,7 @@ def test_null_tolerant_key_match_still_catches_a_duplicate_with_a_blank_event_id
     recognized as a duplicate of a source that reports both, provided nothing
     they BOTH report disagrees."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     with_event_id = _obs(
         source_record_id="src_so268_boxcore_MASS_000001",
@@ -276,7 +308,7 @@ def test_null_tolerant_key_match_still_catches_a_duplicate_with_a_blank_event_id
         abundance_kg_m2=14.5,
         quality_grade="A",
     )
-    assert not spec.is_satisfied_by(blank_event_id)  # still recognized as a duplicate
+    assert not isinstance(policy.resolve(blank_event_id), Admit)  # still recognized as a duplicate
 
 
 def test_disagreeing_non_null_field_blocks_the_match() -> None:
@@ -284,7 +316,7 @@ def test_disagreeing_non_null_field_blocks_the_match() -> None:
     null-tolerant pass -- it's a real disagreement, and the rows are distinct
     stations."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_so268_boxcore_MASS_000001",
@@ -303,7 +335,7 @@ def test_disagreeing_non_null_field_blocks_the_match() -> None:
         abundance_kg_m2=14.6,
         quality_grade="A",
     )
-    assert spec.is_satisfied_by(different_event)  # a distinct station, not a duplicate
+    assert isinstance(policy.resolve(different_event), Admit)  # a distinct station, not a duplicate
 
 
 # --- D1: merge-on-dedup (confirmed 2026-07-27) ------------------------------
@@ -315,7 +347,7 @@ def test_merge_fills_the_survivors_missing_mean_nodule_mass_g_forward_order() ->
     Whichever order they arrive in, the surviving row must end up with it --
     exactly the field CountNormalizer's row-only gate depends on."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     boxcore_shaped = _obs(
         source_record_id="src_so268_boxcore_MASS_000001",
@@ -326,7 +358,7 @@ def test_merge_fills_the_survivors_missing_mean_nodule_mass_g_forward_order() ->
         abundance_kg_m2=14.6,
         quality_grade="A",
     )
-    assert spec.is_satisfied_by(boxcore_shaped)
+    assert isinstance(policy.resolve(boxcore_shaped), Admit)
     corpus.append(boxcore_shaped)
 
     nodules_shaped = _obs(
@@ -339,7 +371,7 @@ def test_merge_fills_the_survivors_missing_mean_nodule_mass_g_forward_order() ->
         mean_nodule_mass_g=45.2,
         quality_grade="A",  # tie -> first-encountered (boxcore_shaped) wins
     )
-    assert not spec.is_satisfied_by(nodules_shaped)
+    _apply(corpus, policy.resolve(nodules_shaped))
 
     assert len(corpus) == 1
     survivor = corpus[0]
@@ -350,7 +382,7 @@ def test_merge_fills_the_survivors_missing_mean_nodule_mass_g_reversed_order() -
     """Same scenario, insertion order reversed -- completeness must not
     depend on which row arrived first."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     nodules_shaped = _obs(
         source_record_id="src_so268_nodules_MASS_000001",
@@ -362,7 +394,7 @@ def test_merge_fills_the_survivors_missing_mean_nodule_mass_g_reversed_order() -
         mean_nodule_mass_g=45.2,
         quality_grade="A",
     )
-    assert spec.is_satisfied_by(nodules_shaped)
+    assert isinstance(policy.resolve(nodules_shaped), Admit)
     corpus.append(nodules_shaped)
 
     boxcore_shaped = _obs(
@@ -374,7 +406,7 @@ def test_merge_fills_the_survivors_missing_mean_nodule_mass_g_reversed_order() -
         abundance_kg_m2=14.6,
         quality_grade="A",  # tie -> first-encountered (nodules_shaped) wins
     )
-    assert not spec.is_satisfied_by(boxcore_shaped)
+    _apply(corpus, policy.resolve(boxcore_shaped))
 
     assert len(corpus) == 1
     survivor = corpus[0]
@@ -386,7 +418,7 @@ def test_merge_never_overwrites_a_non_null_survivor_value() -> None:
     already non-null on the survivor keeps its own value even when the
     dropped row disagrees -- no silent value substitution."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_so268_boxcore_MASS_000001",
@@ -408,7 +440,7 @@ def test_merge_never_overwrites_a_non_null_survivor_value() -> None:
         abundance_kg_m2=14.6,
         quality_grade="A",  # tie -> first (existing) wins
     )
-    assert not spec.is_satisfied_by(duplicate_with_different_value)
+    _apply(corpus, policy.resolve(duplicate_with_different_value))
 
     survivor = corpus[0]
     assert survivor.nodule_mass_kg == 3.65  # survivor's own value kept, not overwritten
@@ -419,7 +451,7 @@ def test_merge_never_overwrites_a_non_null_survivor_value() -> None:
 
 def test_provenance_recorded_when_existing_row_wins() -> None:
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_a_MASS_000001",
@@ -437,7 +469,10 @@ def test_provenance_recorded_when_existing_row_wins() -> None:
         abundance_kg_m2=14.5,
         quality_grade="B",  # lower -> existing wins
     )
-    assert not spec.is_satisfied_by(duplicate)
+    resolution = policy.resolve(duplicate)
+    assert isinstance(resolution, AbsorbInto)  # lower grade -> absorbed
+    assert resolution.note is not None  # the link is named on the decision itself
+    _apply(corpus, resolution)
 
     survivor = corpus[0]
     assert survivor.source_record_id == "src_a_MASS_000001"  # existing keeps its identity
@@ -449,7 +484,7 @@ def test_provenance_recorded_when_candidate_wins() -> None:
     """D4's fix: before this decision, this direction recorded NOTHING --
     the existing row was simply removed with no link to it at all."""
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     first = _obs(
         source_record_id="src_a_MASS_000001",
@@ -467,7 +502,7 @@ def test_provenance_recorded_when_candidate_wins() -> None:
         abundance_kg_m2=14.5,
         quality_grade="A",  # higher -> candidate wins
     )
-    assert not spec.is_satisfied_by(duplicate)
+    _apply(corpus, policy.resolve(duplicate))
 
     assert len(corpus) == 1
     survivor = corpus[0]
@@ -479,7 +514,7 @@ def test_provenance_recorded_when_candidate_wins() -> None:
 # --- E1.5 follow-up: the stateful Specification must be idempotent ----------
 
 
-def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> None:
+def test_resolving_and_applying_the_same_duplicate_twice_is_idempotent() -> None:
     """`is_satisfied_by` is NOT a pure predicate — on a match it merges the
     candidate into the corpus row in place (D1/D4). That is exactly the
     fragility that got the AND/OR/NOT combinators deleted (see
@@ -493,7 +528,7 @@ def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> 
     while every count-based assertion still passed.
     """
     corpus: list[Observation] = []
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
     existing = _obs(
         source_record_id="src_a_MASS_000001",
@@ -515,7 +550,12 @@ def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> 
         mean_nodule_mass_g=41.3,
     )
 
-    assert not spec.is_satisfied_by(duplicate)
+    first = policy.resolve(duplicate)
+    assert isinstance(first, AbsorbInto)
+    assert first.donated_fields == ("mean_nodule_mass_g",)
+    assert first.note is not None  # the link is recorded on THIS decision
+    _apply(corpus, first)
+
     after_first = corpus[0].model_dump()
     assert len(corpus) == 1
     # The merge did happen: the donated field and the provenance link landed.
@@ -523,14 +563,19 @@ def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> 
     assert after_first["notes"].count("src_b_MASS_000001") == 1
     assert after_first["notes"].count("merged fields") == 1
 
-    # Second identical call — the fixed-point assertion.
-    assert not spec.is_satisfied_by(duplicate)
-    after_second = corpus[0].model_dump()
+    # Second resolve+apply against the ALREADY-MERGED corpus — the fixed point.
+    second = policy.resolve(duplicate)
+    assert isinstance(second, AbsorbInto)
+    # The decision itself now reports "nothing new to record": the guard is a
+    # property of the pure computation, not a mutation-time patch.
+    assert second.note is None
+    assert second.donated_fields == ()
+    _apply(corpus, second)
 
     assert len(corpus) == 1
-    assert after_second == after_first  # every field, not just the counts
-    assert after_second["notes"].count("src_b_MASS_000001") == 1  # not 2
-    assert after_second["notes"].count("merged fields") == 1
+    assert corpus[0].model_dump() == after_first  # every field, not just counts
+    assert corpus[0].notes.count("src_b_MASS_000001") == 1  # not 2
+    assert corpus[0].notes.count("merged fields") == 1
 
 
 # --- fail-is-terminal UNDER DEDUP (2026-07-30) -----------------------------
@@ -543,6 +588,9 @@ def test_calling_is_satisfied_by_twice_on_the_same_duplicate_is_idempotent() -> 
 
 
 def _pair(existing_qa: str, existing_grade: str, candidate_qa: str, candidate_grade: str):
+    """Returns the RESOLUTION, so tests can assert on the decision — including
+    `escalated_status`, which the value object now carries explicitly rather
+    than leaving as a side effect of applying the merge (C2)."""
     existing = _obs(
         source_record_id="src_a_MASS_000001",
         source_id="src_a",
@@ -559,17 +607,21 @@ def _pair(existing_qa: str, existing_grade: str, candidate_qa: str, candidate_gr
         qa_status=candidate_qa,
         quality_grade=candidate_grade,
     )
-    corpus: list[Observation] = [existing]
-    spec = DuplicateStationSpecification(corpus)
-    assert not spec.is_satisfied_by(candidate)
-    return corpus[0]
+    policy = DuplicateResolutionPolicy([existing])
+    resolution = policy.resolve(candidate)
+    assert isinstance(resolution, (AbsorbInto, Replace))
+    return resolution
 
 
 def test_fail_verdict_survives_being_outranked_by_a_higher_grade_candidate() -> None:
     """THE case the old end-to-end test could not reach (its fail row sat at
     coordinates no adapter covers, so no merge ever fired). A clean grade-A
     candidate wins the slot on quality_grade; it must NOT win away the fail."""
-    survivor = _pair("fail", "B", "pending", "A")
+    resolution = _pair("fail", "B", "pending", "A")
+    assert isinstance(resolution, Replace)  # candidate outranks -> takes the slot
+    # The verdict is carried EXPLICITLY on the decision, not implied by merged:
+    assert resolution.escalated_status == QAStatus.FAIL
+    survivor = resolution.merged
 
     assert survivor.source_record_id == "src_b_MASS_000001"  # candidate won the slot
     assert survivor.abundance_kg_m2 == 14.0  # ... and its better measurement
@@ -581,7 +633,10 @@ def test_fail_verdict_survives_being_outranked_by_a_higher_grade_candidate() -> 
 
 
 def test_fail_verdict_survives_when_the_failed_row_wins_the_slot() -> None:
-    survivor = _pair("fail", "A", "pending", "A")  # tie -> existing wins
+    resolution = _pair("fail", "A", "pending", "A")  # tie -> existing wins
+    assert isinstance(resolution, AbsorbInto)
+    assert resolution.escalated_status is None  # already fail; nothing to escalate
+    survivor = resolution.merged
     assert survivor.source_record_id == "src_a_MASS_000001"
     assert survivor.qa_status == QAStatus.FAIL
     assert not survivor.is_training_eligible()
@@ -593,7 +648,10 @@ def test_fail_verdict_survives_when_the_failed_row_wins_the_slot() -> None:
 def test_a_failed_candidate_escalates_a_clean_existing_row() -> None:
     """Symmetric: the verdict is sticky in both directions, so which row
     happens to arrive first cannot decide whether a failure is recorded."""
-    survivor = _pair("pending", "A", "fail", "B")
+    resolution = _pair("pending", "A", "fail", "B")
+    assert isinstance(resolution, AbsorbInto)
+    assert resolution.escalated_status == QAStatus.FAIL
+    survivor = resolution.merged
     assert survivor.source_record_id == "src_a_MASS_000001"  # existing won the slot
     assert survivor.qa_status == QAStatus.FAIL
     assert not survivor.is_training_eligible()
@@ -601,7 +659,9 @@ def test_a_failed_candidate_escalates_a_clean_existing_row() -> None:
 
 
 def test_flagged_verdict_is_sticky_the_same_way() -> None:
-    survivor = _pair("flagged", "B", "pending", "A")
+    resolution = _pair("flagged", "B", "pending", "A")
+    assert resolution.escalated_status == QAStatus.FLAGGED
+    survivor = resolution.merged
     assert survivor.qa_status == QAStatus.FLAGGED
     assert not survivor.is_training_eligible()
     assert "escalated pending -> flagged" in survivor.notes
@@ -610,7 +670,9 @@ def test_flagged_verdict_is_sticky_the_same_way() -> None:
 def test_fail_outranks_flagged_when_both_sides_are_adjudicated() -> None:
     """E1.2's precedence (fail is terminal, stronger than flagged) holds
     through a merge too — a merge must not launder a fail into a flagged."""
-    survivor = _pair("flagged", "A", "fail", "B")
+    resolution = _pair("flagged", "A", "fail", "B")
+    assert resolution.escalated_status == QAStatus.FAIL  # fail outranks flagged
+    survivor = resolution.merged
     assert survivor.qa_status == QAStatus.FAIL
     assert "escalated flagged -> fail" in survivor.notes
 
@@ -625,11 +687,62 @@ def test_escalation_is_idempotent_across_repeated_merges() -> None:
         abundance_kg_m2=14.0, qa_status="pending", quality_grade="A",
     )
     corpus: list[Observation] = [existing]
-    spec = DuplicateStationSpecification(corpus)
+    policy = DuplicateResolutionPolicy(corpus)
 
-    spec.is_satisfied_by(candidate)
+    _apply(corpus, policy.resolve(candidate))
     after_first = corpus[0].model_dump()
-    spec.is_satisfied_by(candidate)
+    _apply(corpus, policy.resolve(candidate))
 
     assert corpus[0].model_dump() == after_first
     assert corpus[0].notes.count("escalated") == 1
+
+
+# --- AlreadyPresent: the re-offer, now a named outcome (C2) -----------------
+
+
+def test_re_offering_a_row_already_in_the_corpus_is_already_present_not_absorbed() -> None:
+    """An adapter re-run offers rows it already produced. That is NOT an
+    absorption by another source, and calling it one is what made the event
+    stream order-dependent (the manifest attribution bug). It is now its own
+    named outcome, and `IngestionPipeline._dedup` writes nothing for it —
+    which is where the same-record idempotency guard now structurally lives."""
+    row = _obs(
+        source_record_id="src_a_MASS_000001",
+        source_id="src_a",
+        evidence_class="MASS",
+        abundance_kg_m2=14.6,
+        quality_grade="A",
+    )
+    corpus: list[Observation] = [row]
+    policy = DuplicateResolutionPolicy(corpus)
+
+    # The very same record, as a fresh object (an adapter re-run rebuilds it).
+    resolution = policy.resolve(row.model_copy())
+    assert isinstance(resolution, AlreadyPresent)
+    assert resolution.existing is row
+
+    _apply(corpus, resolution)
+    assert len(corpus) == 1
+    assert corpus[0].model_dump() == row.model_dump()  # untouched, no self-link
+
+
+def test_resolve_is_pure_repeated_calls_do_not_change_the_corpus() -> None:
+    """The property the C2 refactor exists to make obvious: calling the policy
+    is free. Before, this same loop would have merged five times."""
+    existing = _obs(
+        source_record_id="src_a_MASS_000001", source_id="src_a",
+        evidence_class="MASS", abundance_kg_m2=14.6, quality_grade="A",
+    )
+    candidate = _obs(
+        source_record_id="src_b_MASS_000001", source_id="src_b",
+        evidence_class="MASS", abundance_kg_m2=14.5, quality_grade="B",
+    )
+    corpus: list[Observation] = [existing]
+    policy = DuplicateResolutionPolicy(corpus)
+    before = [obs.model_dump() for obs in corpus]
+
+    resolutions = [policy.resolve(candidate) for _ in range(5)]
+
+    assert [obs.model_dump() for obs in corpus] == before  # nothing written
+    assert all(isinstance(r, AbsorbInto) for r in resolutions)
+    assert all(r.merged.model_dump() == resolutions[0].merged.model_dump() for r in resolutions)

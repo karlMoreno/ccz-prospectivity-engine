@@ -1,12 +1,12 @@
 """corpus_builder — Phase 1, E1.3's corpus-assembly entry point: wires every
 real SourceAdapter through IngestionPipeline (fetch->adapt->normalize->
 validate->dedup->append), using the E1.2 NormalizerRegistry and the E1.3
-DuplicateStationSpecification, into ONE shared corpus written to
+DuplicateResolutionPolicy, into ONE shared corpus written to
 data/corpus/master_observations.csv.
 
     build_boxcore()  ──┐
     build_nodules()  ──┴──► IngestionPipeline(adapter, registry, corpus, dedup) ──► corpus
-                              (same registry + same dedup Specification instance
+                              (same registry + same dedup policy instance
                                shared across every adapter's run)
 
 Adapter run ORDER is part of the contract, not incidental: survivor
@@ -52,7 +52,7 @@ from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.ingestion._column_mapping import EvidenceClassMapping
 from engine.prospectivity.ingestion._contract_paths import find_repo_root
 from engine.prospectivity.ingestion.boxcore_summary_adapter import BoxcoreSummaryAdapter
-from engine.prospectivity.ingestion.dedup_rules import DuplicateStationSpecification
+from engine.prospectivity.ingestion.dedup_rules import DuplicateResolutionPolicy
 from engine.prospectivity.ingestion.nodule_aggregate_adapter import NoduleAggregateAdapter
 from engine.prospectivity.ingestion.normalizer_registry import build_default_registry
 from engine.prospectivity.ingestion.pipeline import IngestionPipeline
@@ -261,8 +261,7 @@ def build_corpus(
     in REAL_ADAPTER_BUILDERS's fixed order by default. Safe to call more than
     once against the SAME corpus list: an adapter whose rows are already
     present is a no-op the second time (idempotency) — see
-    DuplicateStationSpecification, which checks against this exact live
-    corpus reference.
+    DuplicateResolutionPolicy, which reads this exact live corpus reference.
 
     `adapter_builders` (P2, 2026-07-27 audit follow-up) is a testability
     hook, not a production knob — production always uses the default. It
@@ -279,13 +278,13 @@ def build_corpus(
     corpus = corpus if corpus is not None else []
     builders = adapter_builders if adapter_builders is not None else REAL_ADAPTER_BUILDERS
     registry = build_default_registry()
-    dedup_specification = DuplicateStationSpecification(corpus)
+    dedup_policy = DuplicateResolutionPolicy(corpus)
     for build_adapter in builders:
         IngestionPipeline(
             adapter=build_adapter(),
             normalizers=registry,
             corpus=corpus,
-            dedup_specification=dedup_specification,
+            dedup_policy=dedup_policy,
             observer=observer,
         ).run()
     return corpus
@@ -304,13 +303,13 @@ def build_corpus_with_manifest(
     recorder = ProvenanceRecorder()
     corpus: list[Observation] = []
     registry = build_default_registry()
-    dedup_specification = DuplicateStationSpecification(corpus)
+    dedup_policy = DuplicateResolutionPolicy(corpus)
     for adapter in adapters:
         IngestionPipeline(
             adapter=adapter,
             normalizers=registry,
             corpus=corpus,
-            dedup_specification=dedup_specification,
+            dedup_policy=dedup_policy,
             observer=recorder,
         ).run()
     manifest = build_corpus_manifest(

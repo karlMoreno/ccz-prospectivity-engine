@@ -2,7 +2,7 @@
 (pangaea_adapter.py, tabular_file_adapter.py, regional_grid_adapter.py).
 
 Not one of CLAUDE.md's named seams (SourceAdapter/AbundanceNormalizer/
-Specification) — this is private implementation-sharing infrastructure so the
+dedup policy) — this is private implementation-sharing infrastructure so the
 same "one native row -> N evidence-tagged RawRecords" mapping logic isn't
 re-derived three times. Every Phase-A source in source_queue.yaml can carry
 more than one evidence class from the same native row (e.g. src_so268_boxcore
