@@ -13,8 +13,9 @@ docstrings, and review chat. Rules of the file:
 - Every entry cites where the detail lives (`file:line` or walkthrough §) so
   it is verifiable. Do not add entries that trace to nothing.
 
-Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**). **29 open items**: §1 Track G 10, §2 Karl 1, §3
-Engineering 13, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**); 2 items
+added 2026-08-08 (origin-audit latents, P2.0a′). **31 open items**: §1 Track G 10, §2 Karl 2, §3
+Engineering 14, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
@@ -108,6 +109,15 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   precision), so full float precision lands in the corpus CSV. Decide
   whether the contract should state a precision. Owner: Karl (contract
   change if yes). Trigger: before a published corpus. Detail: E1.2.md:153.
+- [ ] **Uncited literature-shaped numbers in the contracts README.** The
+  100 kg/m² ceiling rationale asserts "published CCZ abundances run
+  ~1.5–30 kg/m²" and "~2 g/cm³ wet bulk density" with no citation —
+  LITERATURE if cited, AUTHORED as written (origin-audit §4). Decide:
+  supply citations (with G) or explicitly mark them authored engineering
+  rationale. Owner: Karl (+ G for sources). Trigger: any time before a
+  published run. Detail:
+  [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
+  §4; [docs/contracts/README.md:24](../docs/contracts/README.md#L24)–37.
 
 ## 3. Engineering (Track E)
 
@@ -223,6 +233,18 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   claims to pin everything about a run; the dependency lock hash should sit
   alongside contract versions. Owner: E. Trigger: Phase-3 manifest emitter.
   Detail: review discussion 2026-07-29; `engine.py` `RunManifest`.
+- [ ] **Corpus CSV bytes are not hash-pinned by any manifest field.** The
+  corpus manifest records `corpus_path`, row counts, and its own
+  substance-hash, but nothing hashes `master_observations.csv`'s bytes — so
+  PROVENANCE.md's chaining rule currently traces a prediction to a
+  DESCRIPTION of the corpus rather than to the corpus bytes, and a hand-edit
+  to the CSV breaks no recorded hash (only a rebuild's full-state idempotency
+  comparison would surface the drift). Own task with its own reasoning,
+  deliberately NOT part of P2.0 — it changes the manifest shape for a
+  different reason than origin does. Owner: E. Trigger: own task; before a
+  published run (natural fit: the Phase-3 manifest work above). Detail:
+  [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
+  §6; [docs/contracts/PROVENANCE.md](contracts/PROVENANCE.md).
 - [ ] **CI hygiene (minor).** `MPLBACKEND: Agg` not set (currently harmless
   — `plot_stack.py` sets Agg itself); install step uses bare `pip` rather
   than `python -m pip`, inconsistent with the README's canonical form.
