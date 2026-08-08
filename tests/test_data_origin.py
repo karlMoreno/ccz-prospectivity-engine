@@ -16,6 +16,7 @@ from itertools import product
 import pytest
 
 from engine.prospectivity.provenance.origin import (
+    ALLOWED_AUTHORS,
     AUTHOR_MODEL,
     AUTHOR_UNRECORDED,
     ORIGIN_ORDER_MOST_REAL_FIRST,
@@ -111,18 +112,29 @@ def test_combine_accepts_string_values_interchangeably_with_members() -> None:
     assert combine_origins(["MEASURED", DataOrigin.DERIVED]) == DataOrigin.DERIVED
 
 
-def test_author_vocabulary_constants_are_the_contracted_tokens() -> None:
-    assert AUTHOR_MODEL == "model"
-    assert AUTHOR_UNRECORDED == "unrecorded"
+def test_author_allow_list_is_the_contracted_set_and_contains_the_reserved_tokens() -> None:
+    """Completeness both directions, as the ordering constant is tested: the
+    allow-list is exactly the contracted literal (nothing missing, nothing
+    extra), it contains both reserved-token constants, and no duplicates."""
+    assert ALLOWED_AUTHORS == ("model", "karl", "isaac", "unrecorded")
+    assert AUTHOR_MODEL in ALLOWED_AUTHORS
+    assert AUTHOR_UNRECORDED in ALLOWED_AUTHORS
+    assert len(ALLOWED_AUTHORS) == len(set(ALLOWED_AUTHORS)), "allow-list has duplicates"
 
 
-def test_validate_author_accepts_model_unrecorded_and_a_named_person() -> None:
-    assert validate_author(AUTHOR_MODEL) == "model"
-    assert validate_author(AUTHOR_UNRECORDED) == "unrecorded"
-    assert validate_author("Isaac") == "Isaac"
+def test_validate_author_accepts_every_allow_listed_author() -> None:
+    for author in ALLOWED_AUTHORS:
+        assert validate_author(author) == author
 
 
-@pytest.mark.parametrize("bad", ["", "   ", None, 7], ids=["empty", "whitespace", "none", "int"])
-def test_validate_author_rejects_empty_whitespace_and_non_strings(bad: object) -> None:
-    with pytest.raises(ValueError, match="author must be"):
+@pytest.mark.parametrize(
+    "bad",
+    ["moddel", "Isaac", "", "   ", None, 7],
+    ids=["typo-moddel", "case-Isaac", "empty", "whitespace", "none", "int"],
+)
+def test_validate_author_rejects_unknown_authors_naming_value_and_allow_list(bad: object) -> None:
+    """The typo case is the motivating one: under free text, "moddel"
+    validated as a person's name — the model-authored origin hiding behind
+    the safe-looking answer."""
+    with pytest.raises(ValueError, match="author must be one of"):
         validate_author(bad)

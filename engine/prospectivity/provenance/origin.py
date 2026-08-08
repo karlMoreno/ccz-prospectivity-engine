@@ -32,8 +32,9 @@ decisions recorded in docs/walkthroughs/P2.0.md §b; P2.0c applies these):
   guessing.)
 * SYNTHETIC  — the generator's import path and seed. In this repo only
   tests/fixtures/rasters.py currently qualifies (seeds 0 and 1).
-* AUTHORED   — author: "model" or a named person. "unrecorded" is reserved
-  for values predating this rule (see validate_author).
+* AUTHORED   — author: one of ALLOWED_AUTHORS ("model", "karl", "isaac", or
+  "unrecorded" — the last reserved for values predating this rule; see
+  validate_author).
 
 combine_origins — one rule, two scales
 --------------------------------------
@@ -95,10 +96,15 @@ ORIGIN_ORDER_MOST_REAL_FIRST: tuple[DataOrigin, ...] = (
 
 _REALNESS_RANK = {origin: rank for rank, origin in enumerate(ORIGIN_ORDER_MOST_REAL_FIRST)}
 
-# The author vocabulary (docs/walkthroughs/P2.0.md §b). Anything else is read
-# as a named person; emptiness is rejected by validate_author.
+# The author vocabulary (docs/walkthroughs/P2.0.md §b, tightened P2.0c §0.2):
+# a closed allow-list, not free text. Free text let a typo'd "moddel" validate
+# as a person's name — the one origin the taxonomy most needs to detect (a
+# value a model wrote) failing toward the safe-looking answer. Adding a
+# collaborator is one deliberate line here; completeness is test-enforced both
+# directions, mirroring NormalizerRegistry.assert_complete().
 AUTHOR_MODEL = "model"
 AUTHOR_UNRECORDED = "unrecorded"
+ALLOWED_AUTHORS: tuple[str, ...] = (AUTHOR_MODEL, "karl", "isaac", AUTHOR_UNRECORDED)
 
 
 def combine_origins(origins: Iterable[DataOrigin | str]) -> DataOrigin:
@@ -125,22 +131,25 @@ def combine_origins(origins: Iterable[DataOrigin | str]) -> DataOrigin:
 
 
 def validate_author(author: object) -> str:
-    """Validate an ``author`` value for an AUTHORED declaration.
+    """Validate an ``author`` value against ALLOWED_AUTHORS — exact match only.
 
-    Accepted: ``"model"`` (a model drafted the value), ``"unrecorded"``, or
-    any other non-empty string read as a named person. ``"unrecorded"`` means
-    the value predates the origin rule and its author is not reconstructible
-    from the repo — git records committers, not who or what drafted a value.
-    It is an honest gap, not a default: P2.0d freezes the explicit list of
-    files permitted to carry it, so the set only shrinks. New work uses
-    ``"model"`` or a name.
+    ``"model"`` means a model drafted the value; ``"karl"``/``"isaac"`` are
+    the project's two people; ``"unrecorded"`` means the value predates the
+    origin rule and its author is not reconstructible from the repo — git
+    records committers, not who or what drafted a value. It is an honest gap,
+    not a default: P2.0d freezes the explicit list of files permitted to carry
+    it, so the set only shrinks. New work uses ``"model"`` or a name.
 
-    Empty or non-string authors raise — an AUTHORED value with no author is
-    the silent gap this vocabulary exists to prevent.
+    Anything outside the allow-list raises, naming the offending value and
+    the admissible set (case-sensitive: ``"Isaac"`` and ``"moddel"`` both
+    raise). Free text was rejected in P2.0c §0.2 because a typo'd author
+    validated as a person's name — a silent failure toward the safe-looking
+    answer.
     """
-    if not isinstance(author, str) or not author.strip():
+    if not isinstance(author, str) or author not in ALLOWED_AUTHORS:
         raise ValueError(
-            "author must be 'model', 'unrecorded', or a named person — got "
-            f"{author!r}."
+            f"author must be one of {ALLOWED_AUTHORS!r} — got {author!r}. "
+            "Add a new collaborator to ALLOWED_AUTHORS deliberately; do not "
+            "widen this check."
         )
     return author
