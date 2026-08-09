@@ -15,8 +15,9 @@ docstrings, and review chat. Rules of the file:
 
 Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**); 2 items
 added 2026-08-08 (origin-audit latents, P2.0a′), 3 more 2026-08-08 (P2.0c
-evidence gaps + deferred README fix). **34 open items**: §1 Track G 11, §2 Karl 3, §3
-Engineering 15, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+evidence gaps + deferred README fix), 1 more 2026-08-09 (P2.0d-2 review:
+LITERATURE admission path). **35 open items**: §1 Track G 11, §2 Karl 3, §3
+Engineering 16, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
@@ -86,15 +87,14 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   enter a published run, so licenses gate publication. Owner: G. Trigger:
   each download. Detail:
   [source_queue.yaml:42](../data/sources/source_queue.yaml#L42)–227 (tagged
-  inline). **P2.0c addendum:** seven undownloaded sources
-  ([02][03][04][06][11][12][14]) declare `data_origin: MEASURED`
-  prospectively — the class is known from the DOI, but MEASURED's evidence
-  bar (input-file SHA-256) completes only on download, like the null fields
-  above. Consequence for P2.0d's declaration guard: it must require the
-  evidence COMPLETE (declared MEASURED **and** a real hashed file), never the
-  label alone — the label cannot distinguish `[06]`-with-real-data from
-  `[06]`-with-fixture, and `[06]` is the source this whole guard family
-  exists because of.
+  inline). **P2.0c addendum, NARROWED by P2.0d-2 (2026-08-09):** the
+  consequence is now BUILT — `_require_proven_measured` refuses anything not
+  declared-MEASURED-with-a-recorded-hash-matching-the-bytes, so the seven
+  prospective declarations ([02][03][04][06][11][12][14]) are harmless: wiring
+  any of them refuses with `content_hash: null` named until the hash is
+  filled from the downloaded bytes ([01]/[05]'s were filled and verified in
+  P2.0d-2 — the template). What remains open here is the original download
+  hygiene: fill license/accessed_date/content_hash per download.
 - [ ] **Contract 4 real economics.** `scenarios.yaml` is entirely
   `illustrative_only: true` with `[GEOLOGY — ISAAC]` tags on cutoffs,
   composition, and price sources; the engine watermarks output until
@@ -276,6 +276,17 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   published run (natural fit: the Phase-3 manifest work above). Detail:
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §6; [docs/contracts/PROVENANCE.md](contracts/PROVENANCE.md).
+- [ ] **Admission path for proven LITERATURE sources ([18]/[19]).** The
+  P2.0d-2 guard admits only proven MEASURED, so `[18]` (correctly declared
+  LITERATURE — a compiled product) can never re-wire into the CORPUS through
+  `corpus_builder`, no matter what Track G delivers; same for `[19]`. It
+  fails loudly, and it contradicts the older re-wiring language (now
+  annotated in corpus_builder's docstrings). Decide: the benchmark enters
+  via the Contract 6 `TS6Reference` seam rather than as corpus rows (the
+  likely answer — Contract 6 already routes `ts6_abundance.tif` there), or
+  the guard gains an origin-appropriate evidence path for hash-proven
+  LITERATURE. Owner: E + Karl. Trigger: Checkpoint 3 ([18] wiring). Detail:
+  P2.0.md §d-2; found by the d-2 adversarial review.
 - [ ] **samples README false blanket claim.** `tests/fixtures/samples/README.md`
   says the directory holds "Not real downloaded data (no real
   coordinates/values)" and lists three files; the fourth,

@@ -264,14 +264,47 @@ def test_declared_data_origin_raises_for_missing_or_unknown_declarations() -> No
         _declared_data_origin({"data_origin": "FABRICATED"}, "src_bogus")
 
 
-def test_backed_by_books_any_fixtures_path_as_fixture_and_sources_as_real() -> None:
-    """P2.0c §4 interim widening: data/fixtures/native/ booked as "real_data"
-    under the old {"tests","fixtures"} predicate (audit §5 #4). Interim until
-    P2.0d replaces path inference with the declaration."""
-    assert _backed_by(Path("data/fixtures/native/synthetic_boxcore_native.csv")) == "fixture"
-    assert _backed_by(Path("tests/fixtures/samples/dryad_chamber_sample.csv")) == "fixture"
-    assert _backed_by(Path("data/sources/SO268-bc-nodules-PANGAEA-904962.tab")) == "real_data"
-    assert _backed_by(None) == "unknown"
+def test_backed_by_derives_from_proven_evidence_not_path_shape() -> None:
+    """P2.0d-2: `backed_by` is the recorded outcome of the
+    declaration-plus-evidence rule — path shape infers nothing. A proven
+    entry (declared MEASURED, recorded hash matching the bytes) is
+    "real_data"; the SAME entry against the native fixture CSV is "fixture"
+    (its bytes are not the recorded artifact — the audit §5 #4 hole, now
+    closed by proof rather than by path); an unproven MEASURED claim
+    (content_hash: null, the seven undownloaded sources' state) is
+    "fixture"; no path at all is "unknown"."""
+    from engine.prospectivity.provenance.corpus_manifest import (
+        REPO_ROOT as MANIFEST_REPO_ROOT,
+    )
+
+    proven_entry = {
+        "data_origin": "MEASURED",
+        "content_hash": "sha256:af06fbda795f08c9d1f3f069c6874d2c6408750a3c88a9412fdfb1226588d12f",
+    }
+    real_path = MANIFEST_REPO_ROOT / "data/sources/SO268-bc-nodules-PANGAEA-904962.tab"
+    native_path = (
+        MANIFEST_REPO_ROOT / "data/fixtures/native/synthetic_boxcore_native.csv"
+    )
+    assert _backed_by(proven_entry, real_path) == "real_data"
+    assert _backed_by(proven_entry, native_path) == "fixture"
+    assert _backed_by({"data_origin": "MEASURED", "content_hash": None}, real_path) == "fixture"
+    assert _backed_by(proven_entry, None) == "unknown"
+
+
+def test_a_placeholder_hash_is_refused_as_not_real_evidence() -> None:
+    """The historical incident by name: "sha256:synthetic-fixture" (the E1.4
+    audit's placeholder) is not a 64-hex SHA-256, and the refusal must say so
+    rather than fall through to a confusing byte-mismatch. The review deleted
+    this branch and the whole suite stayed green — this test is the pin."""
+    from engine.prospectivity.provenance.corpus_manifest import (
+        REPO_ROOT as MANIFEST_REPO_ROOT,
+        measured_evidence_failure,
+    )
+
+    entry = {"data_origin": "MEASURED", "content_hash": "sha256:synthetic-fixture"}
+    real_path = MANIFEST_REPO_ROOT / "data/sources/SO268-bc-nodules-PANGAEA-904962.tab"
+    failure = measured_evidence_failure(entry, real_path)
+    assert failure is not None and "not a real 64-hex" in failure
 
 
 def test_geometry_records_the_aoi_mismatch_and_the_variogram_support_gap() -> None:

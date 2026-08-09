@@ -54,7 +54,11 @@ sources:
     sampled_area_m2: 0.25                     # → kg/m2 = total nodule mass / 0.25 (×4)
     derivation: "abundance_kg_m2 = nodule_mass_kg / sampled_area_m2"
     accessed_date: null                       # [GEOLOGY — ISAAC] fill on download
-    content_hash: null
+    # Filled P2.0d-2 (2026-08-09): recomputed from the downloaded file's bytes
+    # and verified against manifest.json's input_content_hash. This is the
+    # RECORDED evidence the production guard re-hashes against — MEASURED's
+    # proof, per the contract's own fill-on-download lifecycle.
+    content_hash: "sha256:36078e69a22f0413ace0bc7704a076fc4e179bf5416f9ff55a08806a7a1138f0"
     notes: "First modern contractor-area table. Keep event_id; COVER column stays COVER (not converted)."
 
   - source_id: src_domes_fewkes1980          # [02]
@@ -122,7 +126,9 @@ sources:
     sampled_area_m2: 0.25
     derivation: "aggregate nodules to event → event mass; kg/m2 = event_mass / 0.25; also yields mean_nodule_mass_g"
     accessed_date: null
-    content_hash: null
+    # Filled P2.0d-2 (2026-08-09): recomputed from bytes, verified against the
+    # manifest — the guard's recorded evidence (see [01]'s note).
+    content_hash: "sha256:af06fbda795f08c9d1f3f069c6874d2c6408750a3c88a9412fdfb1226588d12f"
     notes: "Nodules are NESTED in [01] events (dedup rule 4). The EVENT is the spatial sample, not each nodule. Also the source of mean_nodule_mass_g for COUNT→MASS."
 
   - source_id: src_dryad_chamber             # [06]

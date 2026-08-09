@@ -32,7 +32,13 @@ fabricated data into a published, citable corpus (see each builder's own
 docstring). Every row in the corpus today comes from [01]+[05], merged
 under src_so268_boxcore. Real Dryad data and real TS-6 digitization
 (Contract 6 / ts6_reference.yaml, Track G, Checkpoint 3) are both
-prerequisites for re-wiring their sources, not just a path fix.
+prerequisites for re-wiring their sources, not just a path fix. P2.0d-2
+sharpened this: [06] re-wires once its real download's hash is filled and
+verified (the guard's evidence path), but [18] declares LITERATURE — a
+compiled product, correctly — and the guard admits only proven MEASURED, so
+its corpus-row re-wiring needs the admission-path decision in BACKLOG §3
+(likely: the benchmark enters via the Contract 6 TS6Reference seam, not as
+corpus rows). Loud either way.
 
 Known limitation: dedup only catches a candidate that duplicates a row
 ALREADY in the corpus (from an earlier adapter in this list, or an earlier
@@ -62,6 +68,8 @@ from engine.prospectivity.ingestion.tabular_file_adapter import TabularFileAdapt
 from engine.prospectivity.provenance.corpus_manifest import (
     CorpusManifest,
     build_corpus_manifest,
+    measured_evidence_failure,
+    source_queue_entries,
     write_corpus_manifest,
 )
 from engine.prospectivity.provenance.recorder import PipelineObserver, ProvenanceRecorder
@@ -76,34 +84,64 @@ DEFAULT_OUTPUT_PATH = REPO_ROOT / "data" / "corpus" / "master_observations.csv"
 # .schema.json field-for-field), never left to dict/set iteration order.
 _CSV_COLUMNS = list(Observation.model_fields.keys())
 
-# INTERIM WIDENING (P2.0c §4): was {"tests", "fixtures"} requiring BOTH,
-# which let data/fixtures/native/'s fabricated CSVs pass this guard and book
-# as backed_by="real_data" (audit §5 #4) — the exact state [06]/[18] were in
-# the day before someone wired them. Any path part "fixtures" now refuses.
-# This is interim cover, NOT the fix: P2.0d replaces path inference with the
-# data_origin declaration check and REMOVES this widening — do not leave both
-# mechanisms in place for one rule.
-_FIXTURES_PATH_PART = "fixtures"
-
 
 def _require_production_path(path: Path) -> Path:
     """P1 (2026-07-27 audit follow-up): corpus_builder is a PRODUCTION entry
     point — it must never silently read a test fixture as though it were
     real data. This is the guard the dryad_chamber bug should have tripped:
-    a hand-typed placeholder (round coordinates, sequential fake dates, a
-    uniform footprint) was wired here with is_open=True and entered the
+    a hand-typed placeholder was wired with is_open=True and entered the
     published, citable corpus indistinguishable from a real observation.
 
-    A structural check on the path's shape, not a naming convention someone
-    has to remember — raises loudly at adapter-construction time. If a real
-    source has no real data yet, the fix is to remove its builder from
-    REAL_ADAPTER_BUILDERS, not to point it at a fixture and hope no one
-    notices."""
-    if _FIXTURES_PATH_PART in {part.lower() for part in path.parts}:
+    P2.0d-2 (interim P2.0c widening REMOVED; rule made POSITIVE after the
+    guard review): production corpus inputs live under data/sources/ — the
+    raw-downloads home docs/contracts/PROVENANCE.md declares — so anything
+    outside it is refused, fixtures directories included. A negative
+    fixtures-blacklist could not carry this: the review probed a queue entry
+    recording a fixture file's OWN hash, which passes the evidence check
+    honestly (the hash really does match those bytes), so LOCATION is the
+    complement that must refuse it, positively. This is a location contract,
+    NOT origin inference — no origin label derives from any path; _backed_by
+    derives from the declaration-plus-evidence rule."""
+    if not Path(path).resolve().is_relative_to(SOURCES_DIR.resolve()):
         raise ValueError(
-            f"corpus_builder refuses to read a fixtures path in production: {path}. "
-            "If this source has no real data yet, remove its builder from "
+            f"corpus_builder refuses to read a path outside data/sources/ in "
+            f"production: {path}. Raw downloads live in data/sources/ "
+            "(docs/contracts/PROVENANCE.md); test fixtures never do. If this "
+            "source has no real data yet, remove its builder from "
             "REAL_ADAPTER_BUILDERS instead of pointing it at a fixture."
+        )
+    return path
+
+
+def _require_proven_measured(source_id: str, path: Path) -> Path:
+    """P2.0d-2 — the declaration-plus-evidence production guard.
+
+    A declaration is a CLAIM; a hash over real bytes is the PROOF. Admissible
+    means declared MEASURED in the source_queue entry AND the file exists AND
+    the entry's recorded content_hash is a real SHA-256 matching a re-hash of
+    the bytes (`measured_evidence_failure` — one rule, one owner, shared with
+    the manifest's `backed_by`). Anything else is refused BY NAME with the
+    failing condition — including a MEASURED declaration whose evidence is
+    pending, which is the honest reading of the [06] incident: those fixtures
+    were not mislabelled, they were unproven.
+
+    Runs AFTER `_require_production_path` (the P1 location complement — see
+    its comment for why both exist)."""
+    _require_production_path(path)
+    entry = source_queue_entries().get(source_id)
+    if entry is None:
+        raise ValueError(
+            f"source {source_id!r} has no source_queue.yaml entry — a "
+            "production input must be declared before it can be proven."
+        )
+    failure = measured_evidence_failure(entry, path)
+    if failure is not None:
+        raise ValueError(
+            f"corpus_builder refuses {source_id!r} ({path}): {failure} "
+            "(When filling a hash, verify it against an INDEPENDENT record — "
+            "the manifest's input_content_hash or the source's landing page — "
+            "as the [01]/[05] fills were; hashing whatever file is wired "
+            "would prove identity with a mistake.)"
         )
     return path
 
@@ -121,8 +159,8 @@ def build_boxcore_adapter() -> BoxcoreSummaryAdapter:
     would be a silent MASS/COUNT/COVER mismatch bug)."""
     return BoxcoreSummaryAdapter(
         source_id="src_so268_boxcore",
-        file_path=_require_production_path(
-            SOURCES_DIR / "SO268-bc-nodules-summary-PANGAEA-904967.tab"
+        file_path=_require_proven_measured(
+            "src_so268_boxcore", SOURCES_DIR / "SO268-bc-nodules-summary-PANGAEA-904967.tab"
         ),
         shared_column_map={
             "event_id": "Event",
@@ -163,7 +201,9 @@ def build_nodule_aggregate_adapter() -> NoduleAggregateAdapter:
     shared_column_map entry for either would silently overwrite that."""
     return NoduleAggregateAdapter(
         source_id="src_so268_nodules",
-        file_path=_require_production_path(SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"),
+        file_path=_require_proven_measured(
+            "src_so268_nodules", SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+        ),
         event_column="Event",
         mass_column_g="Nodule m [g]",
         dimension_columns=["Nodule l [mm]", "Nodule w [mm]", "Nodule h [mm]"],
@@ -183,7 +223,8 @@ def build_dryad_chamber_adapter() -> TabularFileAdapter:
 
     NOT wired into REAL_ADAPTER_BUILDERS (P1, 2026-07-27 audit follow-up):
     no real Dryad download exists yet. This function still points at the
-    E1.1 placeholder fixture on purpose — _require_production_path makes it
+    E1.1 placeholder fixture on purpose — the production guard (location +
+    declaration-plus-evidence since P2.0d-2) makes it
     raise if called, so re-adding it to REAL_ADAPTER_BUILDERS without also
     fixing this path fails loudly instead of quietly re-admitting fabricated
     data (the exact bug this cleanup exists to fix: three hand-typed rows
@@ -191,7 +232,9 @@ def build_dryad_chamber_adapter() -> TabularFileAdapter:
     training-eligible in the published corpus)."""
     return TabularFileAdapter(
         source_id="src_dryad_chamber",
-        file_path=_require_production_path(SAMPLES_DIR / "dryad_chamber_sample.csv"),
+        file_path=_require_proven_measured(
+            "src_dryad_chamber", SAMPLES_DIR / "dryad_chamber_sample.csv"
+        ),
         shared_column_map={
             "station_id": "chamber_id",
             "latitude": "latitude",
@@ -217,7 +260,10 @@ def build_ts6_grid_adapter() -> RegionalGridAdapter:
     real TS-6 digitization (Contract 6, ts6_reference.yaml) is a Track G
     deliverable that doesn't exist yet — this function still points at the
     E1.1 placeholder fixture on purpose. Same fix as src_dryad_chamber [06]
-    got in P1: _require_production_path makes calling this builder directly
+    got in P1: the production guard (location + declaration-plus-evidence
+    since P2.0d-2; note [18] also declares LITERATURE, so corpus re-wiring
+    additionally needs the BACKLOG §3 admission-path decision) makes calling
+    this builder directly
     raise rather than silently re-admitting fabricated data into a
     published, citable corpus. GRID rows can never be training-eligible
     (evidence_class != MASS), so this was lower-severity than [06]'s bug,
@@ -225,7 +271,9 @@ def build_ts6_grid_adapter() -> RegionalGridAdapter:
     as real."""
     return RegionalGridAdapter(
         source_id="src_ts6_grid",
-        file_path=_require_production_path(SAMPLES_DIR / "regional_grid_sample.csv"),
+        file_path=_require_proven_measured(
+            "src_ts6_grid", SAMPLES_DIR / "regional_grid_sample.csv"
+        ),
         shared_column_map={
             "station_id": "cell_id",
             "latitude": "lat",

@@ -85,7 +85,11 @@ class SourceProvenance(BaseModel):
     is_open: bool | None = None
     input_path: str | None = None
     input_content_hash: str | None = None
-    backed_by: str = "real_data"  # "real_data" | "fixture" | "unknown"
+    # "real_data" = PROVEN (declared MEASURED, recorded hash matches bytes) |
+    # "fixture" = unproven — since P2.0d-2 this includes a pending-evidence
+    # MEASURED claim, not only literal test fixtures | "unknown" = no input
+    # path. Default "unknown": on direct construction nothing is proven.
+    backed_by: str = "unknown"
     # The source's DECLARED origin, read from its source_queue.yaml entry
     # (P2.0c) — never inferred. None only on direct construction; the build
     # path raises if a recorded source lacks a declaration.
@@ -144,12 +148,68 @@ class CorpusManifest(ProvenanceArtifact):
     spatial_summary_all_rows: dict = Field(default_factory=dict)
 
 
-def _source_queue_entries() -> dict[str, dict]:
+def source_queue_entries() -> dict[str, dict]:
+    """Contract 5's entries by source_id, re-parsed on every call (no cache:
+    correctness over speed — a stale queue behind the guard would be worse
+    than three ~20 KB parses per build). Public since P2.0d-2: the production
+    guard in corpus_builder shares it."""
     import yaml
 
     queue_path = REPO_ROOT / "data" / "sources" / "source_queue.yaml"
     queue = yaml.safe_load(queue_path.read_text())
     return {entry["source_id"]: entry for entry in queue["sources"]}
+
+
+_SHA256_HEX_LENGTH = 64
+
+
+def measured_evidence_failure(entry: dict, path: Path) -> str | None:
+    """P2.0d-2, the declaration-plus-evidence rule in one place. Returns None
+    when the source is PROVEN, else a sentence naming the failing condition.
+
+    A declaration is a CLAIM; a hash over real bytes is the PROOF. Admissible
+    means: declared MEASURED, AND the entry records a real 64-hex SHA-256
+    (not null, not a placeholder), AND the declared input file exists, AND
+    re-hashing those bytes reproduces the recorded hash. A MEASURED
+    declaration with pending evidence is refused — the honest reading of the
+    [06] incident: those fixtures were not mislabelled, they were unproven.
+    Conditions are checked in that order and the FIRST failure is named, so a
+    refusal never sends a reader hunting.
+
+    Shared by the production guard (corpus_builder raises on it) and by
+    `_backed_by` (the manifest records its outcome) — one rule, one owner,
+    replacing P2.0c's interim path-shape predicates.
+    """
+    declared = entry.get("data_origin")
+    if declared != DataOrigin.MEASURED.value:
+        return (
+            f"declares data_origin={declared!r}, not MEASURED — only proven "
+            "MEASURED sources are admissible on a production path"
+        )
+    recorded = entry.get("content_hash")
+    if recorded is None:
+        return (
+            "declares MEASURED but records content_hash: null — the evidence "
+            "is pending, and an unproven claim is refused (fill the hash from "
+            "the downloaded bytes)"
+        )
+    hex_part = str(recorded).removeprefix("sha256:")
+    if len(hex_part) != _SHA256_HEX_LENGTH or not all(
+        character in "0123456789abcdef" for character in hex_part.lower()
+    ):
+        return (
+            f"records content_hash {recorded!r}, which is not a real 64-hex "
+            "SHA-256 — a placeholder is not evidence"
+        )
+    if not Path(path).is_file():
+        return f"declares MEASURED but the declared input file does not exist: {path}"
+    actual = file_sha256(path)
+    if actual != f"sha256:{hex_part.lower()}":
+        return (
+            f"recorded content_hash {recorded!r} does not match the bytes on "
+            f"disk ({actual}) — the file is not the recorded artifact"
+        )
+    return None
 
 
 def _declared_data_origin(entry: dict, source_id: str) -> str:
@@ -221,7 +281,7 @@ def build_corpus_manifest(
     the build). Where they disagree — as they do for `[05]`, present in the
     recorder and absent from the corpus — that disagreement is the finding.
     """
-    queue = _source_queue_entries()
+    queue = source_queue_entries()
     input_paths = _adapter_input_paths(adapters)
 
     rows_by_evidence_class: dict[str, int] = {}
@@ -274,7 +334,7 @@ def build_corpus_manifest(
                 is_open=entry.get("is_open"),
                 input_path=str(input_path.relative_to(REPO_ROOT)) if input_path else None,
                 input_content_hash=file_sha256(input_path) if input_path else None,
-                backed_by=_backed_by(input_path),
+                backed_by=_backed_by(entry, input_path),
                 data_origin=_declared_data_origin(entry, record.source_id),
                 fetched_rows=record.fetched_rows,
                 adapted_records=record.adapted_records,
@@ -327,20 +387,19 @@ def build_corpus_manifest(
     return manifest.finalize()
 
 
-def _backed_by(input_path: Path | None) -> str:
-    """Whether this source read real data or a fixture. corpus_builder already
-    REFUSES fixture paths in production (`_require_production_path`); recording
-    it here means a reader can verify that rather than trust it.
+def _backed_by(entry: dict, input_path: Path | None) -> str:
+    """Whether this source's input is PROVEN real data. P2.0d-2: derived from
+    the declaration-plus-evidence rule (`measured_evidence_failure`), never
+    from path shape — the P2.0c interim widening is removed, and this is the
+    replacement that owns the rule. corpus_builder REFUSES unproven inputs in
+    production; recording the same check's outcome here means a reader can
+    verify that rather than trust it.
 
-    INTERIM WIDENING (P2.0c §4): was {"tests", "fixtures"} requiring BOTH,
-    which booked data/fixtures/native/'s fabricated CSVs as "real_data"
-    (audit §5 #4). Any path part "fixtures" is now "fixture". Interim cover,
-    NOT the fix: P2.0d replaces path inference with the data_origin
-    declaration and REMOVES this widening — one rule, one mechanism."""
+    Domain unchanged: "real_data" (proven MEASURED — declared, hash recorded,
+    bytes match), "fixture" (anything unproven), "unknown" (no input path)."""
     if input_path is None:
         return "unknown"
-    parts = {part.lower() for part in input_path.parts}
-    return "fixture" if "fixtures" in parts else "real_data"
+    return "fixture" if measured_evidence_failure(entry, input_path) else "real_data"
 
 
 def write_corpus_manifest(

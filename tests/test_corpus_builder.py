@@ -29,7 +29,10 @@ from engine.prospectivity.ingestion.corpus_builder import (
     build_ts6_grid_adapter,
     write_corpus_csv,
 )
-from engine.prospectivity.ingestion.corpus_builder import _require_production_path
+from engine.prospectivity.ingestion.corpus_builder import (
+    _require_production_path,
+    _require_proven_measured,
+)
 from engine.prospectivity.ingestion.dedup_rules import DuplicateResolutionPolicy
 from engine.prospectivity.ingestion.normalizer_registry import build_default_registry
 from engine.prospectivity.ingestion.pipeline import IngestionPipeline
@@ -40,19 +43,17 @@ from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapt
 
 
 def test_require_production_path_raises_for_a_tests_fixtures_path() -> None:
-    with pytest.raises(ValueError, match="fixtures path"):
+    with pytest.raises(ValueError, match="outside data/sources"):
         _require_production_path(SAMPLES_DIR / "dryad_chamber_sample.csv")
 
 
-def test_require_production_path_raises_for_a_data_fixtures_native_path() -> None:
-    """P2.0c §4 interim widening. Before it, this exact path PASSED the guard
-    (predicate required "tests" AND "fixtures"; these carry only the latter) —
-    fabricated CSVs one wiring away from a production build, the [06] shape.
-    P2.0d replaces path inference with the declaration check and this test."""
-    native = (
-        SOURCES_DIR.parent / "fixtures" / "native" / "synthetic_boxcore_native.csv"
-    )
-    with pytest.raises(ValueError, match="fixtures path"):
+def test_require_production_path_raises_for_any_path_outside_data_sources() -> None:
+    """P2.0d-2: the location rule is POSITIVE (raw downloads live in
+    data/sources/, per PROVENANCE.md), so data/fixtures/native/ is refused by
+    location too — including the review's probe where a fixture's OWN hash is
+    recorded in a queue entry, which the evidence check honestly passes."""
+    native = SOURCES_DIR.parent / "fixtures" / "native" / "synthetic_boxcore_native.csv"
+    with pytest.raises(ValueError, match="outside data/sources"):
         _require_production_path(native)
 
 
@@ -61,12 +62,86 @@ def test_require_production_path_passes_through_a_real_data_path() -> None:
     assert _require_production_path(real_path) == real_path
 
 
+# --- P2.0d-2: the declaration-plus-evidence guard. The refusals are the ---
+# --- point; each of the three conditions gets its own named case.       ---
+
+
+def test_native_fixture_csv_is_refused_by_the_full_guard() -> None:
+    """THE concrete hole this guard family exists to close: before P2.0c
+    these files sat on the real-data side of both path predicates. Under the
+    full guard the POSITIVE location rule refuses it first (not under
+    data/sources/); even without that layer, its bytes could not reproduce
+    [01]'s recorded hash (the wrong-file test below pins that branch), and
+    the evidence-only `_backed_by` books it "fixture" for the same reason."""
+    native = SOURCES_DIR.parent / "fixtures" / "native" / "synthetic_boxcore_native.csv"
+    with pytest.raises(ValueError, match="outside data/sources"):
+        _require_proven_measured("src_so268_boxcore", native)
+
+
+def test_measured_declaration_with_null_hash_is_refused_as_unproven() -> None:
+    """One of the seven real undownloaded sources, not a synthetic case:
+    [02] declares MEASURED with content_hash: null. A claim with pending
+    evidence is refused — the [06] fixtures were not mislabelled, they were
+    unproven."""
+    with pytest.raises(ValueError, match="content_hash: null"):
+        _require_proven_measured(
+            "src_domes_fewkes1980", SOURCES_DIR / "PANGAEA-878220.tab"
+        )
+
+
+def test_measured_declaration_whose_file_is_absent_is_refused() -> None:
+    """[01] has real recorded evidence, but pointed at a file that does not
+    exist the guard must refuse on existence, not crash on hashing."""
+    with pytest.raises(ValueError, match="does not exist"):
+        _require_proven_measured(
+            "src_so268_boxcore", SOURCES_DIR / "SO268-does-not-exist.tab"
+        )
+
+
+def test_measured_declaration_whose_hash_mismatches_the_bytes_is_refused() -> None:
+    """[01]'s entry pointed at [05]'s real file: declared MEASURED, file
+    exists, recorded hash is a real SHA-256 — and it is the WRONG file. (A
+    malformed placeholder like "sha256:synthetic-fixture" hits the 64-hex
+    FORMAT branch instead — pinned in test_corpus_manifest.py.)"""
+    with pytest.raises(ValueError, match="does not match the bytes on disk"):
+        _require_proven_measured(
+            "src_so268_boxcore", SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+        )
+
+
+def test_non_measured_declaration_is_refused_naming_the_declared_origin() -> None:
+    """[18] declares LITERATURE — even with a real existing file, only proven
+    MEASURED sources are admissible on a production path."""
+    with pytest.raises(ValueError, match="LITERATURE"):
+        _require_proven_measured(
+            "src_ts6_grid", SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+        )
+
+
+def test_a_source_with_no_queue_entry_is_refused() -> None:
+    with pytest.raises(ValueError, match="src_mystery"):
+        _require_proven_measured(
+            "src_mystery", SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+        )
+
+
+def test_the_two_proven_sources_are_admitted() -> None:
+    """[01] and [05] are admitted, and remain admitted: declared MEASURED,
+    queue hashes filled (P2.0d-2) and matching the bytes."""
+    for source_id, filename in (
+        ("src_so268_boxcore", "SO268-bc-nodules-summary-PANGAEA-904967.tab"),
+        ("src_so268_nodules", "SO268-bc-nodules-PANGAEA-904962.tab"),
+    ):
+        path = SOURCES_DIR / filename
+        assert _require_proven_measured(source_id, path) == path
+
+
 def test_dryad_chamber_builder_itself_raises_until_real_data_exists() -> None:
     """The concrete historical bug this guard exists to catch: [06] still
     points at E1.1's placeholder fixture, so even calling its own builder
     function directly (not just via REAL_ADAPTER_BUILDERS) must fail loudly
     rather than silently constructing a fabricated-data adapter."""
-    with pytest.raises(ValueError, match="fixtures path"):
+    with pytest.raises(ValueError, match="outside data/sources"):
         build_dryad_chamber_adapter()
 
 
@@ -76,7 +151,7 @@ def test_ts6_grid_builder_itself_raises_until_real_data_exists() -> None:
     Track G deliverable that doesn't exist yet), so calling its builder
     directly must fail loudly rather than silently constructing a
     fabricated-data GRID adapter."""
-    with pytest.raises(ValueError, match="fixtures path"):
+    with pytest.raises(ValueError, match="outside data/sources"):
         build_ts6_grid_adapter()
 
 
