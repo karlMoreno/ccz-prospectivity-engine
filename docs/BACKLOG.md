@@ -16,8 +16,9 @@ docstrings, and review chat. Rules of the file:
 Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**); 2 items
 added 2026-08-08 (origin-audit latents, P2.0a′), 3 more 2026-08-08 (P2.0c
 evidence gaps + deferred README fix), 1 more 2026-08-09 (P2.0d-2 review:
-LITERATURE admission path); README fix closed 2026-08-09 (P2.0d-3).
-**34 open items**: §1 Track G 11, §2 Karl 3, §3
+LITERATURE admission path); README fix closed 2026-08-09 (P2.0d-3); 2 more
+added 2026-08-09 from the planning transcript (contract change_class; GEBCO
+TID). **36 open items**: §1 Track G 11, §2 Karl 5, §3
 Engineering 15, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
@@ -141,6 +142,36 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   (P2.0d derives the watermark from the DEM's declared origin). Owner: Karl
   (+ G). Trigger: at download / before Checkpoint 1. Detail: walkthrough
   P2.0.md §c.
+- [ ] **Contract `change_class` — the version scheme cannot say
+  "nothing changed".** `*_version` means both "the structure changed" and
+  "re-sync at the next checkpoint": P2.0c bumped SEVEN contracts for zero
+  semantic change, so Isaac now has seven version changes to re-sync that
+  mean nothing — exactly the noise the freeze existed to prevent. Proposal:
+  a required `change_class: metadata|semantic` on every bump, or a separate
+  revision counter for non-semantic changes. Owner: Karl + E. Trigger:
+  before the next metadata-shaped addition. (Recorded 2026-08-09 from the
+  planning transcript — this is the item the P2.0 closeout flagged as
+  existing nowhere in the repo; it now does.) Detail:
+  [docs/contracts/README.md](../docs/contracts/README.md) shared P2.0c note;
+  walkthrough P2.0.md §c.
+- [ ] **GEBCO is not uniformly MEASURED — the classification may be
+  per-cell, and the Phase-2 consequence matters more than the label.**
+  GEBCO's global grid mixes shipborne soundings with depth PREDICTED from
+  satellite altimetry, and much of the abyssal CCZ is the latter; GEBCO
+  ships a companion TID (Type Identifier) grid labelling the source class
+  per cell — which is why `src_bathymetry_primary`'s `data_origin` is still
+  null (see the classify-the-context-sources item above) and why the honest
+  answer may not be a single label. The consequence: roughness, TPI and BPI
+  computed over altimetry-predicted cells measure the INTERPOLATION's
+  smoothness, not the seafloor's — predicted bathymetry is smooth by
+  construction at exactly the scales those recipes probe — so mixing
+  predicted and sounded cells in one training matrix is a subtler version
+  of the DEM-resolution rule Contract 3 v3 already forbids. Decision, not
+  defect: record, assess TID coverage of the study area, decide the
+  classification and whether E2.0's matrix needs a TID mask. Owner: Karl +
+  Track G. Trigger: before Checkpoint 1. Detail: planning transcript
+  2026-08-09; [covariates.yaml:37](../docs/contracts/covariates.yaml#L37)
+  (the never-mix rule this echoes).
 - [ ] **Uncited literature-shaped numbers in the contracts README.** The
   100 kg/m² ceiling rationale asserts "published CCZ abundances run
   ~1.5–30 kg/m²" and "~2 g/cm³ wet bulk density" with no citation —
