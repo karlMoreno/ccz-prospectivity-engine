@@ -23,3 +23,10 @@ class TerrainLayer(BaseModel):
     recipe: str | None = None  # covariates.yaml `recipe` (e.g. "horn_slope")
     recipe_version: int | None = None  # covariates.yaml `recipe_version`
     content_hash: str | None = None
+    # P2.0d-3: the layer's DECLARED origin (the CLAUDE.md data-origin
+    # vocabulary; engine/prospectivity/provenance/origin.py), set by the
+    # TerrainSource that produced it from the P2.0c markers — NEVER inferred
+    # from name/title/path, the defect class the taxonomy replaced. None
+    # means undeclared: downstream watermarks default ON (absence of proof
+    # produces a watermark, never a clean render).
+    data_origin: str | None = None

@@ -16,8 +16,9 @@ docstrings, and review chat. Rules of the file:
 Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**); 2 items
 added 2026-08-08 (origin-audit latents, P2.0a′), 3 more 2026-08-08 (P2.0c
 evidence gaps + deferred README fix), 1 more 2026-08-09 (P2.0d-2 review:
-LITERATURE admission path). **35 open items**: §1 Track G 11, §2 Karl 3, §3
-Engineering 16, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+LITERATURE admission path); README fix closed 2026-08-09 (P2.0d-3).
+**34 open items**: §1 Track G 11, §2 Karl 3, §3
+Engineering 15, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
@@ -287,15 +288,11 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   the guard gains an origin-appropriate evidence path for hash-proven
   LITERATURE. Owner: E + Karl. Trigger: Checkpoint 3 ([18] wiring). Detail:
   P2.0.md §d-2; found by the d-2 adversarial review.
-- [ ] **samples README false blanket claim.** `tests/fixtures/samples/README.md`
-  says the directory holds "Not real downloaded data (no real
-  coordinates/values)" and lists three files; the fourth,
-  `so268_nodules_sample.csv`, is a verbatim excerpt of real CC-BY-NC-4.0
-  PANGAEA.904962 data per its own header (audit §5 #2). One-line fix,
-  deferred to the doc-consistency pass; the sidecar
-  `tests/fixtures/samples/data_origin.yaml` records the truth
-  machine-readably meanwhile. Owner: E. Trigger: doc-consistency task
-  (P2.C). Detail:
+- [x] **samples README false blanket claim — FIXED in P2.0d-3** (pulled
+  forward from the doc-consistency pass). The README now lists all four
+  files, describes `so268_nodules_sample.csv` accurately (verbatim excerpt,
+  CC-BY-NC-4.0, PANGAEA.904962, attribution), and names the
+  `data_origin.yaml` sidecar as the authoritative side for origins. Detail:
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §5.
 - [ ] **CI hygiene (minor).** `MPLBACKEND: Agg` not set (currently harmless

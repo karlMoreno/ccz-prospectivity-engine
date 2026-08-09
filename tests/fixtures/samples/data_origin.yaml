@@ -4,10 +4,9 @@
 #
 # NOTE the split the audit found (§5 #2): three files are hand-built shapes
 # with invented values; the fourth is a VERBATIM excerpt of real, licensed
-# PANGAEA data and says so in its own header. The directory README's blanket
-# "not real downloaded data" claim is FALSE for that file — deferred fix
-# tracked in docs/BACKLOG.md §3 ("samples README false blanket claim"); this
-# sidecar records the truth machine-readably in the meantime.
+# PANGAEA data and says so in its own header. The directory README was fixed
+# in P2.0d-3 to match this sidecar and now names this file as the
+# authoritative side for origins.
 
 files:
   pangaea_boxcore_sample.csv:

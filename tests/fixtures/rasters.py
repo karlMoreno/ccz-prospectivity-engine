@@ -113,6 +113,9 @@ class FixtureTerrainSource(TerrainSource):
             path=str(self._raster_path),
             content_hash=file_sha256(self._raster_path),
             resolution_deg=PIXEL_SIZE_DEG,
+            # The DECLARATION (P2.0d-3), from this module's own P2.0c marker —
+            # never inferred from the layer's name.
+            data_origin=DATA_ORIGIN.value,
         )
 
 

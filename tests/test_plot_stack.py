@@ -23,16 +23,69 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from engine.prospectivity.features.plot_stack import PLOT_FILENAME, plot_covariate_stack
+import pytest
+
+from engine.prospectivity.features.plot_stack import (
+    PLOT_FILENAME,
+    SYNTHETIC_WATERMARK,
+    UNDECLARED_WATERMARK,
+    dem_watermark,
+    plot_covariate_stack,
+)
+from engine.prospectivity.provenance.origin import DataOrigin
 from tests.fixtures.rasters import write_synthetic_bathymetry
 
 
 def test_plot_renders_a_nontrivial_png(tmp_path: Path) -> None:
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
-    png_path = plot_covariate_stack(dem_path, tmp_path / "plots")
+    png_path = plot_covariate_stack(
+        dem_path, tmp_path / "plots", dem_data_origin=DataOrigin.SYNTHETIC
+    )
     assert png_path == tmp_path / "plots" / PLOT_FILENAME
     assert png_path.exists()
     # A blank/failed render compresses far smaller; the real 3x3 panel figure
     # over the noisy synthetic DEM is well over this.
     assert png_path.stat().st_size > 100_000
+
+
+def test_watermark_is_default_on_and_only_measured_renders_clean() -> None:
+    """The P2.0d-3 rule per declaration. The SYNTHETIC string is pinned
+    byte-for-byte to the pre-d-3 hardcoded text — a refactor of where the
+    claim comes from, not what it says. MEASURED is the ONLY clean render;
+    an undeclared origin gets the loud not-declared stamp (never a raise);
+    any other declared origin is named; a malformed label raises."""
+    assert dem_watermark(DataOrigin.SYNTHETIC) == SYNTHETIC_WATERMARK
+    assert SYNTHETIC_WATERMARK == (
+        "SYNTHETIC DEM (seeded noise; illustrative only. "
+        "Real GEBCO bathymetry arrives at Integration Checkpoint 1.)"
+    )
+    assert dem_watermark(DataOrigin.MEASURED) is None
+    assert dem_watermark(None) == UNDECLARED_WATERMARK
+    assert "ORIGIN NOT DECLARED" in UNDECLARED_WATERMARK
+    assert "DERIVED" in (dem_watermark(DataOrigin.DERIVED) or "")
+    with pytest.raises(ValueError, match="FABRICATED"):
+        dem_watermark("FABRICATED")
+
+
+def test_rendered_plot_actually_consumes_the_declaration(tmp_path: Path) -> None:
+    """The render-level observer (d-2 precedent: helper tests alone cannot
+    catch a plot that ignores the helper and hardcodes the old suptitle).
+    Same DEM, three declarations — the PNGs must differ pairwise, because
+    the watermark and panel label differ. A plot that ignores the origin
+    renders all three identically and fails here."""
+    dem_path = tmp_path / "synthetic.tif"
+    write_synthetic_bathymetry(dem_path)
+    renders = {}
+    for label, origin in (
+        ("synthetic", DataOrigin.SYNTHETIC),
+        ("measured", DataOrigin.MEASURED),
+        ("undeclared", None),
+    ):
+        path = plot_covariate_stack(
+            dem_path, tmp_path / label, dem_data_origin=origin
+        )
+        renders[label] = path.read_bytes()
+    assert renders["synthetic"] != renders["measured"]
+    assert renders["measured"] != renders["undeclared"]
+    assert renders["synthetic"] != renders["undeclared"]

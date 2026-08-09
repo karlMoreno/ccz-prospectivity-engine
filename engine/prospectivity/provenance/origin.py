@@ -6,8 +6,9 @@ ordering, and the one combination rule. It deliberately does nothing else —
 P2.0c applies the markers (and widens the interim path guards); P2.0d builds
 the audit test and replaces path inference with the declaration-based
 production-path guard. The input to all three is
-docs/audits/2026-08-08-origin-vocabulary-audit.md; the P2.0 decisions this
-module cites are recorded in docs/walkthroughs/P2.0.md §b.
+docs/audits/2026-08-08-origin-vocabulary-audit.md; the standing decisions
+this module cites live in CLAUDE.md, section "Data origin: every value is
+classified" — the durable home (walkthroughs are frozen historical records).
 
 What the ordering measures
 --------------------------
@@ -20,8 +21,8 @@ trustworthy than our arithmetic; that is not what this axis ranks.
     MEASURED ──► DERIVED ──► LITERATURE ──► SYNTHETIC ──► AUTHORED
     most real                                             least real
 
-Evidence each label requires (the audit's classification work plus the P2.0b
-decisions recorded in docs/walkthroughs/P2.0.md §b; P2.0c applies these):
+Evidence each label requires (CLAUDE.md "Data origin" section carries the
+rule and where each is enforced; P2.0c applied the markers):
 
 * MEASURED   — source_id, DOI, and the input file's SHA-256.
 * DERIVED    — a derivation_formula plus the origins of its inputs.
@@ -59,7 +60,7 @@ fixture values in data/fixtures/native/*.csv, SYNTHETIC_MEAN_NODULE_MASS_G in
 tests/fixtures/normalizers.py, and the src_synthetic_* source ids.
 Taxonomy-SYNTHETIC requires a deterministic generator with a recorded seed,
 which only tests/fixtures/rasters.py satisfies. Nothing is renamed (P2.0
-decision, docs/walkthroughs/P2.0.md §b); the collision is recorded rather
+decision, CLAUDE.md "Data origin" section); the collision is recorded rather
 than corrected.
 """
 
@@ -96,7 +97,7 @@ ORIGIN_ORDER_MOST_REAL_FIRST: tuple[DataOrigin, ...] = (
 
 _REALNESS_RANK = {origin: rank for rank, origin in enumerate(ORIGIN_ORDER_MOST_REAL_FIRST)}
 
-# The author vocabulary (docs/walkthroughs/P2.0.md §b, tightened P2.0c §0.2):
+# The author vocabulary (CLAUDE.md "Data origin" section; tightened P2.0c §0.2):
 # a closed allow-list, not free text. Free text let a typo'd "moddel" validate
 # as a person's name — the one origin the taxonomy most needs to detect (a
 # value a model wrote) failing toward the safe-looking answer. Adding a

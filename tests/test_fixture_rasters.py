@@ -37,6 +37,15 @@ def test_fixture_terrain_source_returns_a_terrain_layer(synthetic_bathymetry_pat
     assert layer.path == str(synthetic_bathymetry_path)
 
 
+def test_fixture_terrain_layer_declares_synthetic_origin(synthetic_bathymetry_path: Path) -> None:
+    """P2.0d-3: the layer carries a DECLARATION sourced from the module's own
+    P2.0c marker (rasters.DATA_ORIGIN) — never inferred from the layer's
+    name. This is what downstream watermarks derive from; an undeclared
+    layer (data_origin None) watermarks as NOT DECLARED, default-on."""
+    layer = FixtureTerrainSource(synthetic_bathymetry_path).load(_study_area())
+    assert layer.data_origin == "SYNTHETIC"
+
+
 def test_synthetic_ts6_raster_is_a_valid_raster(synthetic_ts6_raster_path: Path) -> None:
     """Strengthened 2026-07-30 to match its bathymetry sibling above: "is a
     valid raster" now checks band count and CRS, not only the value range."""
