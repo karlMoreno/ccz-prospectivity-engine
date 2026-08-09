@@ -1,0 +1,64 @@
+# CONTRACT 8 (NEW, P2.A 2026-08-09) — Phase-2 model parameters
+# ===========================================================================
+# What Contract 7 (normalization.yaml) is to INGESTION — the policy the
+# normalizers obey — this file is to MODELLING: the parameters Phase-2 code
+# records and obeys. Contracts 1-7 define what a MASS row IS, how it
+# normalises, and what screens it, but never what abundance_kg_m2 MEANS as a
+# training target. That Phase-0 omission is why the target felt like it
+# needed a person when it needed a slot; hardcoding it in the matrix builder
+# would be an AUTHORED value with no declared home — the exact defect P2.0
+# spent eight commits making visible.
+#
+# GROWS ADDITIVELY as Phase-2 tasks need parameters (additive changes are
+# non-breaking per docs/contracts/README.md's own rule):
+# acceptance_thresholds arrives with E2.5's refuse-to-validate guard;
+# spatial_range_prior_km with E2.2's variogram. Nothing is pre-declared —
+# a field with no consumer is a field nobody has tested the meaning of.
+#
+# target_definition's admissible values are FIXED BY P2.B's verdict
+# (2026-08-09; docs/walkthroughs/P2.B-and-P2.A.md). EXCLUDED, with the
+# evidence, so nobody re-proposes a dead end:
+#
+#   surface_only_from_05_depths — [05] does carry per-nodule burial state
+#     (Depth sed: 0.000 surface; positive or ">0.000"/">0.100" buried), BUT
+#     it CONTRADICTS [01]'s published buried counts on 6 of 36 events (all
+#     SO268/2; worst: 2_182-1 records 0 buried where [01] publishes 24,
+#     2_116-1 records 0 where [01] publishes 15), and 15 events carry a
+#     nodule of unknown depth. A depth-derived surface mass silently
+#     INCLUDES buried mass exactly where burial matters most, and only 20 of
+#     36 events are cleanly derivable — a subset target would shrink n and
+#     mix bases across stations.
+#
+#   surface_by_subtraction_from_01 — [01] publishes buried COUNT, never
+#     buried MASS; surface mass is not derivable by subtraction.
+#
+# Surface-only remains the scientifically preferred target IF Track G can
+# resolve the [05]-vs-[01] burial contradiction; that arrives as a NEW
+# admissible value with a citation, never by editing code.
+
+model_config_version: 1
+
+# P2.0 authoring rule (CLAUDE.md "Data origin: every value is classified"):
+# a new value-bearing file is classified in the same edit that creates it.
+data_origin: AUTHORED
+author: model
+
+target_definition:
+  # What abundance_kg_m2 MEANS as y. [GEOLOGY — ISAAC] decide the target:
+  # [01]'s published mass INCLUDES buried nodules (mean ~12% of an event's
+  # count, max ~73% — that event, SO268/2_149-1, disagrees by ~11x BY MASS:
+  # surface 0.37 kg vs published 4.1 kg; the earlier ~3x figure was a
+  # pre-P2.B estimate). A surface collector cannot recover buried nodules,
+  # so total and recoverable disagree hardest exactly where burial is
+  # heaviest. E2.0 records this field in the training-matrix provenance so
+  # that disagreement is ATTRIBUTABLE rather than ambient.
+  #
+  # NO separate "provisional" flag: data_origin AUTHORED with author: model
+  # IS the provisional marker — a model wrote this value with no external
+  # source. Isaac's decision arrives as a value with a citation behind it,
+  # and the origin becoming LITERATURE is the promotion.
+  value: total_as_published
+  admissible_values:
+    - total_as_published
+  data_origin: AUTHORED
+  author: model

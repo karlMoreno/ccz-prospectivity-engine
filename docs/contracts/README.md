@@ -135,6 +135,16 @@ moves its `content_hash` — accounted in `docs/walkthroughs/P2.0.md` §c.
 | 5 | Phase-A source queue | `data/sources/source_queue.yaml` | one `SourceAdapter` per entry; enforce `is_open` gate | download the queue; fill license/area/hash/accessed |
 | 6 | TS-6 reference | `data/ts6/ts6_reference.yaml` (+ `ts6_abundance.tif`) | read via `TS6Reference`; compute agreement | digitize the TS-6 surface; set `role_note` |
 | 7 | Normalization policy | `data/config/normalization.yaml` | one `AbundanceNormalizer` per evidence class | confirm geology: areas, mean nodule mass, join tolerance |
+| 8 | Model parameters | `data/config/model_config.yaml` | read via `engine/prospectivity/model_config.py`; E2.0 records `target_definition` (value + declared origin) in training-matrix provenance | decide the training target (buried vs surface — P2.B's verdict fixed the current enum); a value with a citation promotes the field AUTHORED → LITERATURE |
+
+**Contract 8 (P2.A, 2026-08-09).** The seven-contract framing in the Phase-0
+docs now reads EIGHT: Contracts 1–7 defined what a MASS row is, how it
+normalises, and what screens it, but never what `abundance_kg_m2` MEANS as a
+training target — a Phase-0 omission that surfaced when E2.0 needed to record
+which y it trains on. Contract 8 holds Phase-2 modelling parameters (as
+distinct from Contract 7's ingestion policy) and grows additively as Phase-2
+tasks need them; its `target_definition` enum is fixed by P2.B's data verdict
+(see the contract's own header for the excluded dead ends and their evidence).
 
 > **Data-access reality:** DeepData's nodule **abundance/grade layer is CONFIDENTIAL** with **no public API** — so it is **not** the sample source. The **Phase-A queue** (Contract 5) draws abundance from open PANGAEA/DOMES/Dryad datasets; DeepData's **public** polygons + **GEBCO** bathymetry are context only. Phase B/C are out of the alpha.
 

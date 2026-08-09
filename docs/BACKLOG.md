@@ -27,17 +27,26 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
 ## 1. Blocked on Track G (Isaac)
 
-- [ ] **Buried nodules: total vs surface abundance as the training target.**
-  `[01]` reports buried count separately (mean ~12% of an event's count, max
-  ~73%) and its published total mass INCLUDES buried nodules; surface
-  collectors cannot recover them, so a model trained on total abundance and
-  an economics layer assuming recoverable abundance disagree by up to ~3× at
-  some stations. `[01]` gives no buried mass, so surface-only is not
-  derivable by subtraction from `[01]` alone; `[05]`'s depth columns may
-  allow it for some events. Owner: G (with Karl for the target definition).
-  Trigger: **before Phase-2 target definition**; also feeds Contract 4.
-  Detail: review discussion 2026-07-28; buried counts in
-  `data/sources/SO268-bc-nodules-summary-PANGAEA-904967.tab`.
+- [ ] **Training target: awaiting Track G — contract slot exists, does NOT
+  block Track E** (reframed 2026-08-09, P2.B + P2.A). Contract 8
+  (`data/config/model_config.yaml`) now holds `target_definition`, provisional
+  default `total_as_published` declared AUTHORED/`author: model` — the origin
+  IS the provisional marker, and Isaac's value-with-citation arrives as the
+  AUTHORED→LITERATURE promotion. P2.B **measured** what was estimated:
+  `[01]`'s published mass includes buried nodules and the disagreement
+  reaches **~11× by mass** at SO268/2_149-1 (surface 0.37 kg vs published
+  4.1 kg; the old ~3× figure was a pre-P2.B estimate). Surface-only is NOT
+  currently derivable: `[05]`'s per-nodule `Depth sed` column contradicts
+  `[01]`'s published buried counts on **6 of 36 events, all SO268/2** (worst:
+  2_182-1 records 0 buried vs 24 published; 2_116-1 0 vs 15), 15 events
+  carry an unknown-depth nodule, and only 20/36 events derive cleanly. The
+  concrete Track G question is therefore: **resolve the [05]-vs-[01] burial
+  contradiction on those six events** (data-entry gap in [05]? different
+  burial definition?) — if resolved, `surface_only` enters the enum as a new
+  admissible value. Owner: G (with Karl for the definition). Trigger: any
+  time; also feeds Contract 4. Detail:
+  [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md);
+  [model_config.yaml](../data/config/model_config.yaml) header.
 - [ ] **Study area / AOI scope.** 108 of 114 corpus rows fall outside
   `study_area.geojson`'s Phase-0 placeholder (E1.4 preflight confirmed 0/35
   training points on the placeholder AOI). Options: AOI = sampled areas
