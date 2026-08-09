@@ -44,8 +44,23 @@
 #
 # recipe_version bumped 1 -> 2 for roughness, tpi, bpi (parameter semantics
 # changed: cells -> metres). registry_version bumped 2 -> 3.
+#
+# registry_version 3 -> 4 (P2.0c, 2026-08-08): METADATA-ONLY. Added origin
+# markers (engine/prospectivity/provenance/origin.py): file-level
+# `data_origin`/`author`, per-entry `data_origin` (enabled Option-A entries
+# are AUTHORED — window/radius defaults are engineering stand-ins preserving
+# v2's cell counts, and the physically meaningful scale is still the open
+# [GEOLOGY — ISAAC] question above; candidate entries are LITERATURE, with
+# their citation gap recorded rather than guessed). No recipe, parameter
+# value, or enabled flag changed; re-sync is a read, not a review.
 
-registry_version: 3
+registry_version: 4
+
+# P2.0c origin declaration for the FILE remainder (default_window_m and other
+# top-level scalars). Effective file origin is COMPUTED by combine_origins
+# over this plus the per-entry declarations below.
+data_origin: AUTHORED
+author: unrecorded
 
 # Neighborhood window used by window-based recipes, as a PHYSICAL DISTANCE in
 # metres (full window span for square windows), converted to a cell window at
@@ -68,6 +83,8 @@ covariates:
     recipe_version: 1
     enabled: true
     params: {}
+    data_origin: AUTHORED
+    author: unrecorded
     geology_note: "[GEOLOGY — ISAAC] TS-6 found highest abundance at 4,100-4,200 m; is absolute depth or relative relief the better signal?"
 
   - name: slope
@@ -75,42 +92,56 @@ covariates:
     recipe_version: 1
     enabled: true
     params: { units: degrees }
+    data_origin: AUTHORED
+    author: unrecorded
 
   - name: aspect
     recipe: horn_aspect
     recipe_version: 1
     enabled: true
     params: { units: degrees, undefined_flat_as: -1 }
+    data_origin: AUTHORED
+    author: unrecorded
 
   - name: roughness
     recipe: std_dev_elevation     # stdev of elevation in the window
     recipe_version: 2             # v3: window now in metres, resolved at runtime
     enabled: true
     params: { window_m: 1400 }
+    data_origin: AUTHORED         # 1400 m preserves v2's 3-cell default; geology scale still open
+    author: unrecorded
 
   - name: profile_curvature
     recipe: zevenbergen_thorne_profile
     recipe_version: 1
     enabled: true
     params: {}
+    data_origin: AUTHORED
+    author: unrecorded
 
   - name: plan_curvature
     recipe: zevenbergen_thorne_plan
     recipe_version: 1
     enabled: true
     params: {}
+    data_origin: AUTHORED
+    author: unrecorded
 
   - name: tpi
     recipe: topographic_position_index   # cell minus mean(window)
     recipe_version: 2             # v3: window now in metres, resolved at runtime
     enabled: true
     params: { window_m: 1400 }
+    data_origin: AUTHORED         # 1400 m preserves v2's 3-cell default; geology scale still open
+    author: unrecorded
 
   - name: bpi
     recipe: bathymetric_position_index   # TPI with an annulus (inner/outer)
     recipe_version: 2             # v3: radii now in metres, resolved at runtime
     enabled: true
     params: { inner_radius_m: 460, outer_radius_m: 2300 }
+    data_origin: AUTHORED         # radii preserve v2's 1/5-cell defaults; geology scale still open
+    author: unrecorded
 
 # ---------------------------------------------------------------------------
 # OPTION B — TS-6-PROVEN proxies (DISABLED until Track G sources each layer).
@@ -130,6 +161,8 @@ candidate_covariates:
       source_id: null
       classes: [siliceous, pelagic_clay, calcareous]
     ts6_finding: "STRONGEST correlate of nodule OCCURRENCE (WofE + Logistic Regression). Siliceous = favorable, calcareous = unfavorable."
+    data_origin: LITERATURE       # the entry's substance is the TS-6 finding
+    citation: "ISA Technical Study No. 6 (2010) — specific table/page NOT LOCATED; evidence gap carried, not guessed (BACKLOG)"
 
   - name: surface_chlorophyll
     recipe: external_raster
@@ -139,6 +172,8 @@ candidate_covariates:
       source_id: null
       unit: mg_m3
     ts6_finding: "BEST single predictor of metal content; ~0.49 R2 (Mn), 0.44 (Ni), 0.39 (Cu) alone. Non-linear (intermediate productivity optimal)."
+    data_origin: LITERATURE       # the entry's substance is the TS-6 finding
+    citation: "ISA Technical Study No. 6 (2010) — specific table/page NOT LOCATED; evidence gap carried, not guessed (BACKLOG)"
 
   - name: ccd_minus_depth
     recipe: external_raster
@@ -148,6 +183,8 @@ candidate_covariates:
       source_id: null
       unit: m
     ts6_finding: "Improves Cu regression (0.39 -> 0.49). Below-CCD = favorable for nodules."
+    data_origin: LITERATURE       # the entry's substance is the TS-6 finding
+    citation: "ISA Technical Study No. 6 (2010) — specific table/page NOT LOCATED; evidence gap carried, not guessed (BACKLOG)"
 
   - name: bathymetric_regime
     recipe: classify_from_dem            # derived FROM the DEM, so no external source needed
@@ -156,3 +193,5 @@ candidate_covariates:
     params:
       regimes: [oceanic_rise, seamount_chain, abyssal_hills, seamount_abyssal, fracture_zone]
     ts6_finding: "2nd/3rd strongest OCCURRENCE correlate. Favorability: abyssal_hills > seamount_abyssal > (rise = seamount_chain = fracture_zone)."
+    data_origin: LITERATURE       # the entry's substance is the TS-6 finding
+    citation: "ISA Technical Study No. 6 (2010) — specific table/page NOT LOCATED; evidence gap carried, not guessed (BACKLOG)"

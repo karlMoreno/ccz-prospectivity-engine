@@ -1,11 +1,14 @@
 {
-    "$comment": "CONTRACT 1 (v4) — Master observation schema. Frictionless Table Schema. This UPGRADES the v2 samples.csv into the master-observation corpus from Proposal v3: every row is an OPEN nodule observation tagged with an evidence_class, plus provenance and derivation fields so a computed kg/m² value traces to its source and formula. The engine's SampleSource selects rows where evidence_class=MASS AND abundance_kg_m2 is present AND is_open=true. Superset of the v2 file — abundance rows still validate. schema_version 2 -> 3 -> 4 (v4, E1.3 review: abundance_kg_m2's own maximum raised from 45 to 100 — at 45 it exactly matched normalization.yaml's screening ceiling, so any value screening should have flagged instead hard-failed validation before qa_status=\"flagged\" was reachable; widened to give the same headroom the mn/ni/cu/co_pct fields already had over their screening bounds).",
+    "$comment": "CONTRACT 1 (v5) — Master observation schema. Frictionless Table Schema. This UPGRADES the v2 samples.csv into the master-observation corpus from Proposal v3: every row is an OPEN nodule observation tagged with an evidence_class, plus provenance and derivation fields so a computed kg/m² value traces to its source and formula. The engine's SampleSource selects rows where evidence_class=MASS AND abundance_kg_m2 is present AND is_open=true. Superset of the v2 file — abundance rows still validate. schema_version 2 -> 3 -> 4 (v4, E1.3 review: abundance_kg_m2's own maximum raised from 45 to 100 — at 45 it exactly matched normalization.yaml's screening ceiling, so any value screening should have flagged instead hard-failed validation before qa_status=\"flagged\" was reachable; widened to give the same headroom the mn/ni/cu/co_pct fields already had over their screening bounds). schema_version 4 -> 5 (P2.0c, 2026-08-08): METADATA-ONLY — added the data_origin/author declaration for this contract document itself (engine/prospectivity/provenance/origin.py); no field, bound, or enum changed, and the corpus CSV deliberately gets NO origin column (rows already carry source_id, derivation_formula, and observation_or_prediction).",
 
     "name": "ccz_master_observations",
 
     "title": "CCZ open nodule observations (evidence-typed master corpus)",
 
-    "schema_version": 4,
+    "schema_version": 5,
+
+    "data_origin": "AUTHORED",
+    "author": "unrecorded",
 
     "primaryKey": [
         "source_record_id"

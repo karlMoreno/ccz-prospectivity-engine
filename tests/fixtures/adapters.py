@@ -3,6 +3,13 @@ IngestionPipeline in CI on synthetic data (E0.4/E0.5). These stand in for the
 real per-source-family adapters (PANGAEA/Dryad/Mendeley), which are Phase 1
 (E1.1) work — kept out of engine/prospectivity so the production package
 stays interface-only through Phase 0.
+
+data_origin: AUTHORED (author: unrecorded) — and a MISNOMER, recorded rather
+than renamed (P2.0 decision): the `src_synthetic_*` source ids and the
+`data/fixtures/native/synthetic_*.csv` files these adapters read are
+taxonomy-AUTHORED (hand-typed values, no generator, no seed), not
+taxonomy-SYNTHETIC, which requires a deterministic generator with a recorded
+seed (only tests/fixtures/rasters.py qualifies). Do not trust the filename.
 """
 
 from __future__ import annotations
@@ -12,6 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapter
+from engine.prospectivity.provenance.origin import AUTHOR_UNRECORDED, DataOrigin
+
+DATA_ORIGIN = DataOrigin.AUTHORED
+DATA_AUTHOR = AUTHOR_UNRECORDED
 
 
 def _parse_float(value: str | None) -> float | None:

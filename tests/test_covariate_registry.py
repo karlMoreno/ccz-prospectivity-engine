@@ -24,8 +24,9 @@ def test_every_enabled_contract_entry_has_exactly_one_recipe_in_contract_order()
     assert len(expected) == 8  # the Option-A list
 
 
-def test_contract_registry_version_is_3() -> None:
-    assert load_covariates_yaml()["registry_version"] == 3
+def test_contract_registry_version_is_4() -> None:
+    # v4 (P2.0c): metadata-only origin markers; no recipe or parameter change.
+    assert load_covariates_yaml()["registry_version"] == 4
 
 
 def test_recipe_version_mismatch_fails_loudly() -> None:

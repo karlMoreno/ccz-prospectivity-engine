@@ -1,9 +1,16 @@
-"""Test-only SampleSource (STRATEGY) wrapping an in-memory corpus list."""
+"""Test-only SampleSource (STRATEGY) wrapping an in-memory corpus list.
+
+data_origin: AUTHORED (author: unrecorded) — hand-written test double.
+"""
 
 from __future__ import annotations
 
 from engine.prospectivity.domain.observation import Observation
+from engine.prospectivity.provenance.origin import AUTHOR_UNRECORDED, DataOrigin
 from engine.prospectivity.samples.source import SampleSource
+
+DATA_ORIGIN = DataOrigin.AUTHORED
+DATA_AUTHOR = AUTHOR_UNRECORDED
 
 
 class FixtureSampleSource(SampleSource):

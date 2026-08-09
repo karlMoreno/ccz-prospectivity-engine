@@ -14,8 +14,9 @@ docstrings, and review chat. Rules of the file:
   it is verifiable. Do not add entries that trace to nothing.
 
 Last consolidated: 2026-07-30 (through **Phase-1 closeout Tasks A–D**); 2 items
-added 2026-08-08 (origin-audit latents, P2.0a′). **31 open items**: §1 Track G 10, §2 Karl 2, §3
-Engineering 14, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+added 2026-08-08 (origin-audit latents, P2.0a′), 3 more 2026-08-08 (P2.0c
+evidence gaps + deferred README fix). **34 open items**: §1 Track G 11, §2 Karl 3, §3
+Engineering 15, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
@@ -85,12 +86,32 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   enter a published run, so licenses gate publication. Owner: G. Trigger:
   each download. Detail:
   [source_queue.yaml:42](../data/sources/source_queue.yaml#L42)–227 (tagged
-  inline).
+  inline). **P2.0c addendum:** seven undownloaded sources
+  ([02][03][04][06][11][12][14]) declare `data_origin: MEASURED`
+  prospectively — the class is known from the DOI, but MEASURED's evidence
+  bar (input-file SHA-256) completes only on download, like the null fields
+  above. Consequence for P2.0d's declaration guard: it must require the
+  evidence COMPLETE (declared MEASURED **and** a real hashed file), never the
+  label alone — the label cannot distinguish `[06]`-with-real-data from
+  `[06]`-with-fixture, and `[06]` is the source this whole guard family
+  exists because of.
 - [ ] **Contract 4 real economics.** `scenarios.yaml` is entirely
   `illustrative_only: true` with `[GEOLOGY — ISAAC]` tags on cutoffs,
   composition, and price sources; the engine watermarks output until
   flipped. Owner: G. Trigger: Checkpoint 4. Detail:
   [scenarios.yaml:10](../data/economics/scenarios.yaml#L10)–78.
+- [ ] **LITERATURE citations that fail the locate-the-number bar** (P2.0c;
+  the bar: document + table/section/page — "TS-6" alone is insufficient).
+  Labels carried as LITERATURE with the gap recorded, not guessed closed and
+  not downgraded: the four `ts6_finding` strings in
+  [covariates.yaml](../docs/contracts/covariates.yaml) (candidate entries;
+  each now says "table/page NOT LOCATED"); depth's `geology_note` 4,100–4,200 m
+  claim (:71); the TS-6 anchors quoted in
+  [scenarios.yaml](../data/economics/scenarios.yaml) comments (baseline
+  grades, abundance distribution). Owner: G (locate in TS-6), with Karl.
+  Trigger: any time; before a published run. Detail:
+  [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
+  §4; walkthrough P2.0.md §c.
 
 ## 2. Decisions needed (Karl)
 
@@ -109,6 +130,16 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   precision), so full float precision lands in the corpus CSV. Decide
   whether the contract should state a precision. Owner: Karl (contract
   change if yes). Trigger: before a published corpus. Detail: E1.2.md:153.
+- [ ] **Classify the two context sources under the origin taxonomy.**
+  `src_bathymetry_primary` (GEBCO-class bathymetry: MEASURED survey product
+  vs LITERATURE compiled grid — it interpolates between soundings) and
+  `src_deepdata_public_context` (published regulatory polygons). Both carry
+  `data_origin: null` in
+  [source_queue.yaml](../data/sources/source_queue.yaml) with `[KARL]`
+  comments; the bathymetry decision drives Checkpoint-1 watermark derivation
+  (P2.0d derives the watermark from the DEM's declared origin). Owner: Karl
+  (+ G). Trigger: at download / before Checkpoint 1. Detail: walkthrough
+  P2.0.md §c.
 - [ ] **Uncited literature-shaped numbers in the contracts README.** The
   100 kg/m² ceiling rationale asserts "published CCZ abundances run
   ~1.5–30 kg/m²" and "~2 g/cm³ wet bulk density" with no citation —
@@ -245,6 +276,17 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   published run (natural fit: the Phase-3 manifest work above). Detail:
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §6; [docs/contracts/PROVENANCE.md](contracts/PROVENANCE.md).
+- [ ] **samples README false blanket claim.** `tests/fixtures/samples/README.md`
+  says the directory holds "Not real downloaded data (no real
+  coordinates/values)" and lists three files; the fourth,
+  `so268_nodules_sample.csv`, is a verbatim excerpt of real CC-BY-NC-4.0
+  PANGAEA.904962 data per its own header (audit §5 #2). One-line fix,
+  deferred to the doc-consistency pass; the sidecar
+  `tests/fixtures/samples/data_origin.yaml` records the truth
+  machine-readably meanwhile. Owner: E. Trigger: doc-consistency task
+  (P2.C). Detail:
+  [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
+  §5.
 - [ ] **CI hygiene (minor).** `MPLBACKEND: Agg` not set (currently harmless
   — `plot_stack.py` sets Agg itself); install step uses bare `pip` rather
   than `python -m pip`, inconsistent with the README's canonical form.

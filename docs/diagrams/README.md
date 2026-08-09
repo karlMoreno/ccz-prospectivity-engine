@@ -34,8 +34,16 @@ Every figure is read from the repo, not from memory:
 Drawn from manifest `generated_at` **2026-07-31T03:45:25Z**,
 `content_hash` **sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f**.
 
-If `data/corpus/manifest.json`'s `content_hash` no longer matches that string,
-these diagrams predate the current corpus and their numbers should be re-checked.
+Pin updated 2026-08-08 (P2.0c) to
+**sha256:0227d6df608ee23476c7f5915bede82f1ffb360c542e33152386257a2fd07fd9**:
+that rebuild was METADATA-ONLY (origin markers + contract-version bumps — see
+`docs/walkthroughs/P2.0.md` §c). The corpus CSV is byte-identical and every
+count these diagrams show is unchanged, so they remain accurate against the
+new hash.
+
+If `data/corpus/manifest.json`'s `content_hash` no longer matches the newest
+pin above, these diagrams predate the current corpus and their numbers should
+be re-checked.
 
 ## Rendering
 

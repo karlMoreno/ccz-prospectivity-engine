@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def test_master_observations_schema_json_parses() -> None:
     schema = json.loads((REPO_ROOT / "docs/contracts/master_observations.schema.json").read_text())
-    assert schema["schema_version"] == 4
+    assert schema["schema_version"] == 5  # v5 (P2.0c): metadata-only origin markers
     assert {f["name"] for f in schema["fields"]} >= {"evidence_class", "abundance_kg_m2"}
 
 

@@ -22,7 +22,21 @@
 #      AND cell passes every rule in `spatial_filters`
 # ===========================================================================
 
-config_version: 2
+# config_version 2 -> 3 (P2.0c, 2026-08-08): METADATA-ONLY. Added the
+# file-level origin declaration below (engine/prospectivity/provenance/
+# origin.py) and ABSORBED the "<<< PLACEHOLDER >>>" comment markers into it —
+# they carried a pure origin claim, now stated once machine-readably. The
+# banner above, every `illustrative_only` flag (watermark policy), and every
+# [GEOLOGY — ISAAC] tag (task routing) are KEPT. No cutoff, weight, price, or
+# filter value changed; re-sync is a read, not a review.
+config_version: 3
+
+# P2.0c origin declaration: every number in this file is an authored
+# illustrative placeholder (the banner above). The TS-6 anchors quoted in
+# comments (baseline grades, abundance distribution) cite no table/page — an
+# evidence gap recorded in BACKLOG, not silently promoted to LITERATURE.
+data_origin: AUTHORED
+author: unrecorded
 
 # How the per-cell "grade" the cutoff is compared against is computed.
 # [GEOLOGY — ISAAC] Choose ONE and delete the other, or keep both if you want
@@ -35,7 +49,7 @@ grade_units: kg_m2                 # must match the sample `unit` when abundance
 # = fraction of dry nodule mass; price_usd_per_tonne = market.
 # [GEOLOGY — ISAAC] Replace with real composition + a price source. TS-6 baseline
 # grades (dry wt): Mn ~28-29%, Ni ~1.3%, Cu ~1.1%, Co ~0.22% — good starting point.
-metal_weights:                     # <<< ILLUSTRATIVE PLACEHOLDERS (TS-6-anchored) >>>
+metal_weights:                     # TS-6-anchored; origin: file-level data_origin above
   manganese: { weight_fraction: 0.285, price_usd_per_tonne: 0 }
   nickel:    { weight_fraction: 0.013, price_usd_per_tonne: 0 }
   copper:    { weight_fraction: 0.011, price_usd_per_tonne: 0 }
@@ -43,7 +57,7 @@ metal_weights:                     # <<< ILLUSTRATIVE PLACEHOLDERS (TS-6-anchore
 
 # Spatial filters applied on top of the grade cutoff (physical minability).
 # [GEOLOGY — ISAAC] Confirm real thresholds (e.g., collector slope limits).
-spatial_filters:                   # <<< ILLUSTRATIVE PLACEHOLDERS >>>
+spatial_filters:                   # origin: file-level data_origin above
   max_slope_degrees: 6             # cells steeper than this are not collectable
   apply_exclusions: true           # subtract data/aoi/exclusions.geojson
 
@@ -54,8 +68,8 @@ scenarios:
       Only ground that clears a conventional commercial cutoff at current
       metal prices. Represents "what the market would mine."
     illustrative_only: true        # [GEOLOGY — ISAAC] -> false when real
-    cutoff_value: 10.0             # <<< PLACEHOLDER >>> kg/m2; ~upper-half of TS-6 range
-    cost_model:                    # <<< PLACEHOLDERS >>>
+    cutoff_value: 10.0             # kg/m2; ~upper-half of TS-6 range
+    cost_model:
       recovery_cost_usd_per_m2: 0
       cost_varies_with_depth: false
     caveats:
@@ -69,8 +83,8 @@ scenarios:
       rather than profit — i.e., ground a government might subsidize into
       production. The DIFFERENCE from MARKET_STANDARD is the headline output.
     illustrative_only: true        # [GEOLOGY — ISAAC] -> false when real
-    cutoff_value: 5.5              # <<< PLACEHOLDER >>> ~TS-6 median; deliberately below market
-    cost_model:                    # <<< PLACEHOLDERS >>>
+    cutoff_value: 5.5              # ~TS-6 median; deliberately below market
+    cost_model:
       recovery_cost_usd_per_m2: 0
       cost_varies_with_depth: false
       subsidy_note: "strategic value, not profit, motivates this cutoff"

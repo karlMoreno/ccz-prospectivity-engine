@@ -40,8 +40,20 @@ from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapt
 
 
 def test_require_production_path_raises_for_a_tests_fixtures_path() -> None:
-    with pytest.raises(ValueError, match="test fixtures path"):
+    with pytest.raises(ValueError, match="fixtures path"):
         _require_production_path(SAMPLES_DIR / "dryad_chamber_sample.csv")
+
+
+def test_require_production_path_raises_for_a_data_fixtures_native_path() -> None:
+    """P2.0c §4 interim widening. Before it, this exact path PASSED the guard
+    (predicate required "tests" AND "fixtures"; these carry only the latter) —
+    fabricated CSVs one wiring away from a production build, the [06] shape.
+    P2.0d replaces path inference with the declaration check and this test."""
+    native = (
+        SOURCES_DIR.parent / "fixtures" / "native" / "synthetic_boxcore_native.csv"
+    )
+    with pytest.raises(ValueError, match="fixtures path"):
+        _require_production_path(native)
 
 
 def test_require_production_path_passes_through_a_real_data_path() -> None:
@@ -54,7 +66,7 @@ def test_dryad_chamber_builder_itself_raises_until_real_data_exists() -> None:
     points at E1.1's placeholder fixture, so even calling its own builder
     function directly (not just via REAL_ADAPTER_BUILDERS) must fail loudly
     rather than silently constructing a fabricated-data adapter."""
-    with pytest.raises(ValueError, match="test fixtures path"):
+    with pytest.raises(ValueError, match="fixtures path"):
         build_dryad_chamber_adapter()
 
 
@@ -64,7 +76,7 @@ def test_ts6_grid_builder_itself_raises_until_real_data_exists() -> None:
     Track G deliverable that doesn't exist yet), so calling its builder
     directly must fail loudly rather than silently constructing a
     fabricated-data GRID adapter."""
-    with pytest.raises(ValueError, match="test fixtures path"):
+    with pytest.raises(ValueError, match="fixtures path"):
         build_ts6_grid_adapter()
 
 

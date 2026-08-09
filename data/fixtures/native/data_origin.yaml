@@ -1,0 +1,29 @@
+# P2.0c sidecar origin declaration for the three hand-typed fixture CSVs in
+# this directory. CSV binaries never carry markers (marker-form rule); this
+# sidecar does. Vocabulary: engine/prospectivity/provenance/origin.py.
+# Schema: one `files:` mapping, per-file declarations — the SAME shape as
+# tests/fixtures/samples/data_origin.yaml, so P2.0d's audit walker parses one
+# sidecar form, not two.
+#
+# MISNOMER (all three files), recorded rather than renamed (P2.0 decision):
+# "synthetic_" in these filenames denotes taxonomy-AUTHORED — hand-typed
+# fabricated values (cruise SYN01, round coordinates), with no generator and
+# no seed anywhere in the repo. Taxonomy-SYNTHETIC requires a deterministic
+# generator with a recorded seed, which only tests/fixtures/rasters.py
+# satisfies. Do not trust the filename.
+#
+# These files also sat on the wrong side of the pre-P2.0c path heuristics
+# (audit §5 #4): the interim guard widening refuses "fixtures" path parts on
+# the production path until P2.0d replaces path inference with this
+# declaration.
+
+files:
+  synthetic_boxcore_native.csv:
+    data_origin: AUTHORED
+    author: unrecorded
+  synthetic_cover_native.csv:
+    data_origin: AUTHORED
+    author: unrecorded
+  synthetic_grid_native.csv:
+    data_origin: AUTHORED
+    author: unrecorded

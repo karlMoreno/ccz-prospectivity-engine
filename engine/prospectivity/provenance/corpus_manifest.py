@@ -29,6 +29,7 @@ from engine.prospectivity.ingestion._contract_paths import find_repo_root
 from engine.prospectivity.provenance import geometry
 from engine.prospectivity.provenance.artifact import ProvenanceArtifact
 from engine.prospectivity.provenance.contract_versions import contract_versions, file_sha256
+from engine.prospectivity.provenance.origin import DataOrigin
 from engine.prospectivity.provenance.recorder import ProvenanceRecorder, SourceRecord
 
 REPO_ROOT = find_repo_root(Path(__file__).resolve())
@@ -85,6 +86,10 @@ class SourceProvenance(BaseModel):
     input_path: str | None = None
     input_content_hash: str | None = None
     backed_by: str = "real_data"  # "real_data" | "fixture" | "unknown"
+    # The source's DECLARED origin, read from its source_queue.yaml entry
+    # (P2.0c) — never inferred. None only on direct construction; the build
+    # path raises if a recorded source lacks a declaration.
+    data_origin: str | None = None
 
     fetched_rows: int = 0
     adapted_records: int = 0
@@ -115,6 +120,11 @@ class CorpusManifest(ProvenanceArtifact):
     corpus_row_count: int = 0
     rows_by_evidence_class: dict[str, int] = Field(default_factory=dict)
     rows_by_qa_status: dict[str, int] = Field(default_factory=dict)
+    # P2.0c: the corpus's composition by DECLARED source origin — computed
+    # from each contributing source's source_queue.yaml declaration, never
+    # hand-written. A reviewer opening this file sees what the corpus is made
+    # of without reading code.
+    admitted_rows_by_data_origin: dict[str, int] = Field(default_factory=dict)
     # Deliberately separate from corpus_row_count: 108 admitted, 35 trainable.
     training_eligible_count: int = 0
     contributing_sources: list[str] = Field(default_factory=list)
@@ -140,6 +150,49 @@ def _source_queue_entries() -> dict[str, dict]:
     queue_path = REPO_ROOT / "data" / "sources" / "source_queue.yaml"
     queue = yaml.safe_load(queue_path.read_text())
     return {entry["source_id"]: entry for entry in queue["sources"]}
+
+
+def _declared_data_origin(entry: dict, source_id: str) -> str:
+    """The source's declared origin from its source_queue.yaml entry (P2.0c).
+
+    Raises rather than defaulting: a recorded source with no declaration (or
+    an unknown label) would otherwise flow into the composition counts as a
+    silent unknown — the failure mode the origin module exists to prevent.
+    """
+    declared = entry.get("data_origin")
+    if declared is None:
+        raise ValueError(
+            f"source {source_id!r} contributed to this corpus build but its "
+            "source_queue.yaml entry declares no data_origin — declare it "
+            "there (P2.0c) rather than letting the manifest guess."
+        )
+    try:
+        return DataOrigin(declared).value
+    except ValueError as error:
+        raise ValueError(
+            f"source {source_id!r} declares data_origin={declared!r}, which is "
+            "not a DataOrigin — fix its source_queue.yaml entry."
+        ) from error
+
+
+def _admitted_rows_by_origin(sources: list[SourceProvenance]) -> dict[str, int]:
+    """Composition by DECLARED origin, computed from the per-source records —
+    never hand-written (P2.0c). A source with admitted rows but no declared
+    origin raises: on the build path `_declared_data_origin` makes that
+    unreachable, and this guard keeps a directly-constructed manifest from
+    summing rows into no bucket silently."""
+    counts: dict[str, int] = {}
+    for source in sources:
+        if not source.admitted_rows:
+            continue
+        if source.data_origin is None:
+            raise ValueError(
+                f"source {source.source_id!r} has {source.admitted_rows} admitted "
+                "rows but no data_origin — its rows would vanish from the "
+                "composition counts."
+            )
+        counts[source.data_origin] = counts.get(source.data_origin, 0) + source.admitted_rows
+    return dict(sorted(counts.items()))
 
 
 def _adapter_input_paths(adapters: list) -> dict[str, Path]:
@@ -222,6 +275,7 @@ def build_corpus_manifest(
                 input_path=str(input_path.relative_to(REPO_ROOT)) if input_path else None,
                 input_content_hash=file_sha256(input_path) if input_path else None,
                 backed_by=_backed_by(input_path),
+                data_origin=_declared_data_origin(entry, record.source_id),
                 fetched_rows=record.fetched_rows,
                 adapted_records=record.adapted_records,
                 normalized_records=record.normalized_records,
@@ -248,6 +302,7 @@ def build_corpus_manifest(
         corpus_row_count=len(corpus),
         rows_by_evidence_class=dict(sorted(rows_by_evidence_class.items())),
         rows_by_qa_status=dict(sorted(rows_by_qa_status.items())),
+        admitted_rows_by_data_origin=_admitted_rows_by_origin(sources),
         training_eligible_count=len(training_eligible),
         # EVERY observed source, including fully-absorbed ones — the whole
         # point of this artifact.
@@ -275,11 +330,17 @@ def build_corpus_manifest(
 def _backed_by(input_path: Path | None) -> str:
     """Whether this source read real data or a fixture. corpus_builder already
     REFUSES fixture paths in production (`_require_production_path`); recording
-    it here means a reader can verify that rather than trust it."""
+    it here means a reader can verify that rather than trust it.
+
+    INTERIM WIDENING (P2.0c §4): was {"tests", "fixtures"} requiring BOTH,
+    which booked data/fixtures/native/'s fabricated CSVs as "real_data"
+    (audit §5 #4). Any path part "fixtures" is now "fixture". Interim cover,
+    NOT the fix: P2.0d replaces path inference with the data_origin
+    declaration and REMOVES this widening — one rule, one mechanism."""
     if input_path is None:
         return "unknown"
     parts = {part.lower() for part in input_path.parts}
-    return "fixture" if {"tests", "fixtures"} <= parts else "real_data"
+    return "fixture" if "fixtures" in parts else "real_data"
 
 
 def write_corpus_manifest(

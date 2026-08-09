@@ -1,0 +1,33 @@
+# P2.0c sidecar origin declaration for the sample CSVs in this directory.
+# CSV binaries never carry markers (marker-form rule); this sidecar does.
+# Vocabulary: engine/prospectivity/provenance/origin.py.
+#
+# NOTE the split the audit found (§5 #2): three files are hand-built shapes
+# with invented values; the fourth is a VERBATIM excerpt of real, licensed
+# PANGAEA data and says so in its own header. The directory README's blanket
+# "not real downloaded data" claim is FALSE for that file — deferred fix
+# tracked in docs/BACKLOG.md §3 ("samples README false blanket claim"); this
+# sidecar records the truth machine-readably in the meantime.
+
+files:
+  pangaea_boxcore_sample.csv:
+    data_origin: AUTHORED
+    author: unrecorded
+  dryad_chamber_sample.csv:
+    data_origin: AUTHORED
+    author: unrecorded
+  regional_grid_sample.csv:
+    data_origin: AUTHORED
+    author: unrecorded
+  so268_nodules_sample.csv:
+    data_origin: MEASURED
+    source_id: src_so268_nodules
+    doi: "10.1594/PANGAEA.904962"
+    license: "CC-BY-NC-4.0"
+    parent_input_content_hash: "sha256:af06fbda795f08c9d1f3f069c6874d2c6408750a3c88a9412fdfb1226588d12f"
+    note: >
+      Verbatim excerpt of the real parent file
+      (data/sources/SO268-bc-nodules-PANGAEA-904962.tab, hash above, also
+      recorded in data/corpus/manifest.json). The row SELECTION (four named
+      events, listed in the CSV's own header) is authored; the VALUES are
+      measured.

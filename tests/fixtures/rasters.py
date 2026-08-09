@@ -2,6 +2,10 @@
 rasterio + numpy rather than committed as binary fixtures, so the repo stays
 free of tracked .tif blobs while still exercising TerrainSource/TS6Reference
 end-to-end in CI.
+
+data_origin: SYNTHETIC — the ONE module in this repo meeting the strict
+definition: deterministic generators (write_synthetic_bathymetry seed=0,
+write_synthetic_ts6_raster seed=1) with the import path recorded here.
 """
 
 from __future__ import annotations
@@ -16,8 +20,11 @@ from engine.prospectivity.domain.study_area import StudyArea
 from engine.prospectivity.domain.terrain import TerrainLayer
 from engine.prospectivity.domain.ts6 import TS6Surface
 from engine.prospectivity.provenance.contract_versions import file_sha256
+from engine.prospectivity.provenance.origin import DataOrigin
 from engine.prospectivity.terrain.source import TerrainSource
 from engine.prospectivity.ts6.reference import TS6Reference
+
+DATA_ORIGIN = DataOrigin.SYNTHETIC
 
 PIXEL_SIZE_DEG = 0.1
 # SYNTHETIC extent, E1.4 Preflight 1 (2026-07-28): covers the REAL corpus's 35

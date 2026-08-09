@@ -1,14 +1,22 @@
 """Test-only AbundanceNormalizer (STRATEGY) implementations, one per evidence
 class, close enough to normalization.yaml's real rules to prove the pipeline
 enforces them end-to-end (E0.4/E0.5). Real normalizers are Phase 1 (E1.2).
+
+data_origin: AUTHORED (author: unrecorded). SYNTHETIC_MEAN_NODULE_MASS_G is
+"synthetic" in name only — a hand-picked constant, taxonomy-AUTHORED; the
+misnomer is recorded rather than renamed (P2.0 decision).
 """
 
 from __future__ import annotations
 
 from engine.prospectivity.ingestion.normalizer import AbundanceNormalizer
 from engine.prospectivity.ingestion.source_adapter import RawRecord
+from engine.prospectivity.provenance.origin import AUTHOR_UNRECORDED, DataOrigin
 
-SYNTHETIC_MEAN_NODULE_MASS_G = 12.5  # [GEOLOGY — ISAAC placeholder]; fixture-only
+DATA_ORIGIN = DataOrigin.AUTHORED
+DATA_AUTHOR = AUTHOR_UNRECORDED
+
+SYNTHETIC_MEAN_NODULE_MASS_G = 12.5  # [GEOLOGY — ISAAC placeholder]; fixture-only; AUTHORED, name notwithstanding
 
 
 class FixtureMassNormalizer(AbundanceNormalizer):

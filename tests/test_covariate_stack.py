@@ -8,9 +8,11 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 import rasterio
 
 from engine.prospectivity.features.stack import build_covariate_stack
+from engine.prospectivity.provenance.origin import DataOrigin
 from tests.fixtures.rasters import write_synthetic_bathymetry
 
 EXPECTED_LAYERS = [
@@ -47,14 +49,16 @@ def _expected_border_width(layer_provenance: dict) -> int:
 def test_stack_writes_all_eight_layers_and_provenance(tmp_path: Path) -> None:
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
-    written = build_covariate_stack(dem_path, tmp_path / "stack")
+    written = build_covariate_stack(
+        dem_path, tmp_path / "stack", dem_data_origin=DataOrigin.SYNTHETIC
+    )
 
     assert sorted(written) == sorted(EXPECTED_LAYERS + ["provenance"])
     for name in EXPECTED_LAYERS:
         assert written[name].exists()
 
     provenance = json.loads(written["provenance"].read_text())
-    assert provenance["registry_version"] == 3
+    assert provenance["registry_version"] == 4
     assert provenance["dem"]["content_hash"].startswith("sha256:")
     assert [layer["name"] for layer in provenance["layers"]] == EXPECTED_LAYERS
     for layer in provenance["layers"]:
@@ -62,11 +66,42 @@ def test_stack_writes_all_eight_layers_and_provenance(tmp_path: Path) -> None:
         assert "crs_strategy" in layer
         assert layer["dem"]["content_hash"] == provenance["dem"]["content_hash"]
 
+    # P2.0c origin counts: declared for the DEM, COMPUTED for the layers —
+    # combine(DERIVED, SYNTHETIC) = SYNTHETIC, so a synthetic DEM's features
+    # never launder into DERIVED.
+    assert provenance["dem_data_origin"] == "SYNTHETIC"
+    assert provenance["layers_by_data_origin"] == {"SYNTHETIC": len(EXPECTED_LAYERS)}
+
+
+def test_layers_from_a_measured_dem_are_derived_not_measured(tmp_path: Path) -> None:
+    """The negation fixture for the combine: with a SYNTHETIC DEM,
+    combine(DERIVED, SYNTHETIC) equals the DEM origin, so those tests cannot
+    tell combining from copying. A MEASURED DEM separates them — layers must
+    come out DERIVED (combine), never MEASURED (copy). This is the Checkpoint-1
+    laundering direction: real GEBCO's derived layers must not claim MEASURED."""
+    dem_path = tmp_path / "synthetic.tif"
+    write_synthetic_bathymetry(dem_path)
+    written = build_covariate_stack(
+        dem_path, tmp_path / "stack", dem_data_origin=DataOrigin.MEASURED
+    )
+    provenance = json.loads(written["provenance"].read_text())
+    assert provenance["dem_data_origin"] == "MEASURED"
+    assert provenance["layers_by_data_origin"] == {"DERIVED": len(EXPECTED_LAYERS)}
+
+
+def test_build_covariate_stack_rejects_an_unknown_dem_origin_label(tmp_path: Path) -> None:
+    dem_path = tmp_path / "synthetic.tif"
+    write_synthetic_bathymetry(dem_path)
+    with pytest.raises(ValueError, match="FABRICATED"):
+        build_covariate_stack(dem_path, tmp_path / "stack", dem_data_origin="FABRICATED")
+
 
 def test_written_rasters_preserve_georeferencing_and_border_nans(tmp_path: Path) -> None:
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
-    written = build_covariate_stack(dem_path, tmp_path / "stack")
+    written = build_covariate_stack(
+        dem_path, tmp_path / "stack", dem_data_origin=DataOrigin.SYNTHETIC
+    )
 
     with rasterio.open(dem_path) as dem:
         dem_crs, dem_transform, dem_shape = dem.crs, dem.transform, dem.shape
@@ -109,8 +144,12 @@ def test_two_independent_builds_produce_identical_rasters_and_substance(
     so two independent builds must produce the SAME hash."""
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
-    first = build_covariate_stack(dem_path, tmp_path / "stack_a")
-    second = build_covariate_stack(dem_path, tmp_path / "stack_b")
+    first = build_covariate_stack(
+        dem_path, tmp_path / "stack_a", dem_data_origin=DataOrigin.SYNTHETIC
+    )
+    second = build_covariate_stack(
+        dem_path, tmp_path / "stack_b", dem_data_origin=DataOrigin.SYNTHETIC
+    )
 
     for name in EXPECTED_LAYERS:
         assert first[name].read_bytes() == second[name].read_bytes(), name
@@ -134,7 +173,9 @@ def test_provenance_sidecar_carries_the_review_critical_keys(tmp_path: Path) -> 
     plot path."""
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
-    written = build_covariate_stack(dem_path, tmp_path / "stack")
+    written = build_covariate_stack(
+        dem_path, tmp_path / "stack", dem_data_origin=DataOrigin.SYNTHETIC
+    )
 
     provenance = json.loads(written["provenance"].read_text())
     assert provenance["dem"]["content_hash"].startswith("sha256:")

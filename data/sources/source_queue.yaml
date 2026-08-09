@@ -17,8 +17,21 @@
 # DeepData layers (APEI/contract polygons) + GEBCO bathymetry are context only.
 #
 # metadata_version 2 -> 3.
+#
+# metadata_version 3 -> 4 (P2.0c, 2026-08-08): METADATA-ONLY. Added origin
+# markers (engine/prospectivity/provenance/origin.py): file-level
+# `data_origin`/`author` below, and `data_origin:` per source entry declaring
+# the origin class of the DATA the source contributes (the .tab files
+# themselves are hash-pinned and never edited — audit §6). No parameter value
+# and no semantics changed; re-sync is a read, not a review.
 
-metadata_version: 3
+metadata_version: 4
+
+# P2.0c origin declaration for the FILE (this catalog document itself). The
+# file's effective origin is COMPUTED by combine_origins over the entry
+# declarations below plus this remainder — never hand-written.
+data_origin: AUTHORED
+author: unrecorded
 
 # ---- normalization defaults referenced by Contract 7 (normalization.yaml) ----
 # Box cores in this queue are 50 x 50 cm = 0.25 m^2 unless a row says otherwise.
@@ -29,6 +42,7 @@ sources:
   # ===================== PHASE A — [MASS] training sources =====================
 
   - source_id: src_so268_boxcore            # [01]
+    data_origin: MEASURED                     # real downloaded PANGAEA dataset; hash in manifest.json
     title: "SO268 box-core nodule summary (BGR & GSR areas)"
     doi: "10.1594/PANGAEA.904967"
     url: "https://doi.org/10.1594/PANGAEA.904967"
@@ -44,6 +58,7 @@ sources:
     notes: "First modern contractor-area table. Keep event_id; COVER column stays COVER (not converted)."
 
   - source_id: src_domes_fewkes1980          # [02]
+    data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
     title: "DOMES floor-density measurements, Fewkes et al. (1980)"
     doi: "10.1594/PANGAEA.878220"
     url: "https://doi.org/10.1594/PANGAEA.878220"
@@ -59,6 +74,7 @@ sources:
     notes: "Historic, already-normalized kg/m2. High-value training data."
 
   - source_id: src_domes_piper1979           # [03]
+    data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
     title: "DOMES abundance & seafloor observations, Piper et al. (1979)"
     doi: "10.1594/PANGAEA.880886"
     url: "https://doi.org/10.1594/PANGAEA.880886"
@@ -74,6 +90,7 @@ sources:
     notes: "Compare events against [02] before dedup (DOMES family, rule 1)."
 
   - source_id: src_domes_sitec_sorem1989     # [04]
+    data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
     title: "DOMES Site C nodule size & weight, Sorem (1989)"
     doi: "10.1594/PANGAEA.879534"
     url: "https://doi.org/10.1594/PANGAEA.879534"
@@ -93,6 +110,7 @@ sources:
     # downloaded file (data/sources/SO268-bc-nodules-PANGAEA-904962.tab) has
     # 1,658 data rows across 36 box-core events. The ~9,000 figure was an
     # estimate made before the download and was never true of this dataset.
+    data_origin: MEASURED                     # real downloaded PANGAEA dataset; hash in manifest.json
     title: "SO268 individual nodule measurements (1,658 rows / 36 events)"
     doi: "10.1594/PANGAEA.904962"
     url: "https://doi.org/10.1594/PANGAEA.904962"
@@ -108,6 +126,7 @@ sources:
     notes: "Nodules are NESTED in [01] events (dedup rule 4). The EVENT is the spatial sample, not each nodule. Also the source of mean_nodule_mass_g for COUNT→MASS."
 
   - source_id: src_dryad_chamber             # [06]
+    data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
     title: "CCZ benthic-chamber experiments & nodule abundance (Dryad)"
     doi: "10.5061/dryad.tdz08kq6w"
     url: "https://doi.org/10.5061/dryad.tdz08kq6w"
@@ -126,6 +145,7 @@ sources:
   # Ingested and TAGGED; used as covariates/context. NEVER converted to kg/m2.
 
   - source_id: src_amon2016_frames           # [11]
+    data_origin: MEASURED                     # published image-derived measurement dataset; hash on download
     title: "Amon et al. 2016 UK-1/EPIRB image-frame nodule data"
     doi: null
     url: "https://www.nature.com/articles/srep30492"
@@ -141,6 +161,7 @@ sources:
     notes: "Supplementary Table S3. Keep image-derived metrics separate from recovered mass."
 
   - source_id: src_apei6_cover               # [12]
+    data_origin: MEASURED                     # published image-derived measurement dataset (DOI); hash on download
     title: "APEI-6 nodule-cover gradient, Simon-Lledó et al. (PANGAEA)"
     doi: "10.1594/PANGAEA.893220"
     url: "https://doi.org/10.1594/PANGAEA.893220"
@@ -156,6 +177,7 @@ sources:
     notes: "Image-derived cover. Preserve transect/image IDs."
 
   - source_id: src_gsr_mendeley_cover        # [14]
+    data_origin: MEASURED                     # published measurement dataset; hash on download
     title: "GSR collector-test site nodule coverage (Mendeley Data)"
     doi: null
     url: "https://data.mendeley.com/datasets/7jst5wyc6j/1"
@@ -174,6 +196,8 @@ sources:
   # Compiled/interpolated. Priors + benchmark ONLY. Never independent stations.
 
   - source_id: src_ts6_grid                  # [18]
+    data_origin: LITERATURE                   # compiled model product from a publication, not a measurement here
+    citation: "ISA Technical Study No. 6 (2010); specific figure/table pends the Contract 6 digitization decision (source_figure) — an open evidence gap, not guessed"
     title: "ISA Technical Study No. 6 (2010) — abundance grid"
     doi: null
     url: "https://isa.org.jm/wp-content/uploads/2022/06/tstudy6.pdf"
@@ -189,6 +213,8 @@ sources:
     notes: "Benchmark surface for compare_to_ts6 (Contract 6). Never a training station."
 
   - source_id: src_washburn2021_grid         # [19]
+    data_origin: LITERATURE                   # derived/compiled published points ("largely derived from TS-6 + Morgan")
+    citation: "Washburn et al. 2021, Front. Mar. Sci. 8:661685, supplementary 0.5-degree resource points"
     title: "Washburn et al. 2021 — regional 0.5° resource points"
     doi: "10.3389/fmars.2021.661685"
     url: "https://www.frontiersin.org/articles/10.3389/fmars.2021.661685/full"
@@ -206,6 +232,9 @@ sources:
   # ===================== PHASE A — public CONTEXT (not samples) =================
 
   - source_id: src_bathymetry_primary
+    data_origin: null                          # [KARL] classify at download: MEASURED survey product vs
+                                               # LITERATURE compiled grid (GEBCO interpolates between soundings).
+                                               # Decision affects Checkpoint-1 watermark derivation — BACKLOG §2.
     title: null                                # [GEOLOGY — ISAAC] e.g. "GEBCO 2024 tile"
     doi: null
     url: null
@@ -221,6 +250,8 @@ sources:
     notes: "Public global bathymetry (GEBCO). NOT DeepData confidential processed bathymetry."
 
   - source_id: src_deepdata_public_context
+    data_origin: null                          # [KARL] classify at download: published regulatory geometry —
+                                               # MEASURED portal dataset vs LITERATURE reference product. BACKLOG §2.
     title: null                                # e.g. "ISA DeepData — APEI & contract polygons (public)"
     doi: null
     url: "https://data.isa.org.jm/isa/map"

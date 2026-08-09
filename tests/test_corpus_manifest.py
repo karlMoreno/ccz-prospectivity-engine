@@ -10,12 +10,20 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from engine.prospectivity.domain.evidence import QAStatus
 from engine.prospectivity.ingestion.corpus_builder import (
     REAL_ADAPTER_BUILDERS,
     build_corpus,
     build_corpus_with_manifest,
     write_corpus_csv,
+)
+from engine.prospectivity.provenance.corpus_manifest import (
+    SourceProvenance,
+    _admitted_rows_by_origin,
+    _backed_by,
+    _declared_data_origin,
 )
 from engine.prospectivity.provenance.recorder import ProvenanceRecorder
 
@@ -214,6 +222,58 @@ def test_every_source_records_a_real_computed_input_hash_not_a_placeholder() -> 
         assert source.backed_by == "real_data"
 
 
+def test_real_sources_declare_measured_and_manifest_counts_match_the_corpus_total() -> None:
+    """P2.0c, the real build: each source's data_origin is the DECLARATION
+    from its source_queue.yaml entry ([01]/[05] both declare MEASURED), the
+    composition block reads {"MEASURED": 108}, and its sum equals the corpus
+    row count so no admitted row falls out of the composition. (That the
+    counts are genuinely COMPUTED from heterogeneous declarations is proved by
+    the unit test below — this homogeneous real corpus cannot distinguish
+    computation from a hardcoded total.)"""
+    _, manifest = build_corpus_with_manifest()
+    for source in manifest.sources:
+        assert source.data_origin == "MEASURED", source.source_id
+    assert manifest.admitted_rows_by_data_origin == {"MEASURED": 108}
+    assert sum(manifest.admitted_rows_by_data_origin.values()) == manifest.corpus_row_count
+
+
+def test_composition_counts_are_computed_from_heterogeneous_declarations() -> None:
+    """The fixture the real corpus cannot provide: sources with DIFFERENT
+    declared origins, an absorbed source contributing nothing, and a source
+    whose rows would vanish silently. A hardcoded or corpus-length-derived
+    composition cannot pass this."""
+    mixed = [
+        SourceProvenance(source_id="a", data_origin="MEASURED", admitted_rows=70),
+        SourceProvenance(source_id="b", data_origin="LITERATURE", admitted_rows=30),
+        SourceProvenance(source_id="c", data_origin="MEASURED", admitted_rows=0, absorbed_rows=72),
+    ]
+    assert _admitted_rows_by_origin(mixed) == {"LITERATURE": 30, "MEASURED": 70}
+
+    undeclared = [SourceProvenance(source_id="d", admitted_rows=5)]
+    with pytest.raises(ValueError, match="'d'"):
+        _admitted_rows_by_origin(undeclared)
+
+
+def test_declared_data_origin_raises_for_missing_or_unknown_declarations() -> None:
+    """The loud path: a recorded source with no queue declaration (or a bogus
+    label) must raise naming the source, never flow into the counts as a
+    silent unknown."""
+    with pytest.raises(ValueError, match="src_mystery"):
+        _declared_data_origin({}, "src_mystery")
+    with pytest.raises(ValueError, match="FABRICATED"):
+        _declared_data_origin({"data_origin": "FABRICATED"}, "src_bogus")
+
+
+def test_backed_by_books_any_fixtures_path_as_fixture_and_sources_as_real() -> None:
+    """P2.0c §4 interim widening: data/fixtures/native/ booked as "real_data"
+    under the old {"tests","fixtures"} predicate (audit §5 #4). Interim until
+    P2.0d replaces path inference with the declaration."""
+    assert _backed_by(Path("data/fixtures/native/synthetic_boxcore_native.csv")) == "fixture"
+    assert _backed_by(Path("tests/fixtures/samples/dryad_chamber_sample.csv")) == "fixture"
+    assert _backed_by(Path("data/sources/SO268-bc-nodules-PANGAEA-904962.tab")) == "real_data"
+    assert _backed_by(None) == "unknown"
+
+
 def test_geometry_records_the_aoi_mismatch_and_the_variogram_support_gap() -> None:
     """Both facts that previously lived only in audit findings: every row falls
     outside the placeholder AOI, and the pairwise distances have a ~974 km hole
@@ -265,9 +325,10 @@ def test_spatial_summary_is_recorded_for_both_row_sets_and_they_differ() -> None
 def test_manifest_declares_its_contract_versions_and_no_upstream_artifacts() -> None:
     _, manifest = build_corpus_with_manifest()
     versions = manifest.contract_versions
-    assert versions["master_observations_schema_version"] == 4
-    assert versions["covariates_registry_version"] == 3
-    assert versions["normalization_policy_version"] == 1
+    # All three bumped by P2.0c's metadata-only origin markers.
+    assert versions["master_observations_schema_version"] == 5
+    assert versions["covariates_registry_version"] == 4
+    assert versions["normalization_policy_version"] == 2
     assert versions["study_area_id"] == "ccz_alpha_aoi"
     # Ingestion is the first stage: raw-download hashes live per source.
     assert manifest.upstream_hashes == {}

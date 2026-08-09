@@ -11,11 +11,28 @@
 # with abundance_kg_m2 = null (blank) and the value stays a covariate/prior.
 #
 # policy_version 1.
+#
+# policy_version 1 -> 2 (P2.0c, 2026-08-08): METADATA-ONLY. Added origin
+# markers (engine/prospectivity/provenance/origin.py): file-level
+# `data_origin`/`author`, and the screening block's LITERATURE declaration
+# (kept OUTSIDE the `screening:` mapping so its field->bounds iteration shape
+# stays pure — apply_screening iterates its items). No bound, rule, or
+# tolerance changed; re-sync is a read, not a review.
 
-policy_version: 1
+policy_version: 2
+
+# P2.0c origin declaration for the FILE remainder (rules prose, dedup key,
+# tolerances — engineering policy). Effective file origin is COMPUTED by
+# combine_origins over this plus the screening declaration below.
+data_origin: AUTHORED
+author: unrecorded
 
 # Screening bounds applied AFTER normalization (from TS-6 Table 2). Values
 # outside are qa_status=flagged (never silently dropped). 0 is valid (barren).
+# P2.0c origin of the screening block — the one node in this file whose origin
+# differs from the file remainder. Declared beside, not inside, `screening:`.
+screening_data_origin: LITERATURE
+screening_citation: "ISA Technical Study No. 6 (2010), Table 2"
 screening:
   abundance_kg_m2: { min: 0.0, max: 45.0 }
   mn_pct: { min: 10.0, max: 45.0 }

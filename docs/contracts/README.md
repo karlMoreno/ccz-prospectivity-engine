@@ -35,7 +35,20 @@ CONTRACT                     v3 STATUS      WHAT CHANGED
                                              reading. It is a PLAUSIBILITY ceiling, not a
                                              screening threshold — 45 (normalization.yaml)
                                              remains the soft bound that flags.
-2 study_area (+ exclusions)  FROZEN          no change
+                                             schema_version 4 -> 5 (P2.0c, 2026-08-08):
+                                             METADATA-ONLY origin markers — see the
+                                             shared P2.0c note under this table.
+2 study_area (+ exclusions)  FROZEN          no change.
+                                             P2.0c origin declaration (2026-08-08),
+                                             recorded HERE because study_area.geojson's
+                                             SHA-256 is pinned in manifest.json
+                                             (contract_versions.study_area_content_hash)
+                                             and must not be edited for a marker:
+                                             study_area.geojson — data_origin: AUTHORED,
+                                             author: unrecorded (it also self-marks with
+                                             "placeholder": true). exclusions.geojson is
+                                             NOT hash-pinned and carries its own in-file
+                                             data_origin/author fields.
 3 covariates.yaml            FROZEN          Option-A enabled; Option-B disabled.
                                              registry_version 2 -> 3 (E1.4 preflight,
                                              2026-07-28): windowed recipes (roughness,
@@ -52,15 +65,36 @@ CONTRACT                     v3 STATUS      WHAT CHANGED
                                              native-resolution 3x3 operators: never mix
                                              features from different DEM resolutions in
                                              one training matrix.
+                                             registry_version 3 -> 4 (P2.0c): METADATA-
+                                             ONLY origin markers — shared note below.
 4 scenarios.yaml             FROZEN          structure same; cutoffs → real ranges.
+                                             config_version 2 -> 3 (P2.0c): METADATA-
+                                             ONLY origin markers — shared note below.
 5 source_queue.yaml          EXPANDED        source_metadata → the PHASE-A SOURCE
   (was source_metadata)                      QUEUE: one entry per Phase-A source with
                                              evidence classes, license, is_open,
                                              sampled area, derivation. version 3.
+                                             metadata_version 3 -> 4 (P2.0c): METADATA-
+                                             ONLY origin markers — shared note below.
 6 ts6_reference.yaml         MINOR           benchmark surface; note [18]/[19] GRID.
+                                             reference_version 1 -> 2 (P2.0c): METADATA-
+                                             ONLY origin markers — shared note below.
 7 normalization.yaml         NEW             per-evidence-class → kg/m² POLICY the
                                              AbundanceNormalizer obeys. version 1.
+                                             policy_version 1 -> 2 (P2.0c): METADATA-
+                                             ONLY origin markers — shared note below.
 ```
+
+**Shared P2.0c note (2026-08-08) — one cause for all six bumps above.** Every
+value-bearing contract now declares its origin under the five-value taxonomy
+in [`engine/prospectivity/provenance/origin.py`](../../engine/prospectivity/provenance/origin.py)
+(`data_origin:` per entry where entries differ, a file-level declaration for
+the remainder; `author:` wherever AUTHORED, `citation:` wherever LITERATURE).
+**No parameter value, bound, enum, or semantic changed in any contract** —
+Isaac's checkpoint re-sync is a read, not a review. A file's effective origin
+is computed by `combine_origins` over its declarations, never hand-written.
+The bumps move `contract_versions` in `data/corpus/manifest.json`, which
+moves its `content_hash` — accounted in `docs/walkthroughs/P2.0.md` §c.
 
 ## Why contracts, in design-pattern terms
 

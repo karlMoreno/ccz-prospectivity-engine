@@ -76,7 +76,14 @@ DEFAULT_OUTPUT_PATH = REPO_ROOT / "data" / "corpus" / "master_observations.csv"
 # .schema.json field-for-field), never left to dict/set iteration order.
 _CSV_COLUMNS = list(Observation.model_fields.keys())
 
-_FIXTURES_PATH_PARTS = {"tests", "fixtures"}
+# INTERIM WIDENING (P2.0c §4): was {"tests", "fixtures"} requiring BOTH,
+# which let data/fixtures/native/'s fabricated CSVs pass this guard and book
+# as backed_by="real_data" (audit §5 #4) — the exact state [06]/[18] were in
+# the day before someone wired them. Any path part "fixtures" now refuses.
+# This is interim cover, NOT the fix: P2.0d replaces path inference with the
+# data_origin declaration check and REMOVES this widening — do not leave both
+# mechanisms in place for one rule.
+_FIXTURES_PATH_PART = "fixtures"
 
 
 def _require_production_path(path: Path) -> Path:
@@ -92,9 +99,9 @@ def _require_production_path(path: Path) -> Path:
     source has no real data yet, the fix is to remove its builder from
     REAL_ADAPTER_BUILDERS, not to point it at a fixture and hope no one
     notices."""
-    if _FIXTURES_PATH_PARTS <= {part.lower() for part in path.parts}:
+    if _FIXTURES_PATH_PART in {part.lower() for part in path.parts}:
         raise ValueError(
-            f"corpus_builder refuses to read a test fixtures path in production: {path}. "
+            f"corpus_builder refuses to read a fixtures path in production: {path}. "
             "If this source has no real data yet, remove its builder from "
             "REAL_ADAPTER_BUILDERS instead of pointing it at a fixture."
         )

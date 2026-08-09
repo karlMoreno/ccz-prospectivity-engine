@@ -24,6 +24,7 @@ from engine.prospectivity.features.dem_grid import DemGrid
 from engine.prospectivity.features.registry import build_default_registry
 from engine.prospectivity.provenance.artifact import ProvenanceArtifact
 from engine.prospectivity.provenance.contract_versions import contract_versions
+from engine.prospectivity.provenance.origin import DataOrigin, combine_origins
 
 
 class FeatureStackManifest(ProvenanceArtifact):
@@ -47,17 +48,35 @@ class FeatureStackManifest(ProvenanceArtifact):
     registry_version: int
     dem: dict = Field(default_factory=dict)
     layers: list[dict] = Field(default_factory=list)
+    # P2.0c: the DEM's DECLARED origin (required at build; no silent default —
+    # a default of SYNTHETIC would mislabel real GEBCO at Checkpoint 1, and a
+    # default of None is the silent unknown the origin module forbids), and
+    # the layers' composition COMPUTED from it: every layer is derived from
+    # the one DEM, so each layer's origin is combine(DERIVED, dem origin) —
+    # least-real wins, which is how features computed on a synthetic DEM stay
+    # SYNTHETIC rather than laundering into DERIVED.
+    dem_data_origin: str
+    layers_by_data_origin: dict[str, int] = Field(default_factory=dict)
 
 
-def build_covariate_stack(dem_path: Path, output_dir: Path) -> dict[str, Path]:
+def build_covariate_stack(
+    dem_path: Path, output_dir: Path, *, dem_data_origin: DataOrigin | str
+) -> dict[str, Path]:
     """Compute all enabled covariates from `dem_path`; write rasters +
     provenance.json under `output_dir`. Returns {layer_name: written_path,
-    ..., "provenance": provenance_path}."""
+    ..., "provenance": provenance_path}.
+
+    `dem_data_origin` is the caller's DECLARATION of the DEM's origin
+    (P2.0c) — required keyword, validated through DataOrigin so an unknown
+    label raises. The synthetic fixture DEM is SYNTHETIC; real GEBCO at
+    Checkpoint 1 declares its own class at the TerrainSource seam."""
+    dem_origin = DataOrigin(dem_data_origin)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     grid = DemGrid.load(Path(dem_path))
     registry = build_default_registry()
     results = registry.build_all(grid)
+    layer_origin = combine_origins([DataOrigin.DERIVED, dem_origin])
 
     written: dict[str, Path] = {}
     for result in results:
@@ -82,6 +101,8 @@ def build_covariate_stack(dem_path: Path, output_dir: Path) -> dict[str, Path]:
         registry_version=load_covariates_yaml()["registry_version"],
         dem=grid.provenance(),
         layers=[result.provenance for result in results],
+        dem_data_origin=dem_origin.value,
+        layers_by_data_origin={layer_origin.value: len(results)},
         contract_versions=contract_versions(),
         upstream_hashes={"dem": grid.content_hash},
     ).finalize()

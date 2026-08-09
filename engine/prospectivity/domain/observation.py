@@ -1,4 +1,5 @@
-"""Observation — the master-observation row (Contract 1, schema_version 4).
+"""Observation — the master-observation row (Contract 1, schema_version 5;
+v5 is P2.0c's metadata-only origin markers — no field, bound, or enum change).
 
 Field-for-field mirror of docs/contracts/master_observations.schema.json. This
 is the one place the CLAUDE.md scientific-integrity rules are enforced as code

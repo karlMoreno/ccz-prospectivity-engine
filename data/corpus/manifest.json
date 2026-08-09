@@ -1,4 +1,7 @@
 {
+  "admitted_rows_by_data_origin": {
+    "MEASURED": 108
+  },
   "any_non_commercial_input": true,
   "bounding_box_all_rows": {
     "max_latitude": 14.1167,
@@ -12,11 +15,11 @@
     "min_latitude": 11.8369,
     "min_longitude": -125.929
   },
-  "content_hash": "sha256:372be3bb381385fbbeacdcfb5bd407807e60ddedcd522737c7f9d350dbbbf32f",
+  "content_hash": "sha256:0227d6df608ee23476c7f5915bede82f1ffb360c542e33152386257a2fd07fd9",
   "contract_versions": {
-    "covariates_registry_version": 3,
-    "master_observations_schema_version": 4,
-    "normalization_policy_version": 1,
+    "covariates_registry_version": 4,
+    "master_observations_schema_version": 5,
+    "normalization_policy_version": 2,
     "study_area_content_hash": "sha256:3f351954624e3fbbad72d1cce7f24a6d1cac99cbd962948aaac0a311a3e44834",
     "study_area_id": "ccz_alpha_aoi"
   },
@@ -26,7 +29,7 @@
   ],
   "corpus_path": "data/corpus/master_observations.csv",
   "corpus_row_count": 108,
-  "generated_at": "2026-07-31T03:45:25.150714Z",
+  "generated_at": "2026-08-08T23:53:04.616413Z",
   "rows_by_evidence_class": {
     "COUNT": 36,
     "COVER": 36,
@@ -48,6 +51,7 @@
       },
       "admitted_rows": 108,
       "backed_by": "real_data",
+      "data_origin": "MEASURED",
       "doi": "10.1594/PANGAEA.904967",
       "fetched_rows": 36,
       "flagged_admitted_rows": 3,
@@ -75,6 +79,7 @@
       "admitted_by_evidence_class": {},
       "admitted_rows": 0,
       "backed_by": "real_data",
+      "data_origin": "MEASURED",
       "doi": "10.1594/PANGAEA.904962",
       "fetched_rows": 1658,
       "flagged_admitted_rows": 0,
