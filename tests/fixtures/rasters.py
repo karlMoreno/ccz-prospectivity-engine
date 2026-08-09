@@ -25,6 +25,11 @@ from engine.prospectivity.terrain.source import TerrainSource
 from engine.prospectivity.ts6.reference import TS6Reference
 
 DATA_ORIGIN = DataOrigin.SYNTHETIC
+# SYNTHETIC's evidence, machine-readable (P2.0d-2 §0.1): the generator import
+# path and seeds are what separate a seeded generator from hand-typed values
+# under a "synthetic_" filename — the terminology collision in origin.py.
+DATA_GENERATOR = "tests.fixtures.rasters"
+DATA_SEEDS = (0, 1)  # write_synthetic_bathymetry seed=0; write_synthetic_ts6_raster seed=1
 
 PIXEL_SIZE_DEG = 0.1
 # SYNTHETIC extent, E1.4 Preflight 1 (2026-07-28): covers the REAL corpus's 35

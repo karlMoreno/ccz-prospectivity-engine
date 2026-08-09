@@ -1,0 +1,24 @@
+# P2.0d-2 §0.2 sidecar origin declaration for the two GENERATED corpus
+# artifacts. They were EXCLUDED from the d-1 audit as "generated" — but two
+# entries sharing that reason is a category exclusion with the glob removed,
+# and excluding the provenance artifact that carries the origin counts from
+# the provenance audit is self-undermining. They are genuinely DERIVED, so
+# they are classified, with the derivation evidence the taxonomy requires.
+# The files themselves are still never hand-edited (audit §6): this sidecar
+# is the marker location precisely because the binaries cannot carry one.
+
+files:
+  master_observations.csv:
+    data_origin: DERIVED
+    derivation: >
+      build_corpus() (engine/prospectivity/ingestion/corpus_builder.py) over
+      the declared MEASURED sources; every computed value in it carries a
+      per-row derivation_formula column (schema AR-D04). No origin column, by
+      P2.0 decision 3.
+  manifest.json:
+    data_origin: DERIVED
+    derivation: >
+      build_corpus_with_manifest() -> CorpusManifest.finalize()
+      (engine/prospectivity/provenance/corpus_manifest.py); substance-hashed
+      per docs/contracts/PROVENANCE.md, upstream input hashes recorded per
+      source.

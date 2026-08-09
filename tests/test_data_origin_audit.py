@@ -69,13 +69,8 @@ EXCLUSIONS: dict[str, str] = {
         "documentation prose, no data values (audit §3); the directory is "
         "reserved for real GEBCO at Checkpoint 1"
     ),
-    "data/corpus/manifest.json": (
-        "generated DERIVED artifact (build_corpus_with_manifest), self-hashed; "
-        "never hand-marked — origin fields inside it are its OUTPUT"
-    ),
-    "data/corpus/master_observations.csv": (
-        "generated; P2.0 decision 3 (walkthrough §b): no origin column — rows "
-        "already carry source_id, derivation_formula, observation_or_prediction"
+    "data/corpus/data_origin.yaml": (
+        "the sidecar declaration mechanism itself, not a subject"
     ),
     "data/fixtures/native/data_origin.yaml": (
         "the sidecar declaration mechanism itself, not a subject"
@@ -133,10 +128,18 @@ UNRECORDED_SCAN_EXTRAS: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class Declaration:
-    location: str  # "in-file" | "sidecar" | "queue-via-manifest"
+    location: str  # "in-file" | "in-file-node" | "sidecar" | "queue-via-manifest"
     data_origin: str
     author: str | None = None
     citation: str | None = None
+    # Resolver-side evidence for the two members d-1 left unchecked
+    # (P2.0d-2 §0.1): SYNTHETIC must name its generator import path AND
+    # seed(s); DERIVED must name its derivation formula or the artifact
+    # recording it. (MEASURED's evidence — a proven hashed file — is the
+    # production guard's check, engine side, not resolver-side.)
+    generator: str | None = None
+    seeds: object | None = None
+    derivation: str | None = None
 
 
 def tracked_subject_files() -> list[str]:
@@ -181,6 +184,8 @@ def _in_file_declaration(root: Path, rel_path: str) -> Declaration | None:
             location="in-file",
             data_origin=origin.value if isinstance(origin, DataOrigin) else str(origin),
             author=getattr(module, "DATA_AUTHOR", None),
+            generator=getattr(module, "DATA_GENERATOR", None),
+            seeds=getattr(module, "DATA_SEEDS", getattr(module, "DATA_SEED", None)),
         )
     else:
         return None
@@ -191,6 +196,9 @@ def _in_file_declaration(root: Path, rel_path: str) -> Declaration | None:
         data_origin=str(top["data_origin"]),
         author=top.get("author"),
         citation=top.get("citation"),
+        generator=top.get("generator"),
+        seeds=top.get("seeds", top.get("seed")),
+        derivation=top.get("derivation"),
     )
 
 
@@ -231,6 +239,9 @@ def _sidecar_declaration(root: Path, rel_path: str) -> Declaration | None:
         data_origin=str(entry.get("data_origin")),
         author=entry.get("author"),
         citation=entry.get("citation"),
+        generator=entry.get("generator"),
+        seeds=entry.get("seeds", entry.get("seed")),
+        derivation=entry.get("derivation"),
     )
 
 
@@ -319,6 +330,20 @@ def audit(
                 declaration.citation and str(declaration.citation).strip()
             ):
                 invalid.append(f"{path}: LITERATURE without a citation")
+            if origin is DataOrigin.SYNTHETIC:
+                # The only thing separating a seeded generator from hand-typed
+                # values under a "synthetic_" filename (P2.0d-2 §0.1).
+                if not (declaration.generator and str(declaration.generator).strip()):
+                    invalid.append(f"{path}: SYNTHETIC without a generator import path")
+                if declaration.seeds is None:
+                    invalid.append(f"{path}: SYNTHETIC without a recorded seed")
+            if origin is DataOrigin.DERIVED and not (
+                declaration.derivation and str(declaration.derivation).strip()
+            ):
+                invalid.append(
+                    f"{path}: DERIVED without a derivation formula or the "
+                    "artifact that records it"
+                )
     return AuditFindings(unclassified, contradictions, tuple(invalid))
 
 
@@ -429,12 +454,14 @@ def test_no_subject_has_locations_disagreeing_on_origin_author_or_citation() -> 
     )
 
 
-def test_declarations_use_known_origins_and_authored_author_and_literature_citation() -> None:
-    """AUTHORED requires an allow-listed author; LITERATURE requires a
-    citation; the origin label itself must be a DataOrigin member. (Evidence
-    for MEASURED/DERIVED/SYNTHETIC — hashes, formulas, seeds — is NOT checked
-    here; that is the P2.0d-2 guard's completed-evidence rule, per the
-    BACKLOG §1 addendum.)"""
+def test_declarations_use_known_origins_and_carry_their_resolver_side_evidence() -> None:
+    """The origin label must be a DataOrigin member, and four of the five
+    members carry their evidence at the declaration: AUTHORED -> allow-listed
+    author; LITERATURE -> citation; SYNTHETIC -> generator import path AND
+    seed(s); DERIVED -> derivation formula or the artifact recording it.
+    MEASURED's evidence (a proven hashed file) is the production guard's
+    check on the engine side — it cannot be a resolver check because the
+    proof is a re-hash of bytes, not a field."""
     rel_paths, declarations = _real_tree()
     findings = audit(rel_paths, declarations, EXCLUSIONS)
     assert not findings.invalid, list(findings.invalid)
@@ -485,6 +512,14 @@ def _write(root: Path, rel_path: str, text: str) -> None:
 
 
 def test_audit_reports_an_unclassified_file_by_name(tmp_path: Path) -> None:
+    """*** THE SOLE OBSERVER OF THE AUDIT'S OWN BLINDNESS — DO NOT DELETE OR
+    WEAKEN WITHOUT A REPLACEMENT. *** The mandatory d-1 mutation (audit()
+    collecting its subjects from the resolver) left EVERY real-tree test
+    green — a clean tree cannot distinguish a working audit from a
+    structurally blind one — and THIS test was the only failure:
+    `AssertionError: assert () == ('orphan.csv',)`. Re-verified against the
+    final module structure with the same result. Delete this fixture and the
+    entire audit can be made decorative while the suite stays green."""
     _write(tmp_path, "good.yaml", "data_origin: AUTHORED\nauthor: model\n")
     _write(tmp_path, "orphan.csv", "a,b\n1,2\n")
     rel_paths = ["good.yaml", "orphan.csv"]
@@ -511,6 +546,30 @@ def test_audit_reports_an_unknown_origin_label_and_a_missing_author(tmp_path: Pa
     findings = audit(rel_paths, collect_declarations(tmp_path, rel_paths, {}), {})
     assert any("FABRICATED" in item for item in findings.invalid)
     assert any("authorless.yaml" in item for item in findings.invalid)
+
+
+def test_audit_reports_synthetic_declarations_missing_generator_or_seed(tmp_path: Path) -> None:
+    """SYNTHETIC's evidence bar, both halves independently: no generator at
+    all, and a generator with no seed. This is the check separating a seeded
+    generator from hand-typed values under a synthetic_* filename."""
+    _write(tmp_path, "bare.yaml", "data_origin: SYNTHETIC\n")
+    _write(tmp_path, "seedless.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\n")
+    _write(tmp_path, "proper.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\nseed: 7\n")
+    rel_paths = ["bare.yaml", "seedless.yaml", "proper.yaml"]
+    findings = audit(rel_paths, collect_declarations(tmp_path, rel_paths, {}), {})
+    assert "bare.yaml: SYNTHETIC without a generator import path" in findings.invalid
+    assert "bare.yaml: SYNTHETIC without a recorded seed" in findings.invalid
+    assert "seedless.yaml: SYNTHETIC without a recorded seed" in findings.invalid
+    assert not any("proper.yaml" in item for item in findings.invalid)
+
+
+def test_audit_reports_derived_declarations_missing_their_derivation(tmp_path: Path) -> None:
+    _write(tmp_path, "underived.yaml", "data_origin: DERIVED\n")
+    _write(tmp_path, "complete.yaml", "data_origin: DERIVED\nderivation: 'x = y / z'\n")
+    rel_paths = ["underived.yaml", "complete.yaml"]
+    findings = audit(rel_paths, collect_declarations(tmp_path, rel_paths, {}), {})
+    assert any("underived.yaml: DERIVED without" in item for item in findings.invalid)
+    assert not any("complete.yaml" in item for item in findings.invalid)
 
 
 def test_unrecorded_scan_reports_an_unpermitted_file_by_name(tmp_path: Path) -> None:
