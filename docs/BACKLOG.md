@@ -18,8 +18,9 @@ added 2026-08-08 (origin-audit latents, P2.0a′), 3 more 2026-08-08 (P2.0c
 evidence gaps + deferred README fix), 1 more 2026-08-09 (P2.0d-2 review:
 LITERATURE admission path); README fix closed 2026-08-09 (P2.0d-3); 2 more
 added 2026-08-09 from the planning transcript (contract change_class; GEBCO
-TID). **36 open items**: §1 Track G 11, §2 Karl 5, §3
-Engineering 15, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+TID); 1 more 2026-08-10 (P2.B follow-up: [05] depth parsing hazard).
+**37 open items**: §1 Track G 11, §2 Karl 5, §3
+Engineering 16, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 Two of the three E1.5 reverse-audit findings are already closed (combinators
 deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
 
@@ -41,12 +42,23 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   2_182-1 records 0 buried vs 24 published; 2_116-1 0 vs 15), 15 events
   carry an unknown-depth nodule, and only 20/36 events derive cleanly. The
   concrete Track G question is therefore: **resolve the [05]-vs-[01] burial
-  contradiction on those six events** (data-entry gap in [05]? different
-  burial definition?) — if resolved, `surface_only` enters the enum as a new
+  contradiction on those six events** — and the PATTERN is the lead
+  (2026-08-10): all six sit on **SO268/2** while all 15 SO268/1 events
+  reconcile exactly (6 of the 21 leg-2 events disagree); five of six
+  UNDER-record burial in [05], and the two largest offenders (2_116-1,
+  2_182-1) record `Depth sed 0.000` for **every** nodule while [01]
+  publishes 15 and 24 buried — consistent with depth-not-recorded defaulting
+  to zero on those events, not with random error. The exception, 2_95-2,
+  OVER-records (6 vs 4) and is the one leg-2 event using the `">0.000"`
+  notation. Working hypothesis: a per-leg (or per-team) recording-protocol
+  difference — **the one question in this project a geologist can settle
+  without new data**. If resolved, `surface_only` enters the enum as a new
   admissible value. Owner: G (with Karl for the definition). Trigger: any
   time; also feeds Contract 4. Detail:
   [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md);
-  [model_config.yaml](../data/config/model_config.yaml) header.
+  [model_config.yaml](../data/config/model_config.yaml) header; the parsing
+  hazard for anyone re-running the analysis is §3 ("[05] Depth sed parsing
+  hazard").
 - [ ] **Study area / AOI scope.** 108 of 114 corpus rows fall outside
   `study_area.geojson`'s Phase-0 placeholder (E1.4 preflight confirmed 0/35
   training points on the placeholder AOI). Options: AOI = sampled areas
@@ -254,6 +266,21 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   2's training matrix is the natural consumer. Owner: E. Trigger: Phase-2
   training-matrix task. Detail: [PATTERNS.md](PATTERNS.md) §3.2;
   phase-0-and-E1.1.md:703.
+- [ ] **[05] Depth sed parsing hazard — silent, and wrong in the flattering
+  direction.** The column mixes floats with the STRING values `">0.000"` and
+  `">0.100"` (23 nodules: SO268/1_27-1 ×7, SO268/1_28-1 ×11, SO268/2_95-2
+  ×5), so a naive `to_numeric(errors="coerce")` silently drops 23 BURIED
+  nodules into NaN — biasing any surface-mass sum upward (more mass looks
+  recoverable) AND inventing false [05]-vs-[01] burial disagreements on the
+  two leg-1 events, which corrupts the §1 contradiction analysis itself
+  (P2.B hit exactly this on its first pass). Three distinct states must
+  never be conflated: `0.000` (surface — but see §1: on 2_116-1/2_182-1 it
+  plausibly means NOT RECORDED), `">…"` strings (buried), and blank
+  (unknown). Also `Sample ID` has nulls, so row counts must use group size.
+  Owner: E. Trigger: **before any code parses [05]'s depth columns** (an
+  adapter extension, or re-running the §1 contradiction analysis). Detail:
+  [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md) §P2.B (method + traps);
+  raw value counts in `data/sources/SO268-bc-nodules-PANGAEA-904962.tab`.
 - [ ] **Datetime format mismatch silently blocks dedup.** `sample_datetime_utc`
   is compared for exact equality, so a timezone-AWARE value (`"…T00:00:00Z"`)
   never matches the naive one the current adapters produce (`2019-03-06 00:00`)
