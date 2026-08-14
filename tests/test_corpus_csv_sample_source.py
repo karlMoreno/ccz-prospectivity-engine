@@ -182,9 +182,25 @@ def test_a_barren_zero_abundance_station_survives_the_round_trip_as_eligible(
 
 
 def test_a_closed_mass_row_is_excluded_by_the_is_open_gate(tmp_path: Path) -> None:
-    """The one gate the real corpus cannot exercise: all 108 real rows are
-    is_open=True, so without this constructed row, dropping the is_open
-    condition would leave the whole suite green."""
+    """SOLE OBSERVER — do not delete or weaken this test without adding a
+    replacement observer first.
+
+    This is the ONLY test in the entire suite that observes the is_open
+    condition in `Observation.is_training_eligible()`. Mutation evidence
+    (E2.0-1, 2026-08-13): dropping `and self.is_open` from the predicate
+    failed exactly this test and nothing else — 271 of 272 tests stayed
+    green. Every one of the 108 real corpus rows is is_open=True, so the
+    whole real-data suite is structurally incapable of noticing the gate's
+    absence; only this constructed closed row can.
+
+    What the gate protects is a LICENSE condition, not a modelling one:
+    the corpus is CC BY-NC 4.0, and is_open is what keeps a closed-license
+    row out of a published run (CLAUDE.md: only is_open==true sources may
+    enter a published run). A silently-absent gate is a licensing problem
+    in a citable artifact — costlier than its one-line size suggests.
+    Same treatment as P2.0d-1's unclassified-file negation fixture, the
+    audit's own sole observer, for the same reason: the person tempted to
+    delete a test is reading the test, not a module header."""
     closed = _observation(source_record_id="src_test_MASS_closed01", is_open=False)
     control = _observation(source_record_id="src_test_MASS_control1")
 

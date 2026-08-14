@@ -34,16 +34,24 @@ two-track discipline working as designed), but it means:
 
 - No scientific claim from Phase 2 is valid until real GEBCO bathymetry lands.
 - Every Phase-2 output must be **watermarked** while the DEM is synthetic — the same
-  treatment `scenarios.yaml` already gets with `illustrative_only`.
+  treatment `scenarios.yaml` already gets with `illustrative_only`. (Automatic since
+  P2.0d-3: the watermark derives from the computed data origin — nothing to build,
+  only to verify it fires.)
 - The user's Checkpoint 2 wording ("run on the REAL Phase-A corpus") is half-satisfied
   today. Checkpoint 2's *scientific* review requires Checkpoint 1 to have happened
   first; before that it is a mechanics review only.
 
-### Blocked on Isaac before E2.0
+### Blocked on Isaac before E2.0 — SETTLED (P2.B/P2.A, 2026-08-09)
 
-**The training target is undecided.** Buried versus surface abundance (BACKLOG §1) —
-`[01]`'s published mass includes buried nodules, which surface collectors cannot recover.
-This is the definition of `y`. Don't start E2.0 without it, or the matrix gets rebuilt.
+The training target no longer blocks E2.0. P2.B settled it from the data:
+`[05]`'s per-nodule burial column contradicts `[01]`'s published buried counts
+on 6 of 36 events (all SO268/2; worst `2_182-1`, 0 recorded vs 24 published),
+so surface-only mass is **not derivable** and `target_definition:
+total_as_published` is the one admissible value — held in Contract 8
+(`data/config/model_config.yaml`), declared `AUTHORED · author: model`, which
+IS its provisional marker. Isaac's value-with-citation arrives as the
+AUTHORED→LITERATURE promotion; the live Track G question is the six-event
+burial contradiction (BACKLOG §1).
 
 ---
 
@@ -58,9 +66,11 @@ Every Phase-2 task must:
 - **Pair every prediction with an uncertainty.** A point estimate with no interval is not
   a deliverable in this project.
 - **Run the mean baseline alongside any model claim.** `CLAUDE.md` requires it.
-- **Record provenance into `RunManifest`**, chaining upstream `content_hash` values
-  (corpus manifest → feature stack → training matrix → run). Do not invent a fourth
-  provenance format; extend `ProvenanceArtifact`.
+- **Record provenance into the `ProvenanceArtifact` chain**, chaining upstream
+  `content_hash` values (corpus manifest → feature stack → training matrix → run).
+  Do not invent a fourth provenance **format** — extending the Layer Supertype with
+  a new `ProvenanceArtifact` subclass is the sanctioned way to add an *artifact*
+  (E2.0-3 does exactly that; `docs/contracts/PROVENANCE.md` defines the boundary).
 - **Write a walkthrough** (`docs/walkthroughs/E2.x.md`) and update `PATTERNS.md` and
   `BACKLOG.md` in the same commit.
 - **Never fabricate a value.** Clearly-labelled placeholders only.
@@ -68,55 +78,261 @@ Every Phase-2 task must:
 
 ---
 
-## E2.0 — Training matrix assembly (prerequisite; not in the original lane list)
+## E2.0 — The training matrix (three commits)
 
-> **Task E2.0 only. Do not implement any estimator.**
->
-> Restate first: `SampleSource`'s interface, `Observation.is_training_eligible()`'s
-> rule, and what the feature-stack provenance sidecar records about DEM resolution and
-> border policy. Report the training-eligible row count from the real corpus (expect
-> 35) before writing code.
->
-> Implement:
-> 1. **`CorpusCsvSampleSource`** — the missing `SampleSource` implementation flagged in
->    E1.5's reverse audit. Reads `master_observations.csv`, returns training-eligible
->    MASS rows only. The `qa_status` gate must hold: flagged and failed rows are
->    excluded.
-> 2. **Covariate extraction at station locations** — produce the training matrix
->    (35 rows × 8 covariates + target + coordinates + `source_record_id`).
-> 3. **The DEM-resolution guard** (BACKLOG §3). Contract 3 v3 states features from
->    different DEM resolutions must never be mixed in one training matrix. Enforce it
->    at assembly: compare each layer's recorded `dem.resolution_deg` and raise on
->    mismatch. Add a test that a mixed-resolution stack raises.
-> 4. **The synthetic-DEM watermark.** While the feature stack's provenance says the DEM
->    is synthetic, the training matrix and everything derived from it must carry a
->    flag marking it non-scientific. Mirror how `scenarios.yaml` watermarks
->    illustrative economics.
->
-> **STOP and ask me — two extraction decisions:**
-> - **Sampling method.** Nearest cell, or bilinear interpolation from surrounding
->   cells? Report the trade-off given the DEM's cell size relative to station spacing
->   (stations within a cluster are ~1–12 km apart; the synthetic DEM is ~11 km/cell and
->   real GEBCO ~450 m/cell — the answer may differ before and after Checkpoint 1, which
->   is itself worth reporting).
-> - **Border cells.** Recipes leave a NaN rim per the declared border policy. What
->   happens to a station whose cell is NaN for some covariates? Options: drop the
->   station (loses real data), impute (fabricates), or carry NaN into the matrix and let
->   each estimator declare how it handles missing features. Report which stations are
->   actually affected today before I decide.
->
-> Tests: exactly 35 rows and no station silently dropped (assert the count against the
-> corpus, so a dropped station fails rather than shrinking the matrix); the qa_status
-> gate excludes the flagged station by name; resolution mismatch raises; the matrix is
-> deterministic across two assemblies; the watermark is present while the DEM is
-> synthetic.
->
-> Report the matrix shape, which stations (if any) hit NaN covariates, and stop.
+> **Revised 2026-08-13**, after the Phase-2 preflight (P2.0 origin taxonomy,
+> P2.B target investigation, P2.A Contract 8) and the E2.0-1 commit
+> (`87a2f64`). The original E2.0 section predated the preflight and was
+> superseded on four points: the training target is no longer blocked on
+> Track G (P2.B settled it from the data; Contract 8 holds it); the
+> synthetic-DEM watermark is no longer a build task (P2.0d-3 derives it from
+> computed origin — E2.0-3 only verifies it fires); "do not invent a fourth
+> provenance format" was being read as forbidding a fourth ARTIFACT, and
+> E2.0-3 adds exactly that — a fourth `ProvenanceArtifact` subclass, the
+> sanctioned Layer Supertype extension; and the two STOP questions (sampling
+> method, border cells) are decided below with the alternatives recorded.
+> The original section is preserved in git history (pre-`87a2f64`).
 
-**Watch for:** the "no station silently dropped" test is the important one. With n=35,
-losing two stations to a border rim is a 6% data loss that would never show up as an
-error — the same silent-shrinkage class as the dedup bugs from Phase 1.
 
+Three commits. Adversarial review on E2.0-2 only — that's where the eligibility
+gate and the DEM-resolution guard live. E2.0-1 is a loader over an audited
+corpus; E2.0-3 is assembly plus a provenance subclass over machinery P2.0 built.
+
+Two design decisions are **made**, with the alternative recorded in each prompt
+so a later reader sees a choice rather than an accident.
+
+---
+
+### E2.0-1 — `CorpusCsvSampleSource`
+
+```
+Read CLAUDE.md, docs/BACKLOG.md, docs/PATTERNS.md, and the P2.B/P2.A walkthrough
+first. Run the suite and report the count. Restate the contract before writing
+code. STOP on ambiguity rather than improvising.
+
+SCOPE FENCE: this task is the SampleSource only. No covariate extraction, no
+matrix, no provenance artifact — those are E2.0-2 and E2.0-3.
+
+WHAT THIS CLOSES
+
+SampleSource is a Phase-0 Strategy with no production implementation; every
+caller today uses a fixture. BACKLOG §3 has carried the gap since E1.3. The
+engine has been reading real data through test doubles, which is the sort of
+thing that is fine until it isn't.
+
+BUILD CorpusCsvSampleSource, implementing the EXISTING SampleSource ABC. Do not
+define a parallel interface — the seam exists, fill it.
+
+THE ELIGIBILITY GATE, stated as the contract states it
+
+A row is training-eligible iff ALL of:
+
+  evidence_class == MASS        the only class the model trains on
+  abundance_kg_m2 is present     0.0 is VALID (barren), not missing —
+                                 no truthiness checks anywhere near this
+  is_open is true                license gate on published runs
+  qa_status is training-eligible flagged and failed never train; fail is
+                                 terminal
+
+Expected result: 35 rows from 108. If you get a different number, STOP and
+report rather than adjusting the gate to reach 35 — the manifest's
+training_eligible_count is the check, not the target.
+
+Reuse the existing is_training_eligible() logic rather than reimplementing the
+predicate. Two implementations of one rule is how they drift.
+
+TESTS
+
+  - 35 of 108, and the excluded 73 are excluded for the RIGHT reason — assert
+    per-reason counts, not just the total. An aggregate assertion does not
+    prove a per-item claim (CLAUDE.md testing conventions).
+  - SO268/1_12-2 (the failed box core) is excluded BY NAME.
+  - A barren station (abundance_kg_m2 == 0.0) IS eligible. This is the falsy-
+    zero bug E1.2 already found once in MassNormalizer; it would bias the model
+    toward higher abundance and it is silent.
+  - COVER and COUNT rows never appear, even though COUNT rows carry
+    abundance_kg_m2.
+  - The source must NOT load its data through the class that enforces the rule
+    it is asserting — construct rows directly so a violation is observable.
+
+MUTATION-VERIFY the qa_status gate and the is_open gate separately. A single
+mutation tripping both proves only that a gate runs.
+
+Walkthrough section, BACKLOG update closing the CorpusCsvSampleSource item, one
+commit.
+```
+
+---
+
+### E2.0-2 — Covariate extraction and the single-DEM guard
+
+```
+ADVERSARIAL REVIEW REQUIRED before commit — this adds a guard and a sampling
+rule that every downstream number depends on.
+
+SCOPE FENCE: extraction and the guard. No TrainingMatrix assembly, no
+provenance artifact — that is E2.0-3.
+
+1. THE SINGLE-DEM GUARD (Contract 3 v3, never enforced in code)
+
+Contract 3 v3 states: covariates computed from DEMs of different resolutions
+must NEVER be mixed in one training matrix. Slope, aspect, and both curvatures
+are native-resolution 3×3 operators, so their physical scale IS the DEM
+resolution; roughness/TPI/BPI resolve metres to cells from that same
+resolution.
+
+The feature stack's provenance.json records the DEM hash and resolution per
+layer. Read them and REFUSE if any layer disagrees with any other on either.
+Refuse by name, stating which layers disagree and on what.
+
+This is a validation function, not a pattern (PATTERNS.md §4.4). Do not build a
+seam for it.
+
+Mutation-verify: hand-edit a copy of a stack provenance so one layer reports a
+different DEM hash, confirm the refusal names that layer, revert.
+
+2. POINT SAMPLING — DECISION MADE: NEAREST-CELL
+
+Sample each covariate raster at the 35 station coordinates by nearest cell
+centre. Record sampling_method: "nearest_cell" in the output.
+
+Why, and the alternative, both recorded in the code comment:
+
+  Bilinear interpolation was considered and declined for the alpha. It
+  propagates the nan_border inward by a cell, and it invents values between
+  cells — on a DEM whose derivative covariates are computed with a stated
+  border policy, interpolating those derivatives compounds two approximations
+  and makes the recorded provenance less exactly true of the number.
+
+  The known consequence of nearest-cell, which must be RECORDED not hidden: on
+  the 0.1° synthetic DEM a cell is ~11 km, so several stations within one
+  ~12 km cluster resolve to the SAME cell and receive IDENTICAL covariate
+  values. On real GEBCO (~460 m at 13N) they separate. So the alpha's matrix
+  has near-duplicate rows by construction, and any apparent within-cluster
+  signal before Checkpoint 1 is an artifact of the fixture.
+
+  Report how many of the 35 stations share a cell with another station, and
+  record that count in the output. It is a one-line diagnostic that tells a
+  reviewer how much independent information the matrix actually carries.
+
+  One function with a recorded sampling_method — NOT a PointSampler Strategy.
+  There is one method; building the seam for a second that nobody has asked for
+  is the ceremony PATTERNS.md §3 objects to. It gets promoted to a Strategy the
+  day bilinear is actually wanted, and the recorded field is what makes that
+  swap auditable.
+
+3. BORDER AND MISSING VALUES
+
+A station landing on a NaN border cell is NOT silently dropped and NOT
+zero-filled. Flag-never-drop is the corpus's own rule; the same applies here.
+Report any such station by name and carry the NaN through to E2.0-3, which
+decides what a matrix with holes does.
+
+Test that a station on a border cell produces a flagged NaN rather than a
+number. Mutation-verify it — a zero-fill would be invisible in aggregate.
+
+TESTS
+
+  - Known-value: a station at a known coordinate on a synthetic DEM returns the
+    value at the expected cell, computed independently.
+  - All 35 stations sample all 8 covariates; shape is exactly 35×8.
+  - Determinism: two independent extractions are identical.
+  - The shared-cell count is reported and matches an independent computation.
+  - The guard refuses a mixed-resolution stack.
+
+Walkthrough section, one commit.
+```
+
+---
+
+### E2.0-3 — `TrainingMatrix` and its provenance
+
+```
+SCOPE FENCE: assembly and provenance. E2.0-1 and E2.0-2 are already committed.
+
+1. TrainingMatrix
+
+Assemble X (35×8), y (35), coords (35×2), and station ids, from the
+SampleSource and the extractor. Order must be deterministic and stated — sort
+by a stable key, not by whatever the CSV happened to give.
+
+If any covariate value is NaN from E2.0-2's border policy, the matrix does not
+silently carry it into a model. Either the station is excluded with the
+exclusion recorded, or the matrix refuses. Decide and state which; do NOT
+impute. Report which stations are affected — on the current synthetic DEM the
+answer should be none, and if it isn't, that is a finding about the fixture
+extent.
+
+2. PROVENANCE — DECISION MADE: A FOURTH ProvenanceArtifact SUBCLASS
+
+TrainingMatrixManifest extends ProvenanceArtifact, alongside CorpusManifest,
+FeatureStackManifest, and RunManifest. It records:
+
+  upstream_hashes    {corpus: sha256:…, feature_stack: sha256:…}
+  target_definition  the VALUE and its DECLARED ORIGIN from Contract 8 —
+                     both, in one record. The value alone loses the caveat,
+                     which is the entire reason Contract 8's loader returns
+                     DeclaredField.
+  sampling_method    "nearest_cell"
+  shared_cell_count  from E2.0-2
+  n_stations, n_covariates, and the covariate names in matrix column order
+  data_origin        COMPUTED by combine_origins over the corpus and stack
+                     origins — never declared by hand
+
+Why a fourth artifact rather than folding into RunManifest, recorded in the
+class docstring:
+
+  The corpus hash and the feature-stack hash are both INVARIANT to the target
+  definition. Two matrices built on different y would therefore present
+  identical upstream_hashes. Contract 8 does not close this on its own — the
+  contract file is not hashed into either upstream artifact — so without a
+  matrix-level record, the one decision that defines what the model predicts
+  has no identity in the provenance chain.
+
+  The alternative considered: fold these fields into RunManifest, on the
+  grounds that a matrix is cheap to rebuild and 1:1 with a run. Declined
+  because it is 1:1 only by convention — nothing enforces it, and the moment
+  two runs share a matrix or one matrix feeds a re-run with a different seed,
+  the record is in the wrong place. PROVENANCE.md's stated principle is that
+  artifacts are separated by LIFETIME.
+
+  This makes four artifacts where PROVENANCE.md documents three. Update that
+  file's diagram and table in this commit — a provenance document that omits an
+  artifact is the defect class the 2026-08-08 audit was about.
+
+3. THE WATERMARK FOLLOWS AUTOMATICALLY
+
+The computed origin will be SYNTHETIC, because the feature stack is. Do not add
+a watermark flag — P2.0d-3's rule derives it. VERIFY it fires end to end rather
+than trusting that it exists: a test that the assembled matrix's manifest
+reports SYNTHETIC and that the watermark is present. Mutation-verify by
+declaring the stack MEASURED in a fixture and confirming the watermark
+disappears — that is the Checkpoint-1 direction, and it is the one P2.0c's
+tests could not observe.
+
+TESTS
+
+  - Two independent builds produce identical matrices and identical
+    content_hash (the E1.3 corpus-CSV determinism bar).
+  - upstream_hashes match the actual corpus and stack manifests, not literals.
+  - Changing target_definition changes the matrix content_hash — this is the
+    property the fourth artifact exists for, so it must be asserted directly.
+  - The manifest names covariates in matrix column order, and a reordered
+    registry produces a matrix whose columns match its own manifest.
+  - Origin is SYNTHETIC and computed, not declared.
+
+CLOSING
+
+  - PROVENANCE.md updated to four artifacts.
+  - Walkthrough for E2.0 across all three commits, with every mutation in one
+    table.
+  - PATTERNS.md: TrainingMatrixManifest is Layer Supertype reuse, not a new
+    pattern. Add a row only if something genuinely new appeared; if not, say so
+    in the walkthrough.
+  - BACKLOG: close CorpusCsvSampleSource and the DEM-resolution rule; record
+    the shared-cell finding as a Checkpoint-1 item.
+  - One commit.
+```
 ---
 
 ## E2.1 — Estimator interface + mean baseline
@@ -363,9 +579,10 @@ market-versus-strategic scenarios. `scenarios.yaml` is entirely `illustrative_on
 today and the engine watermarks output until that flips. Not blocking for Phase 2, but
 it is the long-lead item for Phase 4.
 
-**Also carry forward, still open from Phase 1:** the buried-versus-surface target
-decision (blocks E2.0), the AOI scope (blocks prediction surfaces), and the
-geographic-spread download priority.
+**Also carry forward, still open from Phase 1:** the buried-versus-surface question
+(no longer blocks E2.0 — Contract 8 holds the provisional target; the live question
+is the six-event `[05]`-vs-`[01]` burial contradiction, BACKLOG §1), the AOI scope
+(blocks prediction surfaces), and the geographic-spread download priority.
 
 ---
 
