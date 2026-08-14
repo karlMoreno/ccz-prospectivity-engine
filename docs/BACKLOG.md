@@ -20,9 +20,12 @@ LITERATURE admission path); README fix closed 2026-08-09 (P2.0d-3); 2 more
 added 2026-08-09 from the planning transcript (contract change_class; GEBCO
 TID); 1 more 2026-08-10 (P2.B follow-up: [05] depth parsing hazard);
 1 closed + 1 added 2026-08-13 (E2.0-1: `CorpusCsvSampleSource` closed,
-estimator known-answer fixtures added).
-**37 open items**: §1 Track G 11, §2 Karl 5, §3
-Engineering 16, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+estimator known-answer fixtures added); 1 closed + 3 added 2026-08-14
+(E2.0-2: DEM-resolution rule enforced; added audit coverage boundary,
+sole-observer hygiene pass, and the review-found DemGrid rotated/south-up
+transform gap).
+**39 open items**: §1 Track G 11, §2 Karl 5, §3
+Engineering 18, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -223,15 +226,17 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   fallback". Needed before DOMES families / NOAA-PANGAEA mirrors land — they
   collide by design with no quality-grade asymmetry. Owner: E (+ G ranks).
   Trigger: **before wiring `[02][03][04]` or mirrors**. Detail: E1.3.md §14.
-- [ ] **Enforce the DEM-resolution rule in code.** Contract 3 v3 states
-  features from different DEM resolutions must never be mixed in one
-  training matrix (slope/aspect/curvatures are native-resolution operators —
-  no version bump can make them comparable). Nothing enforces it; a check at
-  training-matrix assembly comparing each layer's recorded
-  `dem.resolution_deg` would. Owner: E. Trigger: **Phase-2 training-matrix
-  task**. Detail:
-  [covariates.yaml:37](../docs/contracts/covariates.yaml#L37)–45 (v3
-  comment); provenance already carries the resolution.
+- [x] **DEM-resolution rule enforced in code** (2026-08-14, E2.0-2).
+  `require_single_dem()` in
+  [extraction.py](../engine/prospectivity/features/extraction.py) refuses,
+  naming layers and field, on any `dem.resolution_deg` OR
+  `dem.content_hash` disagreement across layers — and verifies the sampling
+  grid against the layers' DEM, since a mismatched geotransform mislocates
+  every station silently. Built against the real threat: one stack copies
+  one `DemGrid.provenance()` into all 8 layers and cannot disagree with
+  itself, so the guard (and its mutation) target layers assembled from
+  DIFFERENT stacks — the Checkpoint-1 synthetic→GEBCO transition shape.
+  Detail: [E2.0.md](walkthroughs/E2.0.md) §E2.0-2.
 - [ ] **Smoothed synthetic DEM.** Current fixture is uncorrelated noise:
   derivative covariates are noise-of-noise and a stencil-axis bug has places
   to hide; a Gaussian-smoothed field makes plots interpretable. Known-value
@@ -437,6 +442,59 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   than `python -m pip`, inconsistent with the README's canonical form.
   Owner: E. Trigger: next CI edit. Detail:
   [ci.yml:24](../.github/workflows/ci.yml#L24).
+- [ ] **The origin audit's coverage boundary is narrower than the authoring
+  rule it enforces** (recorded at E2.0-2). CLAUDE.md's authoring rule says
+  "any new file containing values" declares its origin, but
+  `test_data_origin_audit.py` walks only `data/` and `tests/fixtures/` — so
+  a value-bearing file anywhere else is structurally invisible to the
+  audit. Demonstrated case: `demo.py` (untracked, repo root) hand-types
+  abundance values (12.0/−118.0, 19.4, 500 kg/m², …) with no declaration
+  and nothing can fail on it. CLAUDE.md asserts something the mechanism
+  does not deliver: either the rule narrows to match the walk, or the walk
+  widens to match the rule. Recommendation: WIDEN — `git ls-files` already
+  enumerates everything; the change is the walk's root plus per-entry
+  exclusions. Correction to the E2.0-2 prompt's expectation, verified
+  2026-08-14: `SYNTHETIC_MEAN_NODULE_MASS_G` lives in
+  [tests/fixtures/normalizers.py:19](../tests/fixtures/normalizers.py#L19),
+  INSIDE the walk and already declared AUTHORED — the genuinely uncovered
+  ground is `engine/` modules and repo-root scripts, where a widened walk
+  should expect legitimately-AUTHORED engineering constants to surface and
+  need declarations or exclusions. Owner: E. Trigger: after E2.0. Detail:
+  [test_data_origin_audit.py](../tests/test_data_origin_audit.py) (walk
+  roots); CLAUDE.md "Data origin" (the authoring rule).
+- [ ] **`DemGrid.load` accepts rotated and south-up geotransforms it cannot
+  handle** (found by the E2.0-2 adversarial review's probes; pre-existing
+  in committed code, deliberately not fixed inside E2.0-2's scope). A
+  rotated EPSG:4326 transform (shear terms non-zero) loads without
+  complaint, `res_x/res_y` look normal, and every downstream geolocation is
+  silently wrong (probe: extraction and rasterio disagreed (5,5) vs (5,4));
+  a south-up transform (`e > 0`) loads with a negative `dy_m` and dies
+  later in the windowed recipes with a message naming the wrong thing
+  ("window_m and cell_size_m must be positive"). A one-line
+  axis-aligned/north-up assertion in `DemGrid.load` closes both with an
+  honest message. No current exposure: GEBCO and the synthetic fixture are
+  axis-aligned north-up. Owner: E. Trigger: before Checkpoint 1 (the next
+  new DEM entering the system). Detail:
+  [dem_grid.py](../engine/prospectivity/features/dem_grid.py)
+  `load()`; E2.0-2 review record in
+  [E2.0.md](walkthroughs/E2.0.md) §E2.0-2.
+- [ ] **Sole-observer hygiene pass** (recorded at E2.0-2; convention
+  established in E2.0-1b: a SOLE OBSERVER warning in the test's own
+  docstring, with its mutation evidence — the person tempted to weaken a
+  test is reading the test, not a module header). Candidates already
+  documented as single-observer in prior mutation tables but carrying no
+  in-file warning: the SYNTHETIC and DERIVED evidence-check negation
+  fixtures (P2.0d-2 §0.1, each "FAILED alone"); d-3's render-level
+  bytes-differ test ("the ONLY test that catches" a plot bypassing the
+  watermark helper); and P2.0c review mutations #9 (layer-origin copy) and
+  #10 (hardcoded composition), where the record names one catching test
+  without stating whether others also failed — those two need their
+  mutations re-run to establish the fact before any docstring claims it.
+  E2.0-2's two new sole observers (border-NaN, shared-cell hardcode)
+  already carry the warning in-file and are NOT part of this pass. Owner:
+  E. Trigger: after E2.0. Detail:
+  [E2.0.md](walkthroughs/E2.0.md) §E2.0-1b "Other known single-observer
+  cases"; P2.0.md mutation tables.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
