@@ -266,17 +266,48 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   2's training matrix is the natural consumer. Owner: E. Trigger: Phase-2
   training-matrix task. Detail: [PATTERNS.md](PATTERNS.md) §3.2;
   phase-0-and-E1.1.md:703.
-- [ ] **[05] Depth sed parsing hazard — silent, and wrong in the flattering
-  direction.** The column mixes floats with the STRING values `">0.000"` and
-  `">0.100"` (23 nodules: SO268/1_27-1 ×7, SO268/1_28-1 ×11, SO268/2_95-2
-  ×5), so a naive `to_numeric(errors="coerce")` silently drops 23 BURIED
-  nodules into NaN — biasing any surface-mass sum upward (more mass looks
-  recoverable) AND inventing false [05]-vs-[01] burial disagreements on the
-  two leg-1 events, which corrupts the §1 contradiction analysis itself
-  (P2.B hit exactly this on its first pass). Three distinct states must
-  never be conflated: `0.000` (surface — but see §1: on 2_116-1/2_182-1 it
-  plausibly means NOT RECORDED), `">…"` strings (buried), and blank
-  (unknown). Also `Sample ID` has nulls, so row counts must use group size.
+- [ ] **[05] Depth sed parsing + interpretation hazard — silent, and it
+  FABRICATES findings, which is worse than hiding them.** Two layers:
+
+  **Layer 1, parsing.** The column mixes floats with the STRING values
+  `">0.000"`/`">0.100"` (23 nodules: SO268/1_27-1 ×7, SO268/1_28-1 ×11,
+  SO268/2_95-2 ×5), so a naive `to_numeric(errors="coerce")` silently drops
+  23 BURIED nodules into NaN — inflating surface mass AND, since 18 of the
+  23 sit on leg 1, inventing false [05]-vs-[01] disagreements on two events
+  that actually reconcile. P2.B's first pass produced exactly that phantom
+  at 1_27-1 — a fabricated data-quality finding is the kind of thing that
+  would have gone in front of Isaac. Also `Sample ID` has nulls: row counts
+  must use group size.
+
+  **Layer 2, interpretation — `0.000` carries two incompatible meanings, so
+  the states are FOUR, and the two that collide are the ones that matter:**
+
+  ```
+    Depth sed value    what it might mean       detectable from [05]?
+    ─────────────────────────────────────────────────────────────────
+    0.000              genuinely at surface     no ─┐ indistinguishable
+    0.000              depth never recorded     no ─┘ from within [05]
+    ">0.000"           buried, depth bounded    yes
+    (blank)            unknown                  yes
+  ```
+
+  The only separator is the EXTERNAL cross-check — a cross-source
+  validation rule, not a parsing rule: **if [01] publishes buried nodules
+  for an event where [05] records `0.000` throughout (2_116-1: 15 published;
+  2_182-1: 24 published), the zeros are unrecorded, not surface.** Without
+  this rule an adapter can parse all the states correctly and still read 24
+  buried nodules as sitting on the surface. Under the taxonomy: a `0.000`
+  meaning "not recorded," read as "surface," is an AUTHORED assumption
+  wearing MEASURED's label — exactly what the guard family exists to
+  refuse, arriving through the data rather than through a declaration.
+
+  **No live exposure (grep-verified 2026-08-10):** nothing committed parses
+  these columns — `Depth sed` appears in engine/ and tests/ only as literal
+  header text inside two verbatim fixture excerpts; the [05] adapter maps
+  event/mass/dimensions/Elevation only, and the corpus takes
+  `mean_nodule_mass_g` + provenance from [05], nothing else. A trap for
+  future work, not a defect in anything committed.
+
   Owner: E. Trigger: **before any code parses [05]'s depth columns** (an
   adapter extension, or re-running the §1 contradiction analysis). Detail:
   [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md) §P2.B (method + traps);
