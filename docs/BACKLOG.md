@@ -18,11 +18,13 @@ added 2026-08-08 (origin-audit latents, P2.0a′), 3 more 2026-08-08 (P2.0c
 evidence gaps + deferred README fix), 1 more 2026-08-09 (P2.0d-2 review:
 LITERATURE admission path); README fix closed 2026-08-09 (P2.0d-3); 2 more
 added 2026-08-09 from the planning transcript (contract change_class; GEBCO
-TID); 1 more 2026-08-10 (P2.B follow-up: [05] depth parsing hazard).
+TID); 1 more 2026-08-10 (P2.B follow-up: [05] depth parsing hazard);
+1 closed + 1 added 2026-08-13 (E2.0-1: `CorpusCsvSampleSource` closed,
+estimator known-answer fixtures added).
 **37 open items**: §1 Track G 11, §2 Karl 5, §3
 Engineering 16, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
-Two of the three E1.5 reverse-audit findings are already closed (combinators
-deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
+All three E1.5 reverse-audit findings are now closed (combinators deleted,
+`TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
 ---
 
@@ -260,12 +262,49 @@ deleted, `TerrainSource` wired); `CorpusCsvSampleSource` remains, for Phase 2.
   `content_hash="sha256:synthetic-fixture"` placeholders (terrain AND ts6) are
   replaced by real computed hashes. Synthetic → real GEBCO is now a substitution
   at the seam. Detail: [PATTERNS.md](PATTERNS.md) §3.2.
-- [ ] **`CorpusCsvSampleSource` never implemented.** `SampleSource` has zero
-  production subclasses; the MASS-only rule reaches production only via
-  `Observation.is_training_eligible()`, and the corpus is read directly. Phase
-  2's training matrix is the natural consumer. Owner: E. Trigger: Phase-2
-  training-matrix task. Detail: [PATTERNS.md](PATTERNS.md) §3.2;
-  phase-0-and-E1.1.md:703.
+- [x] **`CorpusCsvSampleSource` implemented** (2026-08-13, E2.0-1).
+  [`samples/corpus_csv.py`](../engine/prospectivity/samples/corpus_csv.py):
+  CSV → NaN-to-None → `Observation` per row, gate inherited from the ABC and
+  not reimplemented. 108 loaded / 35 eligible, matching `manifest.json`.
+  Three mutations run; the is_open one showed the new constructed closed-row
+  test is that gate's SOLE observer (every real corpus row is is_open=true).
+  Detail: [walkthroughs/E2.0.md](walkthroughs/E2.0.md) §E2.0-1;
+  [PATTERNS.md](PATTERNS.md) §3.2 resolution note.
+- [ ] **Known-answer fixtures for the estimators** (recorded at E2.0-1; built
+  at E2.1 where the `Estimator` interface first exists). The problem: the
+  corpus carries real abundance while every covariate is computed on a
+  synthetic DEM, so a Phase-2 model trained today learns real y against
+  noise. The expected and honest result is that no model beats the mean
+  baseline — but that result is indistinguishable from a broken estimator.
+  The real corpus can tell us the pipeline runs; it cannot tell us the
+  arithmetic is right. The fix: a separate known-answer test fixture in
+  `tests/fixtures/`, declared SYNTHETIC with generator import path and
+  seed(s) per the origin taxonomy — a TEST FIXTURE, never a corpus and never
+  an input to a claim (the same move E1.4 makes one layer down: covariate
+  tests assert a plane dropping 100 m over 10 km gives slope 0.5729°, not
+  "output is not null"). **EXPLICITLY NOT THIS: do not make the synthetic
+  DEM correlate with the real abundance values.** That would produce a
+  corpus where y genuinely depends on X and make every subsequent model
+  result uninterpretable — did the model work, or did it find a relationship
+  we planted? Under the taxonomy that corpus is AUTHORED wearing real data's
+  shape. The known answers to plant, one per estimator task:
+  - mean baseline — hand-computed mean and SD (already in E2.1's spec);
+  - kriging — exactness at data locations; recovery of a planted variogram
+    range and sill on a WELL-SUPPORTED layout (a grid, not our two
+    clusters); and a pure-nugget case that should fit a near-zero range and
+    revert to the mean;
+  - random forest — one covariate genuinely drives y, seven are noise;
+    importance must rank the real one first. Run at n=35 AND at n=500: if
+    the planted signal is only recoverable at n=500, that is a quantitative
+    statement about what our actual dataset can support — stronger than
+    E2.3's qualitative caveat;
+  - spatial CV — a field with a KNOWN correlation range, then confirm random
+    k-fold reports better scores than leave-one-cluster-out on the same
+    data, turning "random k-fold leaks on autocorrelated data" from a
+    methodological claim into a measured number in our own suite.
+
+  Owner: E. Trigger: E2.1, as the shared fixture E2.2–E2.4 each add their
+  own known-answer case against.
 - [ ] **[05] Depth sed parsing + interpretation hazard — silent, and it
   FABRICATES findings, which is worse than hiding them.** Two layers:
 

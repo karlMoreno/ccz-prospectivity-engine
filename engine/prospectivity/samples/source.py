@@ -19,7 +19,7 @@ accidentally leak COUNT/COVER/GRID/GRADE rows into training even if it tried.
               ▲                          ▲
     ┌─────────────────────┐   ┌───────────────────────┐
     │ CorpusCsvSampleSrc   │   │ FixtureSampleSource     │
-    │ (Phase 1, real)      │   │ (tests only)            │
+    │ (E2.0-1, production) │   │ (tests only)            │
     └─────────────────────┘   └───────────────────────┘
 """
 

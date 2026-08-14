@@ -22,6 +22,7 @@ buys.
 | Strategy | [`terrain/source.py:26`](../engine/prospectivity/terrain/source.py#L26) | synthetic DEM vs real GEBCO / recipes unchanged | **Yes, as of 2026-07-29** — now bridged (§3.2) |
 | Strategy | [`normalizer.py:29`](../engine/prospectivity/ingestion/normalizer.py#L29) + 5 concrete | per-evidence-class kg/m² policy varies / call site fixed | **Yes** — 5 impls |
 | Strategy | [`recipe.py:69`](../engine/prospectivity/features/recipe.py#L69) + 8 concrete | terrain math varies / build sequence fixed | **Yes** — 8 impls |
+| Strategy | [`samples/source.py:33`](../engine/prospectivity/samples/source.py#L33) + [`corpus_csv.py`](../engine/prospectivity/samples/corpus_csv.py) | corpus location varies (CSV now, DB Phase 5) / MASS-only gate frozen on the ABC | **Yes, as of 2026-08-13** — implemented (§3.2) |
 | Registry | [`normalizer_registry.py:74`](../engine/prospectivity/ingestion/normalizer_registry.py#L74) | which normalizer for a tag / no branching | **Yes** — 5 entries + completeness |
 | Registry | [`registry.py:61`](../engine/prospectivity/features/registry.py#L61) | which recipe for a covariate name | **Yes** — 8 entries + completeness |
 | ~~Specification~~ → **policy object** | [`dedup_rules.py`](../engine/prospectivity/ingestion/dedup_rules.py) + [`resolution.py`](../engine/prospectivity/ingestion/resolution.py) | dedup decision varies / pipeline applies it | **Retired 2026-07-30** — pattern didn't fit; shipped an honest policy (§3.0) |
@@ -280,7 +281,7 @@ real and present.
 | ABC | Production impls | Status |
 |---|---|---|
 | [`TerrainSource:26`](../engine/prospectivity/terrain/source.py#L26) | 0 | **WIRED 2026-07-29** — no longer bypassed; see below |
-| [`SampleSource:33`](../engine/prospectivity/samples/source.py#L33) | **0** | Consumer arriving Phase 2 |
+| [`SampleSource:33`](../engine/prospectivity/samples/source.py#L33) | 1 | **IMPLEMENTED 2026-08-13** (E2.0-1) — `CorpusCsvSampleSource`; see below |
 | [`Estimator:28`](../engine/prospectivity/estimators/base.py#L28) | 0 | Phase 2 |
 | [`EconomicModel:30`](../engine/prospectivity/economics/model.py#L30) | 0 | Phase 4 |
 | [`TS6Reference:29`](../engine/prospectivity/ts6/reference.py#L29) | 0 | Phase 3 |
@@ -336,6 +337,17 @@ promised; production currently reads the corpus directly. Phase 2's training
 matrix is its natural consumer. **Recommendation:** implement it in Phase 2, or
 fold the ABC away — but the variation point (CSV now, database later) is real
 and near, so implementing is the better call.
+
+**RESOLVED 2026-08-13 (E2.0-1).** `CorpusCsvSampleSource`
+([`samples/corpus_csv.py`](../engine/prospectivity/samples/corpus_csv.py))
+implements the hook: CSV → NaN-to-None → `Observation(**row)`, so the
+production read path validates every row against Contract 1 at load. The
+gate stays on the ABC, un-reimplemented. The mutation pass surfaced the fact
+that justifies the constructed-row tests: with every real corpus row
+`is_open=True`, dropping the `is_open` condition left **271 of 272 tests
+green** — the one failure was the new constructed closed-row test, the sole
+observer of that gate in the whole suite
+([`test_corpus_csv_sample_source.py`](../tests/test_corpus_csv_sample_source.py)).
 
 **`Estimator` / `EconomicModel` / `TS6Reference`:** leave them. Phase 2 fills
 `Estimator` immediately with three implementations (§4), which is the strongest
@@ -410,7 +422,7 @@ deciding at Phase 4 against the real `scenarios.yaml`, not now.
 
 - **`CorpusCsvSampleSource`** (§3.2) — the missing production `SampleSource`.
   Phase 2's training matrix needs it; it closes a real gap rather than adding a
-  pattern.
+  pattern. **Done, E2.0-1 (2026-08-13)** — see §3.2's resolution note.
 - **Training-matrix assembly** needs the DEM-resolution guard from BACKLOG §3
   (features from different DEM resolutions must never mix). That's a validation
   function, **not** a pattern — flagging it here so it isn't mistaken for one.
