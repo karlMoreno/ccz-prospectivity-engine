@@ -75,7 +75,10 @@ def test_run_calls_steps_in_the_documented_order() -> None:
         def fit(self, features, target) -> None:
             call_order.append("fit")
 
-        def predict(self, features):
+        def _predict(self, features):
+            # E2.1: predict() became the ABC's Template Method (pairing
+            # validation); stubs implement the hook, same as before the
+            # revision but under the hook's name.
             call_order.append("predict")
             return "mean", "std"
 

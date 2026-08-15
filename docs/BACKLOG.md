@@ -24,9 +24,10 @@ estimator known-answer fixtures added); 1 closed + 3 added 2026-08-14
 (E2.0-2: DEM-resolution rule enforced; added audit coverage boundary,
 sole-observer hygiene pass, and the review-found DemGrid rotated/south-up
 transform gap); 1 added 2026-08-14 (E2.0-3: Checkpoint-1 re-report of
-occupancy/ceiling/border + the kriging exemption).
-**40 open items**: §1 Track G 11, §2 Karl 5, §3
-Engineering 19, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+occupancy/ceiling/border + the kriging exemption); 1 added 2026-08-14
+(E2.1 review: E2.4 runner obligations).
+**41 open items**: §1 Track G 11, §2 Karl 5, §3
+Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -463,6 +464,26 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   need declarations or exclusions. Owner: E. Trigger: after E2.0. Detail:
   [test_data_origin_audit.py](../tests/test_data_origin_audit.py) (walk
   roots); CLAUDE.md "Data origin" (the authoring rule).
+- [ ] **E2.4 runner obligations** (recorded at E2.1, from its adversarial
+  review — three conditions the CV runner must satisfy, none enforceable
+  before it exists). (1) `assert_complete()` makes the baseline REGISTERED,
+  not run: the runner must iterate `EstimatorRegistry.names()` — never
+  cherry-pick via `get()` — so a complete registry implies a run baseline;
+  the registry header states exactly this division. (2) The registry hands
+  out ONE shared stateful instance per name (unlike the stateless
+  normalizer/covariate registries it mirrors): the runner must refit per
+  fold or build fresh instances per fold (`build_default_registry()` per
+  run is the cheap discipline) — an E2.2 kriging fit that caches partial
+  state would otherwise leak across folds silently. (3) Constant y yields
+  SD = 0 legitimately (uniform barren is a valid sample); the first metric
+  that divides by sd (z-scores, CRPS normalization) must name the sd=0
+  case rather than emitting NaN fold scores — likely in exactly the small
+  leave-one-cluster-out folds our two-cluster corpus produces. Owner: E.
+  Trigger: E2.4. Detail:
+  [registry.py](../engine/prospectivity/estimators/registry.py) header;
+  [mean_baseline.py](../engine/prospectivity/estimators/mean_baseline.py)
+  docstring; E2.1 review record in
+  [E2.1.md](walkthroughs/E2.1.md).
 - [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
   border situation on real GEBCO** (recorded at E2.0-3). Three
   literal-pinned facts and one reading rule are true of the 0.1° synthetic

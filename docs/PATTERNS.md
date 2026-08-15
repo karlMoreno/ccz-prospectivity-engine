@@ -25,10 +25,12 @@ buys.
 | Strategy | [`samples/source.py:33`](../engine/prospectivity/samples/source.py#L33) + [`corpus_csv.py`](../engine/prospectivity/samples/corpus_csv.py) | corpus location varies (CSV now, DB Phase 5) / MASS-only gate frozen on the ABC | **Yes, as of 2026-08-13** — implemented (§3.2) |
 | Registry | [`normalizer_registry.py:74`](../engine/prospectivity/ingestion/normalizer_registry.py#L74) | which normalizer for a tag / no branching | **Yes** — 5 entries + completeness |
 | Registry | [`registry.py:61`](../engine/prospectivity/features/registry.py#L61) | which recipe for a covariate name | **Yes** — 8 entries + completeness |
+| Registry | [`estimators/registry.py`](../engine/prospectivity/estimators/registry.py) | which estimator for a name / the CLAUDE.md baseline mandate | **Yes, as of 2026-08-14 (E2.1)** — completeness IS the baseline guarantee (§4.1's prediction, realized) |
 | ~~Specification~~ → **policy object** | [`dedup_rules.py`](../engine/prospectivity/ingestion/dedup_rules.py) + [`resolution.py`](../engine/prospectivity/ingestion/resolution.py) | dedup decision varies / pipeline applies it | **Retired 2026-07-30** — pattern didn't fit; shipped an honest policy (§3.0) |
 | Template Method | [`pipeline.py:69`](../engine/prospectivity/ingestion/pipeline.py#L69) | steps vary / order fixed | **Yes** |
 | Template Method | [`recipe.py:84`](../engine/prospectivity/features/recipe.py#L84) | compute varies / resolve→compute→provenance fixed | **Yes** |
 | Template Method | [`engine.py:94`](../engine/prospectivity/engine.py#L94) | strategies vary / run order fixed | **Not yet** (§3.2) |
+| Template Method | [`estimators/base.py`](../engine/prospectivity/estimators/base.py) `predict` | estimator math varies / pairing validation fixed, final via `__init_subclass__` | **Yes, as of 2026-08-14 (E2.1)** |
 | Observer | [`recorder.py:47`](../engine/prospectivity/provenance/recorder.py#L47) | recording varies / pipeline decisions fixed | **Yes** — 2 impls |
 | Null Object | [`recorder.py:66`](../engine/prospectivity/provenance/recorder.py#L66) | absence of an observer / no conditionals | **Yes** |
 | Layer Supertype | [`artifact.py:61`](../engine/prospectivity/provenance/artifact.py#L61) | per-stage fields vary / chaining fields fixed | **Yes** — 3 subclasses |
@@ -282,7 +284,7 @@ real and present.
 |---|---|---|
 | [`TerrainSource:26`](../engine/prospectivity/terrain/source.py#L26) | 0 | **WIRED 2026-07-29** — no longer bypassed; see below |
 | [`SampleSource:33`](../engine/prospectivity/samples/source.py#L33) | 1 | **IMPLEMENTED 2026-08-13** (E2.0-1) — `CorpusCsvSampleSource`; see below |
-| [`Estimator:28`](../engine/prospectivity/estimators/base.py#L28) | 0 | Phase 2 |
+| [`Estimator`](../engine/prospectivity/estimators/base.py) | 1 | **FILLED 2026-08-14** (E2.1) — `MeanBaselineEstimator`; `predict` became the ABC's Template Method enforcing the (mean, std) pairing, final via `__init_subclass__`; kriging/RF arrive E2.2/E2.3 |
 | [`EconomicModel:30`](../engine/prospectivity/economics/model.py#L30) | 0 | Phase 4 |
 | [`TS6Reference:29`](../engine/prospectivity/ts6/reference.py#L29) | 0 | Phase 3 |
 
@@ -373,7 +375,8 @@ and as of 2026-07-29 the one that had a seam it wasn't using (`TerrainSource`,
 
 ---
 
-## 4. Where the next patterns belong (Phase 2 — report only, nothing built)
+## 4. Where the next patterns belong (written pre-Phase-2 as report-only;
+##    §4.1's estimator half SHIPPED in E2.1 — see its "Realized" note)
 
 ### 4.1 Estimators — Strategy + Registry, mirroring `NormalizerRegistry` exactly
 
@@ -392,6 +395,14 @@ registry anywhere in the codebase, stronger than the normalizer one.
 Also: uncertainty is always paired (CLAUDE.md), so `predict()` returning
 `(mean, std)` should stay the ABC's signature — the interface makes an unpaired
 prediction unrepresentable, which is worth more than a test.
+
+**Realized in E2.1 (2026-08-14), with one correction to the paragraph
+above:** the tuple signature EXPRESSED pairing but did not make an unpaired
+prediction unrepresentable — `(mean, None)` and a bare `(2, n)` array (which
+unpacks positionally) both sailed through. `predict()` is now the ABC's
+TEMPLATE METHOD validating the pair from a `_predict` hook (the
+`build()/_compute()` split), and the registry + `assert_complete()` landed
+exactly as this section argued, with the baseline as the one REQUIRED entry.
 
 ### 4.2 Cross-validation splitters — Strategy
 
