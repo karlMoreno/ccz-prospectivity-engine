@@ -216,6 +216,18 @@ hard way — the evidence is cited, not asserted.
    while every merged row's `notes` tripled on re-runs — one of them recording the row
    as a duplicate of ITSELF.
 
+4. **A hand-computed fixture must separate the claimed statistic or rule from its
+   neighbors.** A fixture whose SYMMETRY makes distinct claims coincide verifies the
+   value while being unable to distinguish the statistic — a different defect than
+   coverage-that-isn't, because the assertion is real and the fixture is blind.
+   *Evidence:* on `[2, 4, 6]`, SD, MAD, and half-range are all exactly 2.0, and a
+   spread-statistic swap survived every hand-computed test (E2.1 MB9; fixed by
+   `[13, 11, 8, 9, 9]`, where SD, SE, MAD, half-range, and ddof=0 all separate).
+   The same idea in different clothes: E2.0-2's `shared_cell_count == len(stations)`
+   is numerically true on the real corpus, so only a constructed mixed-occupancy
+   fixture could catch the hardcode. When building a fixture, state in its docstring
+   which neighboring claims it separates.
+
 Corollaries worth keeping in mind:
 
 - **A fixture must be able to distinguish the claim from its negation.** If every
