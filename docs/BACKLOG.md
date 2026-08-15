@@ -25,9 +25,10 @@ estimator known-answer fixtures added); 1 closed + 3 added 2026-08-14
 sole-observer hygiene pass, and the review-found DemGrid rotated/south-up
 transform gap); 1 added 2026-08-14 (E2.0-3: Checkpoint-1 re-report of
 occupancy/ceiling/border + the kriging exemption); 1 added 2026-08-14
-(E2.1 review: E2.4 runner obligations).
-**41 open items**: §1 Track G 11, §2 Karl 5, §3
-Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+(E2.1 review: E2.4 runner obligations); 1 closed 2026-08-14 (E2.1-3:
+known-answer fixtures built).
+**40 open items**: §1 Track G 11, §2 Karl 5, §3
+Engineering 19, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -277,7 +278,22 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   test is that gate's SOLE observer (every real corpus row is is_open=true).
   Detail: [walkthroughs/E2.0.md](walkthroughs/E2.0.md) §E2.0-1;
   [PATTERNS.md](PATTERNS.md) §3.2 resolution note.
-- [ ] **Known-answer fixtures for the estimators** (recorded at E2.0-1; built
+- [x] **Known-answer fixtures for the estimators — BUILT 2026-08-14
+  (E2.1-3).** [tests/fixtures/known_answer.py](../tests/fixtures/known_answer.py):
+  SYNTHETIC-declared (generator import path + explicit per-call seeds;
+  audit acceptance probed both directions — declaration stripped, the
+  origin audit failed naming the file), with `gaussian_process_field`
+  (stated exponential model, parameterized range/sill/nugget/seed),
+  `covariate_driven_field` (one named driving column), `grid_layout` (the
+  well-supported point set), and `empirical_semivariance` (the measuring
+  stick, deliberately not a fitter). The prohibition survives in the
+  module docstring: the synthetic DEM is NEVER made to correlate with real
+  abundance. E2.1 proved with it exactly: baseline recovery, determinism,
+  and coarse variogram consistency incl. the pure-nugget case; the
+  E2.2/E2.3/E2.4 recoveries are listed in the docstring as deferred
+  consumers. Detail: [E2.1.md](walkthroughs/E2.1.md) §3. Original entry
+  follows for the record:
+  (recorded at E2.0-1; built
   at E2.1 where the `Estimator` interface first exists). The problem: the
   corpus carries real abundance while every covariate is computed on a
   synthetic DEM, so a Phase-2 model trained today learns real y against
