@@ -283,6 +283,30 @@ def test_watermark_is_present_for_synthetic_and_disappears_on_a_measured_stack(
     assert matrix_watermark(manifest.data_origin) is None
 
 
+def test_the_two_watermark_thresholds_deliberately_differ_on_derived() -> None:
+    """DERIVED sits at two different positions in two different lattices,
+    and this test holds both positions in one place so the divergence is a
+    GUARDED decision, not a docstring (documentation is what failed for
+    [06]):
+
+        dem_watermark (DECLARED input)    matrix_watermark (COMPUTED origin)
+        DERIVED = "terrain wasn't         DERIVED = combine(MEASURED corpus,
+        measured" -> suspicious -> STAMP    DERIVED features) -> the INTENDED
+                                            Checkpoint-1 state -> CLEAN
+
+    A unifying refactor — both helpers calling one function with one
+    threshold — is SUPPOSED to fail here, whichever threshold survives, and
+    must then decide which threshold each context keeps rather than letting
+    the surviving one silently win both. Mutation-verified in both
+    directions (E2.1 §0): unified toward dem's threshold, the matrix half
+    fails; unified toward the matrix's, the dem half fails."""
+    from engine.prospectivity.features.plot_stack import dem_watermark
+
+    same_origin = DataOrigin.DERIVED
+    assert dem_watermark(same_origin) is not None  # declared-input lattice: stamp
+    assert matrix_watermark(same_origin) is None  # computed-origin lattice: clean
+
+
 def test_matrix_watermark_helper_is_default_on_and_clean_only_for_measured_lineage() -> None:
     """Helper-level observers (the d-3 precedent): MEASURED and DERIVED are
     the two computed origins that trace every value to a measurement this
