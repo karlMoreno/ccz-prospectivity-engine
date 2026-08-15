@@ -1,4 +1,4 @@
-"""ProvenanceArtifact (LAYER SUPERTYPE) — the three artifacts share the
+"""ProvenanceArtifact (LAYER SUPERTYPE) — the four artifacts share the
 chaining contract with IDENTICAL field names, and the content-hash scheme
 behaves as documented.
 
@@ -14,11 +14,12 @@ from engine.prospectivity.domain.results import RunManifest
 from engine.prospectivity.features.stack import FeatureStackManifest
 from engine.prospectivity.provenance.artifact import ProvenanceArtifact
 from engine.prospectivity.provenance.corpus_manifest import CorpusManifest
+from engine.prospectivity.training_matrix import TrainingMatrixManifest
 
-ALL_ARTIFACTS = (CorpusManifest, FeatureStackManifest, RunManifest)
+ALL_ARTIFACTS = (CorpusManifest, FeatureStackManifest, TrainingMatrixManifest, RunManifest)
 
 
-def test_all_three_artifacts_expose_the_shared_fields_with_identical_names() -> None:
+def test_all_four_artifacts_expose_the_shared_fields_with_identical_names() -> None:
     assert ProvenanceArtifact.SHARED_FIELDS == (
         "generated_at",
         "content_hash",
@@ -30,9 +31,9 @@ def test_all_three_artifacts_expose_the_shared_fields_with_identical_names() -> 
         assert not missing, f"{artifact_class.__name__} is missing {missing}"
 
 
-def test_all_three_artifacts_subclass_the_supertype() -> None:
+def test_all_four_artifacts_subclass_the_supertype() -> None:
     """Not just duck-typed: the fields must come FROM the base, so adding a
-    fifth shared field reaches all three without touching three files."""
+    fifth shared field reaches all four without touching four files."""
     for artifact_class in ALL_ARTIFACTS:
         assert issubclass(artifact_class, ProvenanceArtifact)
 

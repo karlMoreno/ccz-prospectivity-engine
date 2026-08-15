@@ -10,13 +10,13 @@ field names, instead of being re-invented per stage:
     upstream_hashes    the content_hash of every artifact this one consumed
 
 Why a supertype and not one merged manifest (docs/contracts/PROVENANCE.md):
-the three artifacts cover three different stages with three different
+the four artifacts cover four different stages with four different
 lifetimes — a corpus outlives many feature stacks, a feature stack outlives
-many model runs. Merging them would force a rebuild of everything to record
-anything. Sharing a supertype instead gives the chaining rule teeth: because
-`upstream_hashes` is spelled the same everywhere, a prediction traces to
-exactly one feature stack and exactly one corpus by mechanical lookup, not by
-convention.
+many training matrices, a matrix may outlive the run it feeds. Merging them
+would force a rebuild of everything to record anything. Sharing a supertype
+instead gives the chaining rule teeth: because `upstream_hashes` is spelled
+the same everywhere, a prediction traces to exactly one matrix, one feature
+stack, and one corpus by mechanical lookup, not by convention.
 
     ┌──────────────────────────────────────────────┐
     │           ProvenanceArtifact (base)            │
@@ -24,12 +24,13 @@ convention.
     │  contract_versions · upstream_hashes           │
     │  .finalize() -> sets content_hash              │
     └──────────────────────────────────────────────┘
-         ▲                 ▲                  ▲
-    CorpusManifest   FeatureStackManifest   RunManifest
-    (ingestion)      (features, E1.4)       (model run)
-         │                 │                  │
-         └──upstream───────┴──upstream────────┘
-            (corpus hash)     (stack + corpus hashes)
+         ▲              ▲                ▲                ▲
+    CorpusManifest  FeatureStack-  TrainingMatrix-   RunManifest
+    (ingestion)     Manifest       Manifest           (model run)
+                    (E1.4)         (E2.0-3)
+         ▲              ▲                │
+         └──────────────┴───upstream─────┘
+           (corpus + feature_stack hashes)
 
 CONTENT HASH SCHEME — deliberately excludes `content_hash` (self-reference is
 impossible) AND `generated_at` (a wall-clock timestamp would make the hash

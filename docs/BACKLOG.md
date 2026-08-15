@@ -23,9 +23,10 @@ TID); 1 more 2026-08-10 (P2.B follow-up: [05] depth parsing hazard);
 estimator known-answer fixtures added); 1 closed + 3 added 2026-08-14
 (E2.0-2: DEM-resolution rule enforced; added audit coverage boundary,
 sole-observer hygiene pass, and the review-found DemGrid rotated/south-up
-transform gap).
-**39 open items**: §1 Track G 11, §2 Karl 5, §3
-Engineering 18, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+transform gap); 1 added 2026-08-14 (E2.0-3: Checkpoint-1 re-report of
+occupancy/ceiling/border + the kriging exemption).
+**40 open items**: §1 Track G 11, §2 Karl 5, §3
+Engineering 19, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -462,6 +463,24 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   need declarations or exclusions. Owner: E. Trigger: after E2.0. Detail:
   [test_data_origin_audit.py](../tests/test_data_origin_audit.py) (walk
   roots); CLAUDE.md "Data origin" (the authoring rule).
+- [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
+  border situation on real GEBCO** (recorded at E2.0-3). Three
+  literal-pinned facts and one reading rule are true of the 0.1° synthetic
+  fixture and will all change when ~460 m cells arrive: (1) the occupancy —
+  35 stations in 4 cells, groups 14+7+7+7, `shared_cell_count` 35
+  (`test_covariate_extraction.py` pins); (2) the covariate-model R² ceiling
+  0.348 recomputed from `cell_groups` + y
+  (`test_training_matrix.py` pins); (3) border count 0 (pinned; the
+  carry-the-NaN and matrix-refusal paths are sole-observed by constructed
+  fixtures until a real station sits near an edge). And re-read the
+  kriging-exemption paragraph ([E2.0.md](walkthroughs/E2.0.md) closeout):
+  the ceiling binds covariate-driven models only — kriging predicts from
+  coordinates and never sees it — an asymmetry that DISAPPEARS as the cells
+  shrink and X re-separates, so E2.4's model comparison reads differently
+  before and after. Expect all these pins to fail on the GEBCO stack; each
+  failure is the re-report trigger, not a defect. Owner: E. Trigger:
+  Checkpoint 1 (real GEBCO wired). Detail: E2.0.md §E2.0-2/§E2.0-3 +
+  closeout.
 - [ ] **`DemGrid.load` accepts rotated and south-up geotransforms it cannot
   handle** (found by the E2.0-2 adversarial review's probes; pre-existing
   in committed code, deliberately not fixed inside E2.0-2's scope). A

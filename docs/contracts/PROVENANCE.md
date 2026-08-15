@@ -1,17 +1,19 @@
-# Provenance architecture — three artifacts, chained
+# Provenance architecture — four artifacts, chained
 
 The alpha's stated deliverables are a CSV corpus, GeoTIFF rasters, and a JSON
-provenance manifest. "The manifest" is in fact **three** artifacts, one per
+provenance manifest. "The manifest" is in fact **four** artifacts, one per
 pipeline stage. This file defines the boundary between them and the one rule
 that connects them.
 
-**Decision (2026-07-29):** keep them separate; do not merge. They have
-different lifetimes — a corpus outlives many feature stacks, a feature stack
-outlives many model runs. One merged manifest would mean rebuilding everything
-to record anything, and re-hashing a corpus every time a model run changed a
+**Decision (2026-07-29; extended to four 2026-08-14, E2.0-3):** keep them
+separate; do not merge. They have different lifetimes — a corpus outlives
+many feature stacks, a feature stack outlives many training matrices, and a
+matrix is 1:1 with a run only by convention (nothing enforces it; two runs
+may share a matrix). One merged manifest would mean rebuilding everything to
+record anything, and re-hashing a corpus every time a model run changed a
 seed.
 
-## The three artifacts
+## The four artifacts
 
 ```
    ┌─────────────────────────┐
@@ -29,8 +31,15 @@ seed.
                  │                                      │
                  └──────────────┬───────────────────────┘
                                 │  both quoted in upstream_hashes
+                     ┌──────────▼─────────────────┐
+                     │  3. TrainingMatrixManifest   │
+                     │  STAGE: matrix assembly      │
+                     │  (E2.0-3; in-memory,         │
+                     │   hash quoted downstream)    │
+                     └──────────┬─────────────────┘
+                                │  content_hash
                      ┌──────────▼───────────┐
-                     │  3. RunManifest        │
+                     │  4. RunManifest        │
                      │  STAGE: model run      │
                      │  (Phase 2-4)           │
                      └──────────────────────┘
@@ -40,7 +49,16 @@ seed.
 |---|---|---|---|---|
 | 1 | `CorpusManifest` | ingestion | `data/corpus/manifest.json` | per-source dispositions + real input SHA-256s + licenses; corpus totals by evidence class and `qa_status`; `training_eligible_count`; contributing sources **including fully-absorbed ones**; corpus geometry (bounding boxes, AOI containment, cluster + pairwise-distance structure) |
 | 2 | `FeatureStackManifest` | features | `<stack dir>/provenance.json` | per-covariate recipe + `recipe_version`, requested metres **and** resolved cell window (with the clamp flag), border policy, CRS strategy, DEM identity |
-| 3 | `RunManifest` | model run | (emitter is Phase 2–4) | `run_id`, seed, CV scores, TS-6 agreement, economic results, output hashes |
+| 3 | `TrainingMatrixManifest` | matrix assembly | in-memory (E2.1+ decides persistence; its hash is what downstream quotes) | Contract 8 target **value + declared origin** (the one decision upstream hashes are invariant to); `sampling_method`; `shared_cell_count` **and** `cell_groups` (the grouping is what makes the covariate-model R² ceiling recomputable next to any score); `matrix_sha256` over the matrix's canonical bytes; computed `data_origin` (combine over corpus + stack origins, never hand-declared); n/covariate names in column order |
+| 4 | `RunManifest` | model run | (emitter is Phase 2–4) | `run_id`, seed, CV scores, TS-6 agreement, economic results, output hashes |
+
+**Why the matrix gets its own artifact:** the corpus hash and the stack hash
+are both INVARIANT to the target definition, so two matrices built on
+different y would present identical `upstream_hashes` — without a
+matrix-level record, the one decision that defines what the model predicts
+has no identity in the provenance chain. Folding it into `RunManifest` was
+considered and declined: matrix↔run is 1:1 only by convention, and artifacts
+here are separated by LIFETIME.
 
 ## The chaining rule
 
@@ -57,12 +75,17 @@ stack, by mechanical lookup rather than by convention or filename.
   DEM is a raw input rather than an artifact; hashing it here is what lets a
   run prove which terrain its features came from. Option-A covariates come
   from the DEM alone, so the corpus is **not** upstream of the feature stack.
-- `RunManifest.upstream_hashes` carries both the corpus and feature-stack
-  hashes (Phase 2, when the emitter is built).
+- `TrainingMatrixManifest.upstream_hashes` carries both `{"corpus": …,
+  "feature_stack": …}` — the matrix is the first artifact where the two
+  lineages meet, and its assembler verifies the stack manifest it is handed
+  actually describes the DEM being sampled before quoting it.
+- `RunManifest.upstream_hashes` will quote the training-matrix hash (which
+  itself chains to corpus + stack); the exact set is fixed when the emitter
+  is built (Phase 2).
 
 ## The shared base
 
-All three extend `ProvenanceArtifact`
+All four extend `ProvenanceArtifact`
 ([`engine/prospectivity/provenance/artifact.py`](../../engine/prospectivity/provenance/artifact.py)) —
 **Layer Supertype** (Fowler, PoEAA): one common superclass for every type in
 the provenance layer, so the four chaining fields are declared once with
@@ -76,7 +99,8 @@ identical names:
 | `upstream_hashes` | `content_hash` of each artifact consumed |
 
 Identical *names* are the point — `tests/test_provenance_artifact.py` asserts
-it — because walking the chain must not require per-artifact special cases.
+it over all four — because walking the chain must not require per-artifact
+special cases.
 
 ### The content-hash scheme
 
@@ -156,4 +180,10 @@ recorded, kept, and excluded from training; it is never dropped
 - **FeatureStackManifest**: keeps `registry_version` at top level even though
   `contract_versions` now carries it too. Preserving exactly what the E1.4
   sidecar already recorded took precedence over de-duplicating the field.
+- **TrainingMatrixManifest**: no watermark flag (the watermark DERIVES from
+  the computed `data_origin` at render time — `training_matrix.py`'s
+  `matrix_watermark`, default-ON per P2.0d-3) and no stored R² ceiling (it
+  is recomputable from `cell_groups` + y, and a stored copy could go stale
+  against them). No persisted file location yet — the matrix is rebuilt per
+  run and its hash is what downstream quotes; E2.1+ decides persistence.
 - **RunManifest**: still a shape, not yet an emitter. Phase 2–4 fills it.
