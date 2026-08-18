@@ -475,6 +475,17 @@ it is working.
 
 ## E2.4 — Spatially-blocked cross-validation
 
+> **REVISED 2026-08-14 (E2.4-PRE), after E2.2/E2.3 settled the fold geometry,
+> the eight runner obligations, and the score-dating design.** Original text
+> preserved in git history (`git log -p -- docs/prompts/phase2_prompts.md`,
+> the commit before this revision). Per the E2.0 precedent: the tracked
+> instruction record is corrected BEFORE the session that would read it, so a
+> future session does not inherit superseded framing. What changed: (i) the
+> two-fold limitation is EXPLAINED by a geometry theorem, not left as an open
+> reporting choice; (ii) the runner obligations — eight, from BACKLOG §3 —
+> are copied VERBATIM below, not pointed at; (iii) the pre-registration
+> clock and `scores_first_visible` are new. E2.5's section is untouched.
+
 > **Task E2.4 only. This is the project's most defensible methodological claim — build
 > it carefully.**
 >
@@ -483,10 +494,12 @@ it is working.
 >
 > 1. **Leave-one-cluster-out** — train on one cluster, predict the other, ~991 km away.
 >    Two folds. This measures **extrapolation** to unsampled regions, which is what the
->    project's actual use case requires.
+>    project's actual use case requires — AND, on this data, it is bounded by a theorem
+>    stated below: across the clusters it cannot rank the estimators.
 > 2. **Within-cluster spatial blocking** — spatially blocked folds inside each cluster.
 >    This measures **local interpolation** at 1–13 km, a genuinely different and much
->    easier question.
+>    easier question — and (per the theorem) the ONLY gate at which kriging can beat the
+>    baseline on this data.
 >
 > Report both. Collapsing them into one number would hide that the model may interpolate
 > well locally and be useless at range — which given the geometry is the likely truth.
@@ -495,8 +508,161 @@ it is working.
 >    comparison**. Its purpose is to be reported alongside the spatial results to
 >    demonstrate the inflation that random splitting produces on autocorrelated data.
 >    Guard it so it cannot be selected as the validation method for a published claim.
+>    Its known-answer test consumes `tests/fixtures/known_answer.py`'s
+>    `gaussian_process_field` with a KNOWN range: random k-fold vs leave-one-cluster-out
+>    on the same field, the leakage measured as a NUMBER in our own suite.
 >
-> Requirements:
+> **THE TWO-FOLD GEOMETRY THEOREM — on record before this runner exists, so the report
+> cannot mistake geometry for a finding (BACKLOG §3 runner obligation 8, E2.3
+> closeout).** Leave-one-cluster-out with exactly two clusters is two folds:
+>
+> ```
+>   fold A: train E-cluster (21) → predict W-cluster (14), ~991 km away
+>   fold B: train W-cluster (14) → predict E-cluster (21)
+> ```
+>
+> With the fitted variogram range ≤ 13 km of support (E2.2: 21.6 km AT the candidate
+> ceiling, unconstrained from above — nowhere near 991), kriging at ~991 km reverts to
+> the training cluster's local mean with variance ≈ sill + Lagrange term — MEASURED in
+> E2.2 on the real data: mid-gap prediction 19.29 vs training mean 19.53, variance 25.3
+> > sill 21.4. Therefore ACROSS clusters, **kriging ≈ baseline BY CONSTRUCTION** — the
+> across-cluster comparison measures exactly one thing, cluster A's mean against cluster
+> B's values, and structurally CANNOT rank the estimators. Three consequences this
+> prompt carries:
+>
+> - **(a)** "kriging ≈ baseline across clusters" is GEOMETRY, not a model finding — the
+>   report must frame it as such; a walkthrough sentence reading "kriging failed to beat
+>   the baseline at range" would be reporting a theorem as an outcome.
+> - **(b)** the WITHIN-cluster gate is the only place kriging can beat the baseline on
+>   this data, so the two-gate separation is LOAD-BEARING, not decorative — the two
+>   designs above are not two views of one comparison but the only comparison and a
+>   measurement that is not one.
+> - **(c)** the across-cluster fold STILL RUNS AND REPORTS, because "the two clusters
+>   differ by X" is itself a measurement — it is just not a model comparison. (RF is
+>   bound additionally by the E2.0-3 ceiling — 4 distinct X rows — and its
+>   across-cluster predictions are the training cluster's cell means; the E2.3 closeout
+>   saturation finding applies. Kriging is exempt from that ceiling: coordinates.)
+>
+> **THE EIGHT RUNNER OBLIGATIONS — copied VERBATIM from BACKLOG §3 "E2.4 runner
+> obligations" (a structural guarantee that depends on the runner honoring an unread
+> backlog entry is a convention wearing a guarantee's name):**
+>
+> (1) `assert_complete()` makes the baseline REGISTERED,
+> not run: the runner must iterate `EstimatorRegistry.names()` — never
+> cherry-pick via `get()` — so a complete registry implies a run baseline;
+> the registry header states exactly this division. (2) The registry hands
+> out ONE shared stateful instance per name (unlike the stateless
+> normalizer/covariate registries it mirrors): the runner must refit per
+> fold or build fresh instances per fold (`build_default_registry()` per
+> run is the cheap discipline) — an E2.2 kriging fit that caches partial
+> state would otherwise leak across folds silently. (3) **LIVE, not
+> hypothetical (E2.3 closeout, 2026-08-14).** Written when sd=0 meant "the
+> baseline on constant y" — a constructed edge. QRF's zero-width
+> predictions make it a real MECHANISM on real data: any training row
+> whose pooled leaf population is single-valued has q16 == q84 and sd ==
+> 0, and the pairing template passes it (non-negative). Evidence: the
+> real-matrix count is **0 of 35 today** (every cell has ≥ 7 distinct y),
+> pinned in `test_random_forest.py`, so a corpus change that produces a
+> single-valued cell is a visible finding, not a silent 0 — but the
+> mechanism exists now, and any E2.4 metric that divides by uncertainty
+> WILL hit sd=0 the moment it does. Therefore the first dividing metric's
+> sd=0 handling must be decided AT DESIGN TIME in E2.4, not discovered
+> when the division throws — or worse, does not throw: a metric that
+> silently drops sd=0 points is excluding exactly the points where the
+> model is most wrong about itself. Constant-y baseline (uniform barren)
+> remains the second, legitimate source. (4) Added
+> at E2.2: kriging's reportable state
+> (`OrdinaryKrigingEstimator.report()` — fitted + alternative models, the
+> bin table the fit SAW, every excluded bin with its reason, the
+> unsupported 13–986 km lag range) must reach the RUN PROVENANCE — E2.2
+> only exposes it; a prediction whose consumer cannot see the model was
+> extrapolating between the clusters is exactly the
+> unlabeled-scientific-looking-output defect the watermark family exists
+> to prevent. (5) `range_at_candidate_ceiling` MUST be carried NEXT TO the
+> fitted `range_km` in the run manifest (Karl, E2.2 §2 pre-commit): the
+> real-data fit put the range at the candidate ceiling — the 10–13 km bin
+> (γ 23.4, above the total variance 15.1) is still rising at the edge of
+> support — so the honest answer is not "the range is R" but "the range
+> exceeds what 13 km of support can resolve"; a manifest reader must see
+> "unconstrained from above" beside the number, not in a walkthrough they
+> may never open. Same for its floor twin
+> `range_below_first_supported_lag` and `residual_dof`. (6) Added at
+> E2.3: RF's `report().validation_facing_fields()` — seed, n_estimators
+> and every sd-defining hyperparameter READ BACK from the fitted forest
+> (`max_samples_leaf`, `aggregate_leaves_first`, `weighted_leaves`, the
+> quantile grid, `sd_ddof`), the uncertainty method + its stated
+> semantics, `distinct_x_rows`, and importance PER SEED — joins kriging's
+> reportable state; the runner consumes `report()` and NEVER reaches
+> around it to `_forest` (which can still be asked for OOB). The
+> honest-named `oob_diagnostic_not_validation` may be carried ONLY under
+> that name and never in a validation-facing field — E2.5's guard
+> re-asserts this at claim time. (7) THE UNCERTAINTY-SEMANTICS COLUMN
+> (Karl, E2.3 decision 5): the comparison table MUST carry an
+> uncertainty-semantics column, because the three estimators now report
+> three different KINDS of number — a sample moment (baseline SD, ddof=1),
+> a model moment (√kriging variance, exceeding the sill far-field by the
+> Lagrange term), and a quantile half-width (QRF `(q84−q16)/2`,
+> `uncertainty_method = "qrf_half_width_q16_q84"`). A table that prints
+> three "sd" columns without saying so invites a reader to compare them as
+> one quantity. Each estimator's `report()` names its semantics; the runner
+> prints them beside the numbers. Also carry RF's
+> `zero_width_training_predictions` (0 of 35 today) — a zero paired
+> uncertainty on real data is a red flag to show, never to floor.
+> **(8) THE TWO-FOLD GEOMETRY THEOREM — E2.4 design input, on record
+> BEFORE the runner is written so the report cannot mistake geometry for
+> a finding (E2.3 closeout, 2026-08-14).** Leave-one-cluster-out with
+> exactly two clusters is TWO folds:
+>
+> ```
+>   fold A: train E-cluster (21) → predict W-cluster (14), ~991 km away
+>   fold B: train W-cluster (14) → predict E-cluster (21)
+> ```
+>
+> With the fitted range ≤ 13 km (E2.2: 21.6 km AT the candidate ceiling,
+> unconstrained from above — but nowhere near 991), kriging at 991 km
+> reverts to the training cluster's local mean with variance ≈ sill +
+> Lagrange term (E2.2 measured this on real data: mid-gap prediction
+> 19.29 vs mean 19.53, variance 25.3 > sill 21.4). Therefore ACROSS
+> clusters, **kriging ≈ baseline BY CONSTRUCTION** — the across-cluster
+> comparison measures exactly one thing, cluster A's mean versus cluster
+> B's values, and CANNOT distinguish the estimators. Consequences the
+> E2.4 prompt must carry: (a) "kriging ≈ baseline across clusters" is a
+> geometry theorem, not a model finding, and the report must frame it as
+> such; (b) the WITHIN-cluster gate — spatial blocking inside a cluster —
+> is the only place kriging can beat the baseline on this data, which
+> makes the E2.1 registry docstring's registered-vs-executed separation
+> and any two-gate design load-bearing rather than decorative; (c) the
+> across-cluster fold is still worth running and reporting, because "the
+> two clusters differ by X" is itself a measurement — it is just not a
+> model comparison. Cross-reference: §4 "Spatial CV fold structure"
+> (the n=2-folds limitation, recorded 2026-07-28) — this item is WHY the
+> n=2 across-cluster fold cannot rank estimators, not only that it is
+> small.
+>
+> **THE PRE-REGISTRATION CLOCK, and the timestamp's honesty (BACKLOG §2).** E2.4
+> produces the comparison scores; the moment they exist in a walkthrough, every
+> acceptance threshold set afterward is POST-HOC FOR THIS DATASET, PERMANENTLY — and
+> Contract 8's `acceptance_thresholds` slot does not exist yet ("arrives with E2.5"), so
+> Track E cannot pre-register one. That design is correct; the sequencing must be honest:
+>
+> - E2.4 RUNS ANYWAY. Its scores are measurements under the SYNTHETIC watermark, and
+>   E2.5's refuse-to-validate verdict — "no pre-registered gate existed when these scores
+>   were computed" — is the honest RECORDED OUTPUT, not a gap.
+> - E2.4's run manifest carries **`scores_first_visible`**, OUTSIDE the substance hash —
+>   the `generated_at` parallel: identical inputs must hash identically across days.
+>   State the consequence plainly in the field's own description: the timestamp is
+>   therefore MUTABLE METADATA — honest by convention, not by mechanism; nothing detects
+>   a hand-edited timestamp. **The authoritative date is the COMMIT that introduced the
+>   scores**, and the manifest field's description must say so, so a reader knows where
+>   the real witness lives: the git history, not the JSON.
+> - The kriging nuance, stated so it survives: RF's synthetic-era scores are
+>   NOISE-scores (X is synthetic noise on 4 distinct rows), and a later threshold is only
+>   weakly contaminated by them. But KRIGING fits real coordinates against real y — its
+>   scores are REAL MEASUREMENTS TODAY — so a threshold set after seeing kriging's scores
+>   is post-hoc in the FULL sense. The manifest dating (and the commit behind it) is what
+>   makes that checkable rather than arguable.
+>
+> Requirements (the original four, still binding — the eight above extend, not replace):
 > - **The mean baseline runs in every fold, always**, for every design. Report uplift
 >   over baseline per fold, not only averaged.
 > - **Report per-fold results**, not just means. With two folds, a mean hides everything.
@@ -505,14 +671,20 @@ it is working.
 >   disjoint and separated by a stated minimum distance. This is the test that makes the
 >   methodological claim real rather than asserted.
 >
-> **State the expected result honestly in the walkthrough.** With two folds and ~991 km
-> extrapolation, kriging and RF may not beat the mean baseline. If they don't, that is a
-> finding about the *data*, not a failure of the code — and it is publishable. Do not
-> tune toward beating the baseline.
+> **State the expected result honestly in the walkthrough — and frame it correctly.**
+> Across clusters, kriging ≈ baseline is the theorem above, not an empirical outcome to
+> be surprised by. Within clusters, kriging may or may not beat the baseline at 1–13 km
+> — THAT is the empirical question, and if it does not, that is a finding about the
+> data (E2.2 measured ~68% of variance unstructured below station spacing), not a
+> failure of the code. RF cannot beat the 0.348 ceiling anywhere on today's fixture. Do
+> not tune toward beating the baseline.
 >
 > Tests: spatial disjointness per fold with a buffer, mutation-verified; determinism of
-> fold assignment; baseline present in every fold's results (a completeness-style test);
-> random k-fold cannot be selected for a published claim.
+> fold assignment; baseline present in every fold's results (a completeness-style test —
+> obligation 1 made structural); random k-fold cannot be selected for a published claim;
+> the known-answer leakage number on `gaussian_process_field`; the sd=0 policy's named
+> observer (obligation 3); `scores_first_visible` outside the substance hash and its
+> description naming the commit as authoritative.
 >
 > Stop for review.
 

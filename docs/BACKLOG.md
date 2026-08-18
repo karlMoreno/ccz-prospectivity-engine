@@ -226,7 +226,11 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
     reconstruction. (This is one deliberate exception to the artifacts'
     "no wall-clock in the substance hash" rule — the DATE is the fact
     being recorded; keep it OUT of `content_hash` like `generated_at`, but
-    IN the artifact.)
+    IN the artifact.) **Being outside the hash, the timestamp is MUTABLE
+    METADATA — honest by convention, not by mechanism; nothing detects a
+    hand-edited timestamp. The AUTHORITATIVE date is the COMMIT that
+    introduced the scores, and the field's own description must say so
+    (E2.4-PRE, 2026-08-14).**
   - **The nuance, stated so it survives:** for RF the synthetic-era scores
     are noise-scores (X is synthetic noise on 4 distinct rows) and a later
     threshold is only weakly contaminated by them. But KRIGING fits real
