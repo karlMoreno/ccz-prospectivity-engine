@@ -26,9 +26,10 @@ sole-observer hygiene pass, and the review-found DemGrid rotated/south-up
 transform gap); 1 added 2026-08-14 (E2.0-3: Checkpoint-1 re-report of
 occupancy/ceiling/border + the kriging exemption); 1 added 2026-08-14
 (E2.1 review: E2.4 runner obligations); 1 closed 2026-08-14 (E2.1-3:
-known-answer fixtures built).
-**40 open items**: §1 Track G 11, §2 Karl 5, §3
-Engineering 19, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+known-answer fixtures built); 1 added 2026-08-14 (E2.2 §2 review INCIDENT:
+review-against-committed-state procedure).
+**41 open items**: §1 Track G 11, §2 Karl 5, §3
+Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -212,6 +213,30 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   §4; [docs/contracts/README.md:24](../docs/contracts/README.md#L24)–37.
 
 ## 3. Engineering (Track E)
+
+- [ ] **Review workflows must run against a COMMITTED state or a copy —
+  never against the sole uncommitted copy of the work under review**
+  (INCIDENT, E2.2 §2 review, 2026-08-14). A reviewer is a READER; one
+  that writes to the work it then approves is grading its own
+  restoration. What happened (per the workflow's own logs): reviewer
+  `review:math` ran `git checkout -- engine/prospectivity/estimators/
+  variogram.py` to undo its own mutation probe, forgetting the file's
+  baseline was UNCOMMITTED — this reverted the file to the committed
+  report-only version and destroyed the uncommitted fitter (~178 lines);
+  it then rewrote the file from its session-start read. What
+  verification COULD establish: the restoration Write is byte-identical
+  (sha256 `ed6c9ee7…`) to a `cp` backup an independent reviewer
+  (`review:fixtures`) took at review start BEFORE any mutation; the suite
+  and the real-corpus fit reproduce to 16 digits. What it could NOT: no
+  committed object existed to diff against — "matches" means matches two
+  reviewers' independent copies, not git. Residual risk: small (two
+  independent byte-identical copies), not zero. The fix is PROCEDURAL,
+  not code: commit or stash before an adversarial review launches, or
+  point reviewers at a worktree. P2.0c and E2.0-2 sequenced this
+  correctly (work staged/committed before review); this session inverted
+  the order — the E2.1 and E2.2 reviews both ran on sole uncommitted
+  copies. Owner: Karl + E. Trigger: **before the next adversarial review
+  runs.** Detail: [E2.2.md](walkthroughs/E2.2.md) §2 "Review incident".
 
 - [ ] **Pipeline-level row quarantine.** One malformed row aborts the whole
   batch at Pydantic validation — worse than dropping, and it contradicts
@@ -494,12 +519,29 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   SD = 0 legitimately (uniform barren is a valid sample); the first metric
   that divides by sd (z-scores, CRPS normalization) must name the sd=0
   case rather than emitting NaN fold scores — likely in exactly the small
-  leave-one-cluster-out folds our two-cluster corpus produces. Owner: E.
+  leave-one-cluster-out folds our two-cluster corpus produces. (4) Added
+  at E2.2: kriging's reportable state
+  (`OrdinaryKrigingEstimator.report()` — fitted + alternative models, the
+  bin table the fit SAW, every excluded bin with its reason, the
+  unsupported 13–986 km lag range) must reach the RUN PROVENANCE — E2.2
+  only exposes it; a prediction whose consumer cannot see the model was
+  extrapolating between the clusters is exactly the
+  unlabeled-scientific-looking-output defect the watermark family exists
+  to prevent. (5) `range_at_candidate_ceiling` MUST be carried NEXT TO the
+  fitted `range_km` in the run manifest (Karl, E2.2 §2 pre-commit): the
+  real-data fit put the range at the candidate ceiling — the 10–13 km bin
+  (γ 23.4, above the total variance 15.1) is still rising at the edge of
+  support — so the honest answer is not "the range is R" but "the range
+  exceeds what 13 km of support can resolve"; a manifest reader must see
+  "unconstrained from above" beside the number, not in a walkthrough they
+  may never open. Same for its floor twin
+  `range_below_first_supported_lag` and `residual_dof`. Owner: E.
   Trigger: E2.4. Detail:
   [registry.py](../engine/prospectivity/estimators/registry.py) header;
   [mean_baseline.py](../engine/prospectivity/estimators/mean_baseline.py)
-  docstring; E2.1 review record in
-  [E2.1.md](walkthroughs/E2.1.md).
+  docstring; [kriging.py](../engine/prospectivity/estimators/kriging.py)
+  `KrigingReport`; E2.1/E2.2 review records in
+  [E2.1.md](walkthroughs/E2.1.md) / [E2.2.md](walkthroughs/E2.2.md).
 - [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
   border situation on real GEBCO** (recorded at E2.0-3). Three
   literal-pinned facts and one reading rule are true of the 0.1° synthetic
