@@ -32,8 +32,13 @@ extended to seven at E2.3 (RF report fields; the uncertainty-semantics
 column), then to eight at the E2.3 closeout (obligation 3 marked LIVE;
 the two-fold geometry theorem); 1 added at the E2.3 closeout (§2: the
 pre-registration clock).
-**42 open items**: §1 Track G 11, §2 Karl 6, §3
-Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
+2 closed at the E2.X disposition audit (2026-08-14: the two §4 Phase-2
+risks, both addressed by E2.2/E2.3 and re-dispositioned); 2 triggers
+refreshed (coverage boundary, sole-observer hygiene — "after E2.0" had
+expired); the review-workflow entry gained its second layer.
+**40 open items**: §1 Track G 11, §2 Karl 6, §3
+Engineering 20, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -278,8 +283,25 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   point reviewers at a worktree. P2.0c and E2.0-2 sequenced this
   correctly (work staged/committed before review); this session inverted
   the order — the E2.1 and E2.2 reviews both ran on sole uncommitted
-  copies. Owner: Karl + E. Trigger: **before the next adversarial review
-  runs.** Detail: [E2.2.md](walkthroughs/E2.2.md) §2 "Review incident".
+  copies. **TWO LAYERS, both recorded now so whoever does this later knows
+  the second exists (E2.X disposition audit, ledger row 15):**
+  **(a)** commit or stash before an adversarial review launches, or point
+  reviewers at a worktree — E2.3-2 did this (WIP commit `efc683a` before
+  the review; the reviewers left the tree clean and said so).
+  **(b)** a reviewer that probes by MUTATION takes a `cp` copy before its
+  first write and restores by `cp`, verifying with `cmp` — NEVER by
+  `git checkout`, which is not undo against a file git does not hold. This
+  is not hypothetical: in the E2.2 review the `review:math` agent ran
+  `git checkout -- variogram.py` to undo its own mutation and its log
+  records the realization ONE COMMAND LATE ("git checkout would revert to
+  committed version, losing the uncommitted fitter!"), while the
+  `review:fixtures` agent independently did it right — `cp` backup at
+  review start, every restore `cmp`-verified — and that backup is what
+  made the restoration byte-verifiable. Both layers go into every future
+  review prompt's instructions verbatim (E2.3-2's prompt carried (a); (b)
+  is added from here). Owner: Karl + E. Trigger: **before the next
+  adversarial review runs.** Detail: [E2.2.md](walkthroughs/E2.2.md) §2
+  "Review incident".
 
 - [ ] **Pipeline-level row quarantine.** One malformed row aborts the whole
   batch at Pydantic validation — worse than dropping, and it contradicts
@@ -523,6 +545,24 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `data_origin.yaml` sidecar as the authoritative side for origins. Detail:
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §5.
+- [ ] **demo.py's swallowed TypeError — a demo that can silently show the
+  wrong image** (E2.X disposition audit, ledger row 5; noted at the E2.0-2
+  review and never recorded). `demo.py` (untracked, repo root; deliberately
+  left so — it hand-types values outside the audit's walk) step 6 calls
+  `plot_covariate_stack()` with NO arguments; the signature requires
+  `dem_path`, `output_dir`, `dem_data_origin`, so it raises `TypeError`,
+  which the step's bare `except` swallows before globbing `outputs/**/*.png`
+  and opening whatever it finds — a STALE figure from an earlier run, with
+  no indication that regeneration failed. The wrapper built for it
+  (`regenerate_default_stack_plot`) was deleted at E2.0-2 §0 because
+  demo.py never called it. Hazard: a presentation shows an image the
+  demo did not produce and cannot vouch for — the unlabeled-scientific-
+  looking-output class. Fix before the next presentation: call
+  `plot_covariate_stack(dem_path, output_dir, dem_data_origin=…)` with
+  real arguments and let a failure be visible, or delete step 6. Owner:
+  Karl (the file is his, untracked). Trigger: **before demo.py is next
+  presented.** Detail: `demo.py` step 6 (`step_plot`); E2.0.md §E2.0-2
+  housekeeping.
 - [ ] **CI hygiene (minor).** `MPLBACKEND: Agg` not set (currently harmless
   — `plot_stack.py` sets Agg itself); install step uses bare `pip` rather
   than `python -m pip`, inconsistent with the README's canonical form.
@@ -545,7 +585,9 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   INSIDE the walk and already declared AUTHORED — the genuinely uncovered
   ground is `engine/` modules and repo-root scripts, where a widened walk
   should expect legitimately-AUTHORED engineering constants to surface and
-  need declarations or exclusions. Owner: E. Trigger: after E2.0. Detail:
+  need declarations or exclusions. Owner: E. Trigger: **before Phase-2
+  closeout (Checkpoint 2)** — refreshed at the E2.X disposition audit
+  (ledger row 21); the original "after E2.0" had silently expired. Detail:
   [test_data_origin_audit.py](../tests/test_data_origin_audit.py) (walk
   roots); CLAUDE.md "Data origin" (the authoring rule).
 - [ ] **E2.4 runner obligations** (recorded at E2.1, from its adversarial
@@ -694,20 +736,40 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   without stating whether others also failed — those two need their
   mutations re-run to establish the fact before any docstring claims it.
   E2.0-2's two new sole observers (border-NaN, shared-cell hardcode)
-  already carry the warning in-file and are NOT part of this pass. Owner:
-  E. Trigger: after E2.0. Detail:
+  already carry the warning in-file and are NOT part of this pass. E2.2's
+  three (border-NaN, shared-cell hardcode, shape-mismatch) and E2.3's
+  (RF10's injected-crossing observer) likewise carry theirs. Owner: E.
+  Trigger: **before Phase-2 closeout (Checkpoint 2)** — refreshed at the
+  E2.X disposition audit (ledger row 7); the original "after E2.0" had
+  silently expired. Detail:
   [E2.0.md](walkthroughs/E2.0.md) §E2.0-1b "Other known single-observer
   cases"; P2.0.md mutation tables.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
-- [ ] **Variogram support gap.** Every observation pair is either <13 km or
-  ~991 km apart — nothing in between. Ordinary kriging's variogram cannot be
-  empirically estimated across the range it must predict over; any curve
-  through the gap is extrapolation, not estimation. Affects whether kriging
-  is defensible as the TS-6-parity method; raises the mean baseline's
-  importance. Owner: E + G. Trigger: Phase-2 kickoff (E2.2). Detail: review
-  discussion 2026-07-28; cluster geometry per the E1.4 plot.
+- [x] **Variogram support gap — CONFRONTED at E2.2, re-dispositioned at the
+  E2.X audit (ledger row 21).** Every observation pair is either <13 km or
+  ~991 km apart — nothing in between. E2.2 §1 REPORTED it (595 pairs, ZERO
+  in 13–986 km), Karl's decisions 1–3 encoded it (min 30 pairs per bin; the
+  fit sees 0–13 km ONLY; exponential + spherical, nugget fitted), and the
+  fitter RECORDS it: the unsupported 13–986 km range, every excluded bin
+  with its reason, and `range_at_candidate_ceiling` beside the fitted
+  range. What remains is not this item but its consequence — the two-fold
+  geometry theorem (§3 runner obligation 8): across the clusters kriging ≈
+  baseline BY CONSTRUCTION. Original text: "any curve through the gap is
+  extrapolation, not estimation" — now a recorded property of every fit,
+  not a risk. Detail: [E2.2.md](walkthroughs/E2.2.md) §1–§2.
+- [x] **Spatial CV fold structure — ANSWERED at the E2.3 closeout,
+  re-dispositioned at the E2.X audit (ledger row 21).** "With two real
+  clusters, honest spatial CV reduces to leave-one-cluster-out with n=2
+  folds. Decide how to REPORT that limitation" — the answer is stronger
+  than a reporting choice: the two-fold geometry theorem (§3 runner
+  obligation 8) says the across-cluster fold structurally CANNOT rank the
+  estimators, so it is reported as a measurement ("the two clusters differ
+  by X") and the within-cluster gate is the only model comparison. E2.4-PRE
+  carried this into the tracked prompt (`562d9a7`). Original: Owner E +
+  Karl, Trigger Phase-2 kickoff — the kickoff happened and answered it.
+  Detail: obligation 8; [phase2_prompts.md](prompts/phase2_prompts.md) E2.4.
 - [ ] **Spatial CV fold structure.** With two real clusters, honest spatial
   CV reduces to leave-one-cluster-out with n=2 folds. Decide how to REPORT
   that limitation rather than papering over it with random blocks inside
