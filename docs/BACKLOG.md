@@ -27,7 +27,8 @@ transform gap); 1 added 2026-08-14 (E2.0-3: Checkpoint-1 re-report of
 occupancy/ceiling/border + the kriging exemption); 1 added 2026-08-14
 (E2.1 review: E2.4 runner obligations); 1 closed 2026-08-14 (E2.1-3:
 known-answer fixtures built); 1 added 2026-08-14 (E2.2 §2 review INCIDENT:
-review-against-committed-state procedure).
+review-against-committed-state procedure); E2.4 runner-obligations entry
+extended to six at E2.3 (RF report fields).
 **41 open items**: §1 Track G 11, §2 Karl 5, §3
 Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
@@ -535,7 +536,17 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   exceeds what 13 km of support can resolve"; a manifest reader must see
   "unconstrained from above" beside the number, not in a walkthrough they
   may never open. Same for its floor twin
-  `range_below_first_supported_lag` and `residual_dof`. Owner: E.
+  `range_below_first_supported_lag` and `residual_dof`. (6) Added at
+  E2.3: RF's `report().validation_facing_fields()` — seed, n_estimators
+  and every sd-defining hyperparameter READ BACK from the fitted forest
+  (`max_samples_leaf`, `aggregate_leaves_first`, `weighted_leaves`, the
+  quantile grid, `sd_ddof`), the uncertainty method + its stated
+  semantics, `distinct_x_rows`, and importance PER SEED — joins kriging's
+  reportable state; the runner consumes `report()` and NEVER reaches
+  around it to `_forest` (which can still be asked for OOB). The
+  honest-named `oob_diagnostic_not_validation` may be carried ONLY under
+  that name and never in a validation-facing field — E2.5's guard
+  re-asserts this at claim time. Owner: E.
   Trigger: E2.4. Detail:
   [registry.py](../engine/prospectivity/estimators/registry.py) header;
   [mean_baseline.py](../engine/prospectivity/estimators/mean_baseline.py)
