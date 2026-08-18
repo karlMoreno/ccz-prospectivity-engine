@@ -7,16 +7,34 @@ STRATEGY (third concrete Estimator under the E2.1 ABC): implements the
 pairing validation (shape, finiteness, non-negative sd) runs on this
 output by construction.
 
-UNCERTAINTY SEMANTICS, stated so E2.4's table can be read: the paired sd is
-the standard deviation of the CONDITIONAL DISTRIBUTION of y given X — the
-y values retained in the leaves that X falls into, POOLED across all trees
-with per-tree 1/leaf-size weights (Meinshausen 2006 eq. 5–7; quantile-
-forest `aggregate_leaves_first=True, weighted_leaves=True`,
-`max_samples_leaf=None`). That is a PREDICTIVE spread, the same question
-the baseline's SD and kriging's variance answer. It is NOT the ensemble
-spread (SD of per-tree means), which §1 measured at 2–4× too small on
-rank-4 X because all trees fit the same four rows. The estimator also
-exposes quantiles for interval reporting.
+UNCERTAINTY SEMANTICS, stated so E2.4's table can be read (Karl's E2.3
+decision, in full): the paired sd is **(q84 − q16) / 2** — the ±1σ
+HALF-WIDTH of the CONDITIONAL DISTRIBUTION of y given X, equal to the SD
+under normality and a distribution-free analogue otherwise. The
+distribution is the y values retained in the leaves X falls into, POOLED
+across all trees with per-tree 1/leaf-size weights (Meinshausen 2006
+eq. 5–7; quantile-forest `aggregate_leaves_first=True,
+weighted_leaves=True`, `max_samples_leaf=None`).
+
+WHY A HALF-WIDTH AND NOT A MOMENT: QRF's leaves hold EMPIRICAL conditional
+samples — often a handful at n=35 — and a quantile half-width is what
+such samples support honestly (order statistics, no tail-weight or
+normality assumption), where a second moment over a few retained values
+is dominated by whichever extreme happened to land in the leaf. It is
+also the quantity most comparable to what the other two estimators
+report as "one sigma". The FULL quantile set (q05, q16, q50, q84, q95) is
+carried in `report()` so the ASYMMETRY survives in provenance even though
+the pair carries a symmetric width. It is NOT the ensemble spread (SD of
+per-tree means), which §1 measured at 2–4× too small on rank-4 X because
+all trees fit the same four rows.
+
+THE ZERO-WIDTH DIAGNOSTIC: at n=35 with rank-4 X a leaf population can be
+single-valued, making q16 == q84 and sd == 0 for that point — non-
+negative, so the pairing validation passes it. A zero predictive
+uncertainty on real data is a RED FLAG, not an error: `report()` carries
+`zero_width_training_predictions` (the count over the training rows) and
+the walkthrough states the real-matrix number. Not floored, not
+perturbed — reported.
 
 THE AGGREGATION SETTING IS LOAD-BEARING (E2.3 adversarial review, must-
 fix): quantile-forest's `aggregate_leaves_first=False` computes each
@@ -28,11 +46,13 @@ fixtures were structurally blind to it (CLAUDE.md rule 4). Every sd-
 defining setting is now recorded in `report().hyperparameters`, and a
 distinct-X test pins sd > 0 near the planted noise.
 
-DDOF CONVENTION, stated (review): the sd is the ddof=0 sd of the empirical
-conditional distribution — an ECDF has no Bessel correction. E2.4
-comparability caveat: at cell occupancy n this is ≈ √((n−1)/n) × a ddof=1
-SD (−3.6% at n=14, −7.7% at n=7), so the RF column runs slightly below the
-baseline's ddof=1 SD by convention, not by evidence.
+COMPARABILITY CAVEAT for E2.4's table (obligation 6 in BACKLOG): the three
+estimators now report three different KINDS of number — a sample moment
+(baseline SD, ddof=1), a model moment (√kriging variance, exceeding the
+sill far-field by the Lagrange term), and a quantile half-width (QRF). A
+table that prints three "sd" columns without saying so invites a reader
+to compare them as one quantity; the table must carry an
+uncertainty-SEMANTICS column.
 
 TWO FACTS THAT BOUND WHAT THIS MODEL CAN CLAIM ON TODAY'S DATA (reported
 in the walkthrough before this code; restated here because a consumer
@@ -71,9 +91,8 @@ quantile-forest's leaf-1 predict path POOLS across trees regardless of the
 aggregation flag, which is why an early probe misread it as "closer to
 truth" — mutation RF2 record, corrected); `aggregate_leaves_first=True` +
 `weighted_leaves=True` (the pooled Meinshausen distribution — see above);
-a 199-point quantile grid on [0.005, 0.995] for the moment integration
-(the mean comes from quantile-forest's exact `quantiles="mean"`; the grid
-sd is a piecewise-linear integral, 0.2–2% low on 7-sample cells — stated).
+the mean from quantile-forest's exact `quantiles="mean"`; the sd from the
+q16/q84 half-width (above).
 """
 
 from __future__ import annotations
@@ -86,18 +105,21 @@ from quantile_forest import RandomForestQuantileRegressor
 
 from engine.prospectivity.estimators.base import Estimator
 
-UNCERTAINTY_METHOD = "qrf_conditional_distribution_sd"
+UNCERTAINTY_METHOD = "qrf_half_width_q16_q84"
 UNCERTAINTY_SEMANTICS = (
-    "ddof=0 sd of the conditional distribution of y given X: all training y "
-    "retained in the leaves X falls into, POOLED across trees with per-tree "
-    "1/leaf-size weights (Meinshausen 2006; quantile-forest max_samples_leaf="
-    "None, aggregate_leaves_first=True, weighted_leaves=True) — a PREDICTIVE "
-    "spread comparable to the baseline's SD and kriging's variance; NOT the "
-    "ensemble spread of per-tree means (2-4x too small on rank-deficient X, "
-    "E2.3 §1) and NOT the per-tree-quantile average (identically 0 on distinct "
-    "X, E2.3 §2 review)"
+    "(q84 - q16) / 2: the +/-1-sigma half-width of the conditional distribution "
+    "of y given X — all training y retained in the leaves X falls into, POOLED "
+    "across trees with per-tree 1/leaf-size weights (Meinshausen 2006; "
+    "quantile-forest max_samples_leaf=None, aggregate_leaves_first=True, "
+    "weighted_leaves=True). Equal to the SD under normality; a distribution-"
+    "free analogue otherwise. A QUANTILE HALF-WIDTH, not a moment — comparable "
+    "to but not the same kind of number as the baseline's sample SD or "
+    "kriging's model sd (E2.4 table needs a semantics column). NOT the ensemble "
+    "spread of per-tree means (2-4x too small on rank-deficient X, E2.3 §1)."
 )
-QUANTILE_GRID = tuple(float(v) for v in np.linspace(0.005, 0.995, 199))
+# The quantile set carried in report(): the asymmetry survives in provenance.
+REPORTED_QUANTILES = (0.05, 0.16, 0.50, 0.84, 0.95)
+Q16, Q84 = 0.16, 0.84
 
 DEFAULT_QUANTILES = (0.05, 0.5, 0.95)
 
@@ -120,6 +142,16 @@ class RandomForestReport:
     # Impurity importance PER SEED — {seed: (importance per feature)} — so a
     # consumer sees the churn, not one seed's bar chart.
     importance_by_seed: dict[int, tuple[float, ...]]
+    # The quantile levels carried (REPORTED_QUANTILES) and, per TRAINING row,
+    # the conditional quantiles at those levels — the asymmetry information
+    # the symmetric paired width cannot express (Karl's E2.3 decision 1).
+    reported_quantile_levels: tuple[float, ...] = ()
+    training_quantiles: tuple[tuple[float, ...], ...] = ()
+    # ZERO-WIDTH DIAGNOSTIC (decision 3): how many training rows have
+    # q16 == q84 (sd == 0). Non-negative, so the pairing template passes it;
+    # on real data it is a red flag to REPORT — never floored, never
+    # perturbed. Recorded here so E2.4's provenance carries it.
+    zero_width_training_predictions: int = 0
     # NOT VALIDATION. Out-of-bag R² is computed from RANDOM resampling, which
     # on autocorrelated data leaks spatial information across the "held-out"
     # boundary — the exact leakage spatial CV exists to prevent. Carried only
@@ -145,6 +177,9 @@ class RandomForestReport:
             "importance_by_seed": {
                 int(seed): list(values) for seed, values in self.importance_by_seed.items()
             },
+            "reported_quantile_levels": list(self.reported_quantile_levels),
+            "training_quantiles": [list(row) for row in self.training_quantiles],
+            "zero_width_training_predictions": self.zero_width_training_predictions,
         }
 
 
@@ -244,13 +279,22 @@ class RandomForestEstimator(Estimator):
         X = self._checked_features(features, "predict")
         # Mean: quantile-forest's exact weighted mean of the pooled leaf
         # samples (equals sklearn's average-of-tree-means to ~1e-14 under
-        # weighted_leaves=True). Sd: the ddof=0 sd of the pooled distribution,
-        # integrated over a fine quantile grid (piecewise-linear; 0.2-2% low).
+        # weighted_leaves=True). Sd: THE HALF-WIDTH (q84 - q16) / 2 — the
+        # mapping decision, see the module docstring; q16 <= q84 is asserted
+        # here because crossing quantiles are a known QRF edge case at small
+        # leaf populations, and a negative width must never be silently
+        # abs()'d into a plausible sd.
         mean = np.asarray(self._forest.predict(
             X, quantiles="mean", aggregate_leaves_first=True, weighted_leaves=True
         ), dtype=np.float64).reshape(-1)
-        q = self._pooled_quantiles(X, list(QUANTILE_GRID)).reshape(X.shape[0], -1)
-        sd = q.std(axis=1, ddof=0)
+        q = self._pooled_quantiles(X, [Q16, Q84]).reshape(X.shape[0], 2)
+        if (q[:, 1] < q[:, 0]).any():
+            raise ValueError(
+                "QRF quantiles crossed (q84 < q16) at "
+                f"{int((q[:, 1] < q[:, 0]).sum())} prediction(s) — refusing to map a "
+                "negative width to a paired sd"
+            )
+        sd = (q[:, 1] - q[:, 0]) / 2.0
         return mean, sd
 
     def predict_quantiles(self, features: Any, quantiles: tuple[float, ...] = DEFAULT_QUANTILES) -> np.ndarray:
@@ -267,6 +311,10 @@ class RandomForestEstimator(Estimator):
         k = self._X.shape[1]
         names = self._feature_names or tuple(f"x{i}" for i in range(k))
         params = self._forest.get_params()  # read back, never echoed (review)
+        levels = list(REPORTED_QUANTILES)
+        training_q = self._pooled_quantiles(self._X, levels).reshape(self._X.shape[0], len(levels))
+        i16, i84 = levels.index(Q16), levels.index(Q84)
+        zero_width = int((training_q[:, i84] == training_q[:, i16]).sum())
         return RandomForestReport(
             seed=int(params["random_state"]),
             n_estimators=len(self._forest.estimators_),
@@ -286,8 +334,7 @@ class RandomForestEstimator(Estimator):
                     "pooled Meinshausen distribution; False averages per-tree quantile "
                     "functions and collapses to sd 0 on distinct X (E2.3 review)"
                 ),
-                "quantile_grid": [QUANTILE_GRID[0], QUANTILE_GRID[-1], len(QUANTILE_GRID)],
-                "sd_ddof": 0,
+                "sd_mapping": "half_width_(q84-q16)/2",
             },
             uncertainty_method=UNCERTAINTY_METHOD,
             uncertainty_semantics=UNCERTAINTY_SEMANTICS,
@@ -296,5 +343,8 @@ class RandomForestEstimator(Estimator):
             feature_names=tuple(names),
             distinct_x_rows=int(np.unique(self._X, axis=0).shape[0]),
             importance_by_seed=dict(self._importance_by_seed),
+            reported_quantile_levels=tuple(levels),
+            training_quantiles=tuple(tuple(float(v) for v in row) for row in training_q),
+            zero_width_training_predictions=zero_width,
             oob_diagnostic_not_validation=self._oob,
         )

@@ -28,7 +28,7 @@ occupancy/ceiling/border + the kriging exemption); 1 added 2026-08-14
 (E2.1 review: E2.4 runner obligations); 1 closed 2026-08-14 (E2.1-3:
 known-answer fixtures built); 1 added 2026-08-14 (E2.2 §2 review INCIDENT:
 review-against-committed-state procedure); E2.4 runner-obligations entry
-extended to six at E2.3 (RF report fields).
+extended to seven at E2.3 (RF report fields; the uncertainty-semantics column).
 **41 open items**: §1 Track G 11, §2 Karl 5, §3
 Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
@@ -546,7 +546,18 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   around it to `_forest` (which can still be asked for OOB). The
   honest-named `oob_diagnostic_not_validation` may be carried ONLY under
   that name and never in a validation-facing field — E2.5's guard
-  re-asserts this at claim time. Owner: E.
+  re-asserts this at claim time. (7) THE UNCERTAINTY-SEMANTICS COLUMN
+  (Karl, E2.3 decision 5): the comparison table MUST carry an
+  uncertainty-semantics column, because the three estimators now report
+  three different KINDS of number — a sample moment (baseline SD, ddof=1),
+  a model moment (√kriging variance, exceeding the sill far-field by the
+  Lagrange term), and a quantile half-width (QRF `(q84−q16)/2`,
+  `uncertainty_method = "qrf_half_width_q16_q84"`). A table that prints
+  three "sd" columns without saying so invites a reader to compare them as
+  one quantity. Each estimator's `report()` names its semantics; the runner
+  prints them beside the numbers. Also carry RF's
+  `zero_width_training_predictions` (0 of 35 today) — a zero paired
+  uncertainty on real data is a red flag to show, never to floor. Owner: E.
   Trigger: E2.4. Detail:
   [registry.py](../engine/prospectivity/estimators/registry.py) header;
   [mean_baseline.py](../engine/prospectivity/estimators/mean_baseline.py)

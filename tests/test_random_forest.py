@@ -4,12 +4,16 @@ real-matrix end to end.
 
 Fixture-degeneracy statements (CLAUDE.md rule 4), per fixture:
 - RANK-4 fixture (4 distinct X rows, groups 14/7/7/7, y varying WITHIN
-  groups): separates "the sd is the POOLED conditional distribution's
-  spread" (ratio to true within-group sd0 0.99–1.00, asserted ±5%) from
-  "the ensemble spread of tree means" (2.3–3.7× smaller ON THIS FIXTURE —
-  measured here, not quoted from §1's different statistic) AND from "the
-  per-tree-quantile average" (0.69–0.83× the truth — the pre-review
-  defect, now outside the ±5% band). Group sizes UNEQUAL, means DISTINCT.
+  groups): separates "the sd is the (q84−q16)/2 HALF-WIDTH of the POOLED
+  conditional distribution" (ratio to each group's own q16/q84 half-width
+  0.96–1.04, asserted ±10%) from "the ensemble spread of tree means"
+  (2–4× smaller ON THIS FIXTURE, measured here) AND from "a per-tree-
+  quantile average" (the pre-review defect: 17–31% low, outside the band).
+  Group sizes UNEQUAL, means DISTINCT, and the groups' distributions are
+  SKEWED by construction of the draw (cell asymmetries −1.6 … +0.4 on the
+  real matrix), so a half-width and a moment are separable — under
+  normality they coincide, and a symmetric fixture could not tell the
+  mapping from a moment.
 - DISTINCT-X fixture (the §1 known-answer generator, n=35, planted noise
   sd 1.0): the rank-4 fixture is structurally BLIND to the review's must-
   fix — with per-tree-quantile averaging the sd is identically 0 on any
@@ -90,14 +94,22 @@ def test_two_fits_and_predictions_under_one_seed_are_identical_in_every_field() 
 
 
 def test_a_different_seed_changes_the_forest() -> None:
-    """The negation of determinism-by-constant: seed 1 differs from seed 0."""
+    """The negation of determinism-by-constant: seed 1 differs from seed 0 —
+    in the MEANS and in the forest's own trees. NOT in the half-width sd on
+    this fixture, and that is worth stating (found writing this test): on
+    rank-4 X every tree's leaf for a cell holds a bootstrap resample of the
+    same <= 14 values, so the pooled q16/q84 is the group's own quantiles
+    whatever the draws — the half-width is seed-INVARIANT on degenerate X.
+    A property of the mapping, recorded, not a bug."""
     X, y, x_rows, _ = _rank4_fixture()
     a = RandomForestEstimator(seed=0, n_estimators=100, importance_seeds=(0,))
     b = RandomForestEstimator(seed=1, n_estimators=100, importance_seeds=(1,))
     a.fit(X, y)
     b.fit(X, y)
-    assert not np.array_equal(a.predict(x_rows)[1], b.predict(x_rows)[1])
+    assert not np.array_equal(a.predict(x_rows)[0], b.predict(x_rows)[0])
+    assert a._forest.estimators_[0].random_state != b._forest.estimators_[0].random_state
     assert a.report().seed == 0 and b.report().seed == 1
+    assert np.array_equal(a.predict(x_rows)[1], b.predict(x_rows)[1])  # the invariance, pinned
 
 
 # ------------------------------------------ pairing + uncertainty semantics
@@ -112,23 +124,91 @@ def test_rf_output_passes_the_pairing_template_and_sd_is_finite_non_negative() -
     assert (sd > 0).all()  # within-group spread exists, so the sd is not degenerate
 
 
-def test_uncertainty_is_the_pooled_conditional_sd_within_5pct_of_within_group_sd0() -> None:
-    """The §1 semantics delivered, tightly: on the rank-4 fixture the paired
-    sd matches the true within-group ddof=0 sd to ±5% per row (measured
-    0.99–1.00×). The band EXCLUDES both neighbors: the ensemble spread of
-    per-tree means (computed independently here; 2.3–3.7× smaller) and the
-    per-tree-quantile average of the pre-review code (0.69–0.83× — the
-    E2.3 must-fix). ddof=0 for the truth because an ECDF has no Bessel
-    correction (the convention stated in the module docstring)."""
+def test_uncertainty_is_the_q16_q84_half_width_of_the_pooled_conditional_distribution() -> None:
+    """Karl's mapping delivered: on the rank-4 fixture the paired sd matches
+    each group's OWN (q84−q16)/2 (computed independently here with
+    np.quantile over the group's y) to ±10% per row — measured 0.96–1.04×.
+    The band EXCLUDES the ensemble spread of per-tree means (2–4× smaller,
+    computed independently) and the pre-review per-tree-quantile average.
+    Mutation RF9 (q16/q84 swapped in the mapping) must fail here — a
+    negative width is refused before it can be abs()'d."""
     rf, X, y, x_rows, groups = _fitted()
     _, sd = rf.predict(x_rows)
     starts = np.cumsum([0] + groups[:-1])
-    true_sd = np.array([y[i : i + n].std(ddof=0) for i, n in zip(starts, groups)])
+    true_hw = np.array([
+        (np.quantile(y[i : i + n], 0.84) - np.quantile(y[i : i + n], 0.16)) / 2.0
+        for i, n in zip(starts, groups)
+    ])
     per_tree = np.stack([t.predict(x_rows) for t in rf._forest.estimators_])
     ensemble_spread = per_tree.std(axis=0, ddof=1)
     for row in range(4):
-        assert 0.95 * true_sd[row] < sd[row] < 1.05 * true_sd[row], (row, sd[row], true_sd[row])
-        assert sd[row] > 2.0 * ensemble_spread[row], row
+        assert 0.90 * true_hw[row] < sd[row] < 1.10 * true_hw[row], (row, sd[row], true_hw[row])
+        assert sd[row] > 1.8 * ensemble_spread[row], row
+
+
+def test_reported_quantiles_are_monotone_and_the_sd_is_exactly_their_half_width() -> None:
+    """Quantile sanity (Karl's decision 2): q05 ≤ q16 ≤ q50 ≤ q84 ≤ q95 on
+    EVERY training prediction (crossing quantiles are a known QRF edge
+    case at small leaf populations), and the paired sd equals
+    (q84 − q16)/2 of the SAME reported quantiles to float precision — the
+    mapping asserted, not assumed. Sd finite and non-negative on the QRF
+    path (the template re-checks; this exercises it)."""
+    rf, X, y, x_rows, groups = _fitted()
+    report = rf.report()
+    levels = report.reported_quantile_levels
+    assert levels == (0.05, 0.16, 0.50, 0.84, 0.95)
+    tq = np.array(report.training_quantiles)
+    assert tq.shape == (35, 5)
+    assert (np.diff(tq, axis=1) >= 0).all()  # monotone on every row
+    _, sd = rf.predict(X)
+    i16, i84 = levels.index(0.16), levels.index(0.84)
+    assert np.allclose(sd, (tq[:, i84] - tq[:, i16]) / 2.0)
+    assert np.isfinite(sd).all() and (sd >= 0).all()
+
+
+def test_crossed_quantiles_are_refused_not_abs_d_into_a_plausible_sd(monkeypatch) -> None:
+    """The mapping's belt: pooled quantile-forest quantiles are monotone BY
+    CONSTRUCTION (np.quantile over one sorted array cannot cross), so this
+    refusal has no natural observer — mutation RF10 (check removed) left
+    every test green. This test INJECTS a crossing through the pooled-
+    quantile seam and asserts the named refusal, so the belt is observed
+    rather than decorative; the E2.1 template would otherwise happily pass
+    an abs()'d negative width as a positive sd."""
+    rf, X, y, x_rows, groups = _fitted()
+    real = rf._pooled_quantiles
+
+    def crossed(X_in, quantiles):
+        q = real(X_in, quantiles)
+        if list(quantiles) == [0.16, 0.84]:
+            q = q.reshape(-1, 2)[:, ::-1].copy()  # swap the columns: q84 < q16
+        return q
+
+    monkeypatch.setattr(rf, "_pooled_quantiles", crossed)
+    with pytest.raises(ValueError, match="quantiles crossed"):
+        rf.predict(x_rows)
+
+
+def test_zero_width_predictions_are_counted_and_reported_not_floored() -> None:
+    """The zero-width diagnostic (decision 3): a single-valued leaf
+    population makes q16 == q84 and sd == 0 — reported as a COUNT, never
+    floored or perturbed. Constructed observer: a fixture where one X row
+    carries a CONSTANT y (its whole leaf population single-valued) yields
+    exactly that many zero-width training predictions, and the sd there is
+    exactly 0.0; the other rows are non-zero. On the rank-4 fixture (every
+    group with spread) the count is 0."""
+    X, y, x_rows, groups = _rank4_fixture()
+    y_const = y.copy()
+    y_const[:groups[0]] = 17.0  # the 14-station cell: single-valued
+    rf = RandomForestEstimator(seed=0, n_estimators=200, importance_seeds=(0,))
+    rf.fit(X, y_const)
+    report = rf.report()
+    assert report.zero_width_training_predictions == groups[0]
+    _, sd = rf.predict(X)
+    assert (sd[: groups[0]] == 0.0).all()
+    assert (sd[groups[0]:] > 0).all()
+
+    rf_all_spread, _, _, _, _ = _fitted()
+    assert rf_all_spread.report().zero_width_training_predictions == 0
 
 
 def test_on_distinct_x_rows_the_sd_is_a_predictive_spread_not_zero() -> None:
@@ -217,10 +297,15 @@ def test_report_records_seed_hyperparameters_semantics_and_per_seed_importance()
     assert report.hyperparameters["max_samples_leaf"] == rf._forest.get_params()["max_samples_leaf"] is None
     assert report.hyperparameters["aggregate_leaves_first"] is True
     assert report.hyperparameters["weighted_leaves"] is True
-    assert report.hyperparameters["sd_ddof"] == 0
+    assert report.hyperparameters["sd_mapping"] == "half_width_(q84-q16)/2"
     assert any(k.endswith("_reason") for k in report.hyperparameters)
-    assert report.uncertainty_method == UNCERTAINTY_METHOD == "qrf_conditional_distribution_sd"
-    assert "POOLED" in report.uncertainty_semantics and "ddof=0" in report.uncertainty_semantics
+    assert report.uncertainty_method == UNCERTAINTY_METHOD == "qrf_half_width_q16_q84"
+    assert "(q84 - q16) / 2" in report.uncertainty_semantics and "POOLED" in report.uncertainty_semantics
+    assert "not a moment" in report.uncertainty_semantics
+    facing = report.validation_facing_fields()
+    assert facing["reported_quantile_levels"] == [0.05, 0.16, 0.5, 0.84, 0.95]
+    assert len(facing["training_quantiles"]) == 35
+    assert facing["zero_width_training_predictions"] == 0
     assert set(report.importance_by_seed) == {0, 1, 2}
     for values in report.importance_by_seed.values():
         assert len(values) == 8 and abs(sum(values) - 1.0) < 1e-9
@@ -283,7 +368,12 @@ def test_rf_runs_on_the_real_training_matrix_paired_finite_and_still_watermarked
     mean, sd = rf.predict(matrix.X)
     assert mean.shape == sd.shape == (35,)
     assert (sd > 0).all()  # co-celled stations have within-cell spread
-    assert rf.report().distinct_x_rows == 4  # the E2.0-3 fact, recomputed
+    report = rf.report()
+    assert report.distinct_x_rows == 4  # the E2.0-3 fact, recomputed
+    # The zero-width diagnostic on REAL data (decision 3): 0 of 35 today —
+    # every cell has >= 7 distinct y values. Pinned so a corpus change that
+    # produces a single-valued cell is a visible finding, not a silent 0 sd.
+    assert report.zero_width_training_predictions == 0
     # The walkthrough's claim as a guard (review): in-sample R² sits AT the
     # E2.0-3 ceiling (a full-depth forest memorizes the 4 cell means).
     ss_tot = ((matrix.y - matrix.y.mean()) ** 2).sum()
