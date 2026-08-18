@@ -28,8 +28,11 @@ occupancy/ceiling/border + the kriging exemption); 1 added 2026-08-14
 (E2.1 review: E2.4 runner obligations); 1 closed 2026-08-14 (E2.1-3:
 known-answer fixtures built); 1 added 2026-08-14 (E2.2 §2 review INCIDENT:
 review-against-committed-state procedure); E2.4 runner-obligations entry
-extended to seven at E2.3 (RF report fields; the uncertainty-semantics column).
-**41 open items**: §1 Track G 11, §2 Karl 5, §3
+extended to seven at E2.3 (RF report fields; the uncertainty-semantics
+column), then to eight at the E2.3 closeout (obligation 3 marked LIVE;
+the two-fold geometry theorem); 1 added at the E2.3 closeout (§2: the
+pre-registration clock).
+**42 open items**: §1 Track G 11, §2 Karl 6, §3
 Engineering 20, §4 Phase-2 risks 2, §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -203,6 +206,41 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   Track G. Trigger: before Checkpoint 1. Detail: planning transcript
   2026-08-09; [covariates.yaml:37](../docs/contracts/covariates.yaml#L37)
   (the never-mix rule this echoes).
+- [ ] **THE PRE-REGISTRATION CLOCK — record before the E2.4 scores exist
+  (E2.3 closeout, 2026-08-14).** E2.4 produces the comparison scores. The
+  moment they exist in a walkthrough, every acceptance threshold set
+  afterward is POST-HOC FOR THIS DATASET, PERMANENTLY — and Contract 8's
+  loader (`model_config.py`) refuses an AUTHORED value outside its
+  admissible set, and `acceptance_thresholds` has no slot yet (it "arrives
+  with E2.5" per the contract header), so Track E cannot pre-register one
+  even if it wanted to. That design is correct; the SEQUENCING must
+  therefore be honest rather than fixed:
+  - **E2.4 runs anyway.** Its scores are measurements under the SYNTHETIC
+    watermark, and E2.5's refuse-to-validate is the RECORDED VERDICT, not
+    a gap — "no pre-registered gate existed when these scores were
+    computed" is itself the honest output.
+  - **E2.4's run manifest must DATE SCORE VISIBILITY:** a
+    `scores_first_visible` timestamp (or equivalent) in the RunManifest,
+    so that if Track G ever supplies thresholds, the Contract 8 field can
+    carry `set_after_scores: true` TRUTHFULLY rather than by
+    reconstruction. (This is one deliberate exception to the artifacts'
+    "no wall-clock in the substance hash" rule — the DATE is the fact
+    being recorded; keep it OUT of `content_hash` like `generated_at`, but
+    IN the artifact.)
+  - **The nuance, stated so it survives:** for RF the synthetic-era scores
+    are noise-scores (X is synthetic noise on 4 distinct rows) and a later
+    threshold is only weakly contaminated by them. But KRIGING fits real
+    coordinates against real y — its scores are REAL measurements today
+    (E2.2: real local structure at 0–13 km) — so for kriging specifically
+    the post-hoc contamination is REAL, not synthetic-era-only. A
+    threshold set after seeing kriging's scores is post-hoc in the full
+    sense, and the manifest dating is what makes that CHECKABLE rather
+    than arguable.
+  Owner: Karl + E. Trigger: E2.4's manifest design, and again whenever
+  Track G engages on thresholds. Detail:
+  [model_config.yaml](../data/config/model_config.yaml) header (the
+  `acceptance_thresholds` slot); [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md)
+  ("arrives with E2.5"); E2.3 closeout in [E2.3.md](walkthroughs/E2.3.md).
 - [ ] **Uncited literature-shaped numbers in the contracts README.** The
   100 kg/m² ceiling rationale asserts "published CCZ abundances run
   ~1.5–30 kg/m²" and "~2 g/cm³ wet bulk density" with no citation —
@@ -516,11 +554,22 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   normalizer/covariate registries it mirrors): the runner must refit per
   fold or build fresh instances per fold (`build_default_registry()` per
   run is the cheap discipline) — an E2.2 kriging fit that caches partial
-  state would otherwise leak across folds silently. (3) Constant y yields
-  SD = 0 legitimately (uniform barren is a valid sample); the first metric
-  that divides by sd (z-scores, CRPS normalization) must name the sd=0
-  case rather than emitting NaN fold scores — likely in exactly the small
-  leave-one-cluster-out folds our two-cluster corpus produces. (4) Added
+  state would otherwise leak across folds silently. (3) **LIVE, not
+  hypothetical (E2.3 closeout, 2026-08-14).** Written when sd=0 meant "the
+  baseline on constant y" — a constructed edge. QRF's zero-width
+  predictions make it a real MECHANISM on real data: any training row
+  whose pooled leaf population is single-valued has q16 == q84 and sd ==
+  0, and the pairing template passes it (non-negative). Evidence: the
+  real-matrix count is **0 of 35 today** (every cell has ≥ 7 distinct y),
+  pinned in `test_random_forest.py`, so a corpus change that produces a
+  single-valued cell is a visible finding, not a silent 0 — but the
+  mechanism exists now, and any E2.4 metric that divides by uncertainty
+  WILL hit sd=0 the moment it does. Therefore the first dividing metric's
+  sd=0 handling must be decided AT DESIGN TIME in E2.4, not discovered
+  when the division throws — or worse, does not throw: a metric that
+  silently drops sd=0 points is excluding exactly the points where the
+  model is most wrong about itself. Constant-y baseline (uniform barren)
+  remains the second, legitimate source. (4) Added
   at E2.2: kriging's reportable state
   (`OrdinaryKrigingEstimator.report()` — fitted + alternative models, the
   bin table the fit SAW, every excluded bin with its reason, the
@@ -557,7 +606,37 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   one quantity. Each estimator's `report()` names its semantics; the runner
   prints them beside the numbers. Also carry RF's
   `zero_width_training_predictions` (0 of 35 today) — a zero paired
-  uncertainty on real data is a red flag to show, never to floor. Owner: E.
+  uncertainty on real data is a red flag to show, never to floor.
+  **(8) THE TWO-FOLD GEOMETRY THEOREM — E2.4 design input, on record
+  BEFORE the runner is written so the report cannot mistake geometry for
+  a finding (E2.3 closeout, 2026-08-14).** Leave-one-cluster-out with
+  exactly two clusters is TWO folds:
+
+  ```
+    fold A: train E-cluster (21) → predict W-cluster (14), ~991 km away
+    fold B: train W-cluster (14) → predict E-cluster (21)
+  ```
+
+  With the fitted range ≤ 13 km (E2.2: 21.6 km AT the candidate ceiling,
+  unconstrained from above — but nowhere near 991), kriging at 991 km
+  reverts to the training cluster's local mean with variance ≈ sill +
+  Lagrange term (E2.2 measured this on real data: mid-gap prediction
+  19.29 vs mean 19.53, variance 25.3 > sill 21.4). Therefore ACROSS
+  clusters, **kriging ≈ baseline BY CONSTRUCTION** — the across-cluster
+  comparison measures exactly one thing, cluster A's mean versus cluster
+  B's values, and CANNOT distinguish the estimators. Consequences the
+  E2.4 prompt must carry: (a) "kriging ≈ baseline across clusters" is a
+  geometry theorem, not a model finding, and the report must frame it as
+  such; (b) the WITHIN-cluster gate — spatial blocking inside a cluster —
+  is the only place kriging can beat the baseline on this data, which
+  makes the E2.1 registry docstring's registered-vs-executed separation
+  and any two-gate design load-bearing rather than decorative; (c) the
+  across-cluster fold is still worth running and reporting, because "the
+  two clusters differ by X" is itself a measurement — it is just not a
+  model comparison. Cross-reference: §4 "Spatial CV fold structure"
+  (the n=2-folds limitation, recorded 2026-07-28) — this item is WHY the
+  n=2 across-cluster fold cannot rank estimators, not only that it is
+  small. Owner: E.
   Trigger: E2.4. Detail:
   [registry.py](../engine/prospectivity/estimators/registry.py) header;
   [mean_baseline.py](../engine/prospectivity/estimators/mean_baseline.py)
