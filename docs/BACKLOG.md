@@ -245,8 +245,18 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
     threshold set after seeing kriging's scores is post-hoc in the full
     sense, and the manifest dating is what makes that CHECKABLE rather
     than arguable.
+  - **THE E2.5 TRIPWIRE (Karl, E2.X approval, 2026-08-14):** E2.5 is
+    expected to be predominantly ASSEMBLY of refusals that already exist —
+    Contract 8's loader refusing AUTHORED thresholds, E2.4's
+    `scores_first_visible`, the pre-registration verdict ("no
+    pre-registered gate existed when these scores were computed"). If E2.5
+    turns out to require substantial NEW machinery, **STOP and investigate
+    what leaked upstream before building it: the SIZE of E2.5 is itself a
+    diagnostic.** (Placed here rather than in the runner-obligations entry
+    because the components E2.5 assembles are the ones this entry names.)
   Owner: Karl + E. Trigger: E2.4's manifest design, and again whenever
-  Track G engages on thresholds. Detail:
+  Track G engages on thresholds; the tripwire fires at E2.5's design.
+  Detail:
   [model_config.yaml](../data/config/model_config.yaml) header (the
   `acceptance_thresholds` slot); [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md)
   ("arrives with E2.5"); E2.3 closeout in [E2.3.md](walkthroughs/E2.3.md).

@@ -253,6 +253,18 @@ Corollaries worth keeping in mind:
 - If you're unsure about a geology decision (sampled area, wet/dry basis, mean nodule
   mass, which covariates matter), **mark it `[GEOLOGY — ISAAC]` and leave a safe default +
   a TODO** rather than guessing silently.
+- **A review finding whose disposition is deferred gets its BACKLOG entry AT THE MOMENT
+  OF DEFERRAL, written by whoever defers it — and review disposition rows append to
+  `docs/audits/` at review time, not reconstructed at a phase boundary.**
+  *Evidence:* the E2.X disposition audit (2026-08-14,
+  `docs/audits/2026-08-14-e2-review-disposition.md`) found 3 of 22 review findings had
+  survived only in a planning transcript; all three were deferrals without a landing spot
+  ("note for whenever you next present"; "when the BACKLOG item gets done, both layers go
+  in"; a trigger reading "after E2.0" that silently expired). The nineteen that landed all
+  had an immediate home — a Section 0, a closeout item, a BACKLOG entry named in the same
+  prompt that produced the finding. The rule's cleanest demonstration is its own adoption:
+  the approval message that added it first proposed deferring it to P2.C — the exact
+  pattern it forbids — and corrected itself in the same message.
 
 ---
 

@@ -1,8 +1,49 @@
 # E2 review-disposition audit — 2026-08-14
 
+## VERDICT — APPROVED
+
+- **Approved by:** Karl, 2026-08-14, via the "E2.X APPROVAL — RECORD THE
+  VERDICT, CLOSE THE LOOP" prompt (recorded in this commit).
+- **Dispositioned:** 22 items. **19 LANDED / LANDED-MODIFIED, verified**
+  against the repo by direct probe (rows 1–4, 6, 8–14, 16–22; row 20
+  LANDED-MODIFIED). **3 gaps fixed in Phase 2** — rows 5, 15, 7 (the
+  approval's framing) — which the ledger's own tally records as 2
+  NOT-LANDED (rows 5, 15) + 1 of the 2 trigger-expired rows (row 7; its
+  sibling, row 21's coverage-boundary trigger, was refreshed in the same
+  commit `612805f`). Same three fixes, two ways of counting; both kept
+  here so neither silently overwrites the other.
+- **Phase-3 residue (items requiring engine/ or tests/): ZERO.** Stated
+  explicitly — an absent line and a zero are not the same statement. No
+  item rides into E2.4 as a Section-0 carry-over from this audit.
+- **The rule this audit produced, and its self-application:** the three
+  gaps shared one shape — findings deferred with NO LANDING SPOT at the
+  moment of deferral. CLAUDE.md's workflow conventions now carry the rule
+  (a deferred finding gets its BACKLOG entry at the moment of deferral,
+  written by whoever defers it; disposition rows append to `docs/audits/`
+  at review time, not reconstructed at a phase boundary). **The reviewer's
+  own approval message first proposed deferring that rule to P2.C — the
+  exact pattern the rule forbids — and corrected it in the same
+  approval.** That is the rule's cleanest demonstration and the citation
+  future readers should see.
+
+## What this document is
+
+**The third provenance channel, completing the set:** VALUES (P2.0's
+origin taxonomy and its audit test — every value declares how it came to
+exist here), INSTRUCTIONS (P2.PRE's tracked prompts and handoffs — the
+instruction record lives in the repo, corrected before the session that
+reads it), and **VERDICTS (this ledger — what each adversarial review
+found, how each finding was dispositioned, and who approved it, APPENDED
+AT REVIEW TIME).** A review's disposition rows append here when the
+review closes; a phase's approval appends its verdict block. This file
+exists so the approvals chain is in the repo, not in a chat.
+
+---
+
 - **Performed against:** commit `562d9a7` (E2.4-PRE; `git rev-parse HEAD` at
   audit start; working tree clean apart from the untracked `demo.py`).
-  Phase-2 fixes landed as `612805f`; this ledger is the commit after.
+  Phase-2 fixes landed as `612805f`; the ledger landed as `e7637f9`; the
+  verdict block above was added at approval.
 - **Status:** point-in-time ledger. Where this document and the code
   disagree, the code wins.
 - **data_origin:** AUTHORED · **author:** model
