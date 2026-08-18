@@ -16,8 +16,13 @@ readme = "README.md"
 # (source build needs HDF5 headers), and its ONLY import site is the lazy
 # _fetch_via_pangaeapy in pangaea_adapter.py — production reads local .tab
 # files from data/sources/ via injected dataset_loaders and never calls it.
-# scikit-learn/scikit-gstat/pykrige/richdem/xarray-spatial/fastapi are still
-# approved but land with the phases that first use them.
+# scikit-gstat/pykrige/richdem/xarray-spatial/fastapi are still approved
+# but land with the phases that first use them. scikit-learn landed with
+# E2.3 (random forest) — the first phase to use it. quantile-forest (Zillow,
+# Apache-2.0) was a deliberate E2.3 decision (Karl, 2026-08-14; the
+# measured case is docs/walkthroughs/E2.3.md §1): its uncertainty is the
+# conditional distribution, comparable to the baseline's SD and kriging's
+# variance, where ensemble spread understates by 2-4x on rank-4 X.
 dependencies = [
     "pydantic>=2.6,<3",
     "pandas>=2.2,<3",
@@ -26,6 +31,8 @@ dependencies = [
     "shapely>=2.0,<3",
     "pyyaml>=6.0,<7",
     "openpyxl>=3.1,<4",
+    "scikit-learn>=1.5,<2",
+    "quantile-forest>=1.4,<2",
 ]
 
 [project.optional-dependencies]

@@ -92,14 +92,17 @@ class EstimatorRegistry:
 
 
 def build_default_registry() -> EstimatorRegistry:
-    """The production registry: the baseline (E2.1, REQUIRED) and ordinary
-    kriging (E2.2, with Karl's decision defaults); random forest registers
-    here when E2.3 lands. Imported lazily to keep the module import graph
-    flat (kriging pulls variogram + geometry)."""
+    """The production registry: the baseline (E2.1, REQUIRED), ordinary
+    kriging (E2.2, Karl's decision defaults), and the quantile random forest
+    (E2.3, Karl's uncertainty decision). Imported lazily to keep the module
+    import graph flat (kriging pulls variogram + geometry; RF pulls
+    quantile-forest)."""
     from engine.prospectivity.estimators.kriging import OrdinaryKrigingEstimator
+    from engine.prospectivity.estimators.random_forest import RandomForestEstimator
 
     registry = EstimatorRegistry()
     registry.register(MEAN_BASELINE_NAME, MeanBaselineEstimator())
     registry.register("ordinary_kriging", OrdinaryKrigingEstimator())
+    registry.register("random_forest", RandomForestEstimator())
     registry.assert_complete()
     return registry
