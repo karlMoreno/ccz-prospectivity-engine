@@ -41,8 +41,11 @@ transcript-only deferral); §4's fold-structure item re-closed on its
 ORIGINAL box (the audit had added a checked twin — deleted).
 1 closed 2026-08-19 (E2.4 §2: the runner-obligations entry — box checked on
 the ORIGINAL entry, no twin).
-**41 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
-Engineering 20, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+1 added 2026-08-19 (E2.4 §3: the feature-stack manifest hashes absolute
+paths, so no downstream artifact identity is portable — found by the run
+manifest's own chain assertion).
+**42 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
+Engineering 21, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -815,6 +818,29 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `hyperparameters.sd_mapping = "half_width_(q84-q16)/2"`. The quoted text
   stays as quoted; the correction rides here and in the P2.C batch (§2
   review finding F18).
+- [ ] **The feature-stack manifest hashes ABSOLUTE PATHS, so no downstream
+  artifact's identity is portable** (found at E2.4 §3, 2026-08-19, by the
+  run manifest's own chain assertion — recorded at the moment of deferral).
+  `FeatureStackManifest`'s substance carries `dem.path` (and the per-layer
+  output paths), so building the SAME DEM bytes in two different directories
+  yields two different `content_hash` values — which propagates into
+  `TrainingMatrixManifest.upstream_hashes` and then into
+  `RunManifest.upstream_hashes` and `content_hash`. **Measured:** two runs
+  from identical inputs and seed produce byte-identical `cross_validation`,
+  `cv_scores`, `estimator_declarations` and `matrix_sha256`, and DIFFERENT
+  `content_hash` / `upstream_hashes` (E2.4 §3; the committed
+  `data/runs/e2.4/run_manifest.json` therefore reproduces in its science and
+  not in its identity). This contradicts PROVENANCE.md's stated property —
+  "same inputs and same decisions produce the same hash **on any machine, at
+  any time**" — and the DEM's own `content_hash` is already in the record, so
+  the path adds nothing the hash does not. Fix (small, but it changes an E1.4
+  artifact's substance and every pinned hash, so it is NOT E2.4's to make):
+  record paths as basenames or repo-relative, or exclude them from the
+  substance as `generated_at` is excluded. Owner: E. Trigger: before any
+  cross-machine reproducibility claim, and before Checkpoint 1 re-hashes the
+  stack on real GEBCO. Detail: [E2.4.md](walkthroughs/E2.4.md) §3
+  ("what does and does not reproduce"); `features/stack.py` manifest
+  assembly; [PROVENANCE.md](contracts/PROVENANCE.md) "CONTENT HASH SCHEME".
 - [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
   border situation on real GEBCO** (recorded at E2.0-3). Three
   literal-pinned facts and one reading rule are true of the 0.1° synthetic

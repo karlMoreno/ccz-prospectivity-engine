@@ -585,6 +585,7 @@ def emit_run_manifest(
     matrix_manifest: TrainingMatrixManifest,
     run_id: str | None = None,
     scores_first_visible: datetime | None = None,
+    generator: str = "engine.prospectivity.validation.runner.emit_run_manifest",
 ) -> RunManifest:
     """Assemble the RunManifest (E2.4 §2D). THE CHAIN IS ASSERTED, NOT COPIED:
     the training-matrix hash written into `upstream_hashes` must equal BOTH
@@ -663,6 +664,13 @@ def emit_run_manifest(
         cv_scores=flat_scores(report),
         scores_first_visible=scores_first_visible or datetime.now(UTC),
         data_origin=matrix_manifest.data_origin,
+        generator=generator,
+        derivation=(
+            "CrossValidationRunner.run() over the training matrix named in inputs, then "
+            "emit_run_manifest(); every score is score_predictions() on one fold's held-out "
+            "rows (engine/prospectivity/validation/metrics.py), and data_origin is the "
+            "matrix manifest's COMPUTED origin, not a declaration"
+        ),
         estimator_declarations={k: dict(v) for k, v in report.estimator_declarations.items()},
         cross_validation={
             "designs": [d.to_record() for d in report.designs],

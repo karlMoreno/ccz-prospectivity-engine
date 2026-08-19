@@ -171,6 +171,16 @@ class RunManifest(ProvenanceArtifact):
     # reproducibility is unaffected) — so the caveat travels with the file.
     scores_first_visible_note: str = SCORES_FIRST_VISIBLE_DESCRIPTION
     data_origin: str | None = None
+    # THE EVIDENCE THE ORIGIN TAXONOMY REQUIRES, carried in the artifact so a
+    # committed run manifest is SELF-DECLARING (P2.0: a file under data/
+    # declares its origin, and each origin has an evidence bar — SYNTHETIC
+    # needs the generator's import path AND the seed, DERIVED needs the
+    # derivation). A run manifest's origin is COMPUTED from its inputs, so it
+    # is SYNTHETIC today and DERIVED at Checkpoint 1; both fields are always
+    # recorded, so the artifact satisfies whichever it computes to — and both
+    # are honest provenance in their own right: who computed this, from what.
+    generator: str | None = None
+    derivation: str | None = None
     estimator_declarations: dict[str, dict] = Field(default_factory=dict)
     cross_validation: dict = Field(default_factory=dict)
     claim_eligible_designs: list[str] = Field(default_factory=list)

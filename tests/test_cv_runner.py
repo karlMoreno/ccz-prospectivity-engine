@@ -535,7 +535,15 @@ def test_run_manifest_chains_to_the_actual_matrix_artifact_and_refuses_a_matrix_
         emit_run_manifest(report, matrix=other, matrix_manifest=manifest, run_id="z")
 
 
-def test_two_runs_with_the_same_inputs_and_seed_have_the_same_content_hash(real_matrix) -> None:
+def test_two_runs_in_one_process_on_one_matrix_have_the_same_content_hash(real_matrix) -> None:
+    """Determinism of the RUN: same matrix object, same seed, same registry
+    shape -> identical scores and identical hash.
+
+    HONEST SCOPE, named because the test cannot check it (E2.4 §3): this is
+    within one process on ONE DEM path. Across machines or directories the
+    hash DIFFERS while the scores do not, because `FeatureStackManifest`
+    hashes the DEM's absolute path — a recorded defect (docs/BACKLOG.md §3),
+    not a property this test establishes."""
     matrix, manifest = real_matrix
     def once():
         runner = CrossValidationRunner(splitters=[leave_one_cluster_out(), RandomKFoldSplitter(k=5, seed=3)],
