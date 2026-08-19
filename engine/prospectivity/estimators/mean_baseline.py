@@ -33,18 +33,34 @@ E2.4-runner entry).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
 from engine.prospectivity.estimators.base import Estimator
+
+UNCERTAINTY_SEMANTICS = (
+    "sample SD of the training y (ddof=1) — a SAMPLE MOMENT: how spread out the "
+    "field's values are around the training mean. Constant everywhere; it does not "
+    "grow with distance from data (ordinary kriging's does, by the Lagrange term) "
+    "and under positive spatial correlation it is biased LOW relative to the sill."
+)
 
 
 class MeanBaselineEstimator(Estimator):
     """Predicts the training mean everywhere, with the training SD as the
     paired uncertainty. Ignores feature VALUES by construction — only the
     number of rows requested matters — which is exactly what makes it the
-    floor every covariate- or coordinate-driven model must beat."""
+    floor every covariate- or coordinate-driven model must beat.
+
+    DECLARATIONS (E2.4 §2C / obligation 7): consumes "covariates" — it reads
+    only the row count, and TrainingMatrix.X is the block whose rows ARE the
+    stations; declared rather than "any" so the runner has one routing rule
+    with no special case."""
+
+    input_kind: ClassVar[str] = "covariates"
+    uncertainty_method: ClassVar[str] = "sample_sd_ddof1"
+    uncertainty_semantics: ClassVar[str] = UNCERTAINTY_SEMANTICS
 
     def __init__(self) -> None:
         self._mean: float | None = None
@@ -96,3 +112,16 @@ class MeanBaselineEstimator(Estimator):
             np.full(n, self._mean, dtype=np.float64),
             np.full(n, self._sd, dtype=np.float64),
         )
+
+    def provenance(self) -> dict:
+        """The fitted floor, as data: the training mean IS the across-cluster
+        measurement (obligation 8c — "cluster A's mean against cluster B's
+        values"), so it must be readable per fold, not recomputed."""
+        if self._mean is None or self._sd is None:
+            raise ValueError("provenance() called before fit")
+        return {
+            "training_mean": self._mean,
+            "training_sd_ddof1": self._sd,
+            "uncertainty_method": self.uncertainty_method,
+            "uncertainty_semantics": self.uncertainty_semantics,
+        }

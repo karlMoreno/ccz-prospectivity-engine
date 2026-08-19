@@ -206,6 +206,16 @@ def _matrix_sha256(
     return "sha256:" + digest.hexdigest()
 
 
+def matrix_sha256(matrix: TrainingMatrix) -> str:
+    """The canonical content hash of a TrainingMatrix — the SAME computation
+    the manifest records, exposed so a downstream artifact (E2.4's
+    RunManifest) can RE-DERIVE it from the arrays it was actually handed and
+    refuse a manifest that does not describe them (2D: never a literal)."""
+    return _matrix_sha256(
+        matrix.station_ids, matrix.covariate_names, matrix.X, matrix.y, matrix.coords
+    )
+
+
 def assemble_training_matrix(
     sample_source: SampleSource,
     grid: DemGrid,

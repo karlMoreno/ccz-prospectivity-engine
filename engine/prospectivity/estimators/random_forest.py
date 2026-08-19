@@ -98,7 +98,7 @@ q16/q84 half-width (above).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 from quantile_forest import RandomForestQuantileRegressor
@@ -188,7 +188,15 @@ class RandomForestEstimator(Estimator):
     `report()` (E2.4 provenance, the same rule as kriging's parameters).
     `importance_seeds` are the EXTRA seeds importance is recomputed under to
     demonstrate (not assert) its instability; the prediction forest is
-    always the one fitted under `seed`."""
+    always the one fitted under `seed`.
+
+    DECLARATIONS (E2.4 §2C / obligation 7): consumes "covariates"
+    (TrainingMatrix.X); the paired sd is the QRF quantile half-width
+    (UNCERTAINTY_SEMANTICS)."""
+
+    input_kind: ClassVar[str] = "covariates"
+    uncertainty_method: ClassVar[str] = UNCERTAINTY_METHOD
+    uncertainty_semantics: ClassVar[str] = UNCERTAINTY_SEMANTICS
 
     def __init__(
         self,
@@ -304,6 +312,15 @@ class RandomForestEstimator(Estimator):
         X = self._checked_features(features, "predict_quantiles")
         qs = [float(v) for v in quantiles]  # np.float32 is rejected by the library
         return self._pooled_quantiles(X, qs).reshape(X.shape[0], len(qs))
+
+    def provenance(self) -> dict:
+        """EXACTLY `report().validation_facing_fields()` — the explicit
+        allow-list (BACKLOG §3 obligation 6). The OOB diagnostic is outside
+        it by construction, so it cannot reach the run manifest through this
+        door; nothing else is added here, so a future field is not
+        validation-facing until someone adds it to the allow-list on
+        purpose."""
+        return self.report().validation_facing_fields()
 
     def report(self) -> RandomForestReport:
         if self._forest is None or self._X is None or self._importance_by_seed is None:

@@ -132,6 +132,26 @@ structurally by
 recipe declares its border policy) and
 [`test_engine_template_method.py:34`](../tests/test_engine_template_method.py#L34).
 
+**Added at E2.4 §2 (2026-08-19) —
+[`CrossValidationRunner.run()`](../engine/prospectivity/validation/runner.py):**
+
+```
+  for each FoldSplitter (design):
+    split ──► assert_spatially_separated(required_separation_km) ──► claim gate
+      ──► for each fold: for EVERY (name, estimator) in registry.items():
+            route by estimator.input_kind ──► fit (refusal RECORDED; predict
+            structurally unreachable after it) ──► predict ──► score ──► provenance()
+      ──► join every row to the baseline's row for the same fold ──► pool
+  ──► emit_run_manifest (the chain re-derived, never copied)
+```
+
+The eight BACKLOG §3 runner obligations are properties of this one object:
+iterating `items()` makes "the baseline RAN" follow from "the baseline is
+REGISTERED" (the structural half E2.1 could not supply), and the try/else
+shape makes a stale-state predict after a refused refit impossible rather
+than forbidden. `engine.py`'s old `cross_validator` callable seam (one
+estimator, no coordinates) is RETIRED for this — §4.2 below, realized.
+
 ### 2.5 Observer + Null Object — provenance recording
 
 ```
@@ -408,9 +428,10 @@ exactly as this section argued, with the baseline as the one REQUIRED entry.
 
 **Variation point:** spatial CV (mandatory) versus random k-fold, the latter kept
 *only* as the demonstrably-wrong comparison. Two implementations, both real, both
-needed simultaneously — a textbook Strategy. `engine.py` already takes
-`cross_validator` as an injected callable, so this may not even need an ABC;
-promote to one only if the splitters need shared state.
+needed simultaneously — a textbook Strategy. (Written pre-E2.4: "`engine.py`
+already takes `cross_validator` as an injected callable, so this may not even
+need an ABC" — it did need one, see the Realized note below; the callable seam
+was retired at E2.4 §2.)
 
 **Note the honest constraint from the corpus manifest:** with two clusters,
 spatial CV reduces to leave-one-cluster-out at n=2 folds
@@ -435,10 +456,14 @@ reproduce the partition) — the assignment as data for the run manifest. First
 implementation: `SingleLinkageBlockSplitter` (connected components of the
 within-`linkage_km` graph — the corpus manifest's own clustering, ONE
 implementation shared via `geometry.single_linkage_labels`), which at 100 km IS
-leave-one-cluster-out. The within-cluster scheme and random k-fold (declared
-`spatially_blocked = False`) land in E2.4 §2 after Karl's §1 pick. It did need
-an ABC after all: the declaration is class-level state a bare callable cannot
-carry.
+leave-one-cluster-out. It did need an ABC after all: the declaration is
+class-level state a bare callable cannot carry. **§2 (2026-08-19, Karl's §1B
+pick):** the same class at 2 km is `leave_one_site_out` (the headline
+within-cluster gate), plus `LeaveOneStationOutSplitter` (declared
+`spatially_blocked = False`: unbuffered, within-site, never a generalization
+result) and `RandomKFoldSplitter` (declared `False`: the demonstrably-wrong
+comparison) — four Strategies behind one runner, and `assert_claim_eligible`
+reads the RECORDED declaration to decide which may back a claim.
 
 ### 4.3 Economic scenarios — Strategy, probably thin
 

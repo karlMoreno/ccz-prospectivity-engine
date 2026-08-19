@@ -123,7 +123,12 @@ def test_baseline_refuses_unfit_predict_tiny_n_non_finite_and_2d_targets() -> No
 class _UnpairedEstimator(Estimator):
     """Test double whose _predict returns whatever the test plants —
     constructed directly so the ABC's validation (the rule under test) is
-    the only thing between the bad return and the caller."""
+    the only thing between the bad return and the caller. Declares the
+    E2.4 routing/semantics (required to be declarable at all)."""
+
+    input_kind = "covariates"
+    uncertainty_method = "test_double"
+    uncertainty_semantics = "test double"
 
     def __init__(self, result: Any) -> None:
         self._result = result
@@ -133,6 +138,9 @@ class _UnpairedEstimator(Estimator):
 
     def _predict(self, features: Any) -> Any:
         return self._result
+
+    def provenance(self) -> dict:  # pragma: no cover
+        return {}
 
 
 def test_predict_refuses_a_none_uncertainty_naming_the_missing_half() -> None:
@@ -177,6 +185,10 @@ def test_a_subclass_overriding_predict_is_refused_at_class_definition() -> None:
     with pytest.raises(TypeError, match="overrides Estimator.predict"):
 
         class _RogueEstimator(Estimator):
+            input_kind = "covariates"
+            uncertainty_method = "rogue"
+            uncertainty_semantics = "rogue"
+
             def fit(self, features: Any, target: Any) -> None:
                 pass
 
@@ -185,6 +197,9 @@ def test_a_subclass_overriding_predict_is_refused_at_class_definition() -> None:
 
             def _predict(self, features: Any) -> Any:
                 return np.zeros(5), np.zeros(5)
+
+            def provenance(self) -> dict:
+                return {}
 
 
 # ---------------------------------------------------------- the registry

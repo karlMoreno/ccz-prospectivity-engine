@@ -39,9 +39,10 @@ expired); the review-workflow entry gained its second layer.
 1 added 2026-08-18 (E2.4 §1: the P2.C doc-consistency batch, landing a
 transcript-only deferral); §4's fold-structure item re-closed on its
 ORIGINAL box (the audit had added a checked twin — deleted).
-**42 open items** (recounted from the boxes: the previous line said 40 with
-§3 at 20; the boxes said 21): §1 Track G 11, §2 Karl 7, §3
-Engineering 21, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+1 closed 2026-08-19 (E2.4 §2: the runner-obligations entry — box checked on
+the ORIGINAL entry, no twin).
+**41 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
+Engineering 20, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -335,6 +336,13 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
     synthetic DEM. Rewrite the comment to say what runs; the CLAUDE.md
     reproducibility line it quotes ("CI runs the full pipeline end-to-end
     on synthetic fixtures every push") needs the same correction.
+  - **BACKLOG obligation 6 names a field that cannot exist.** The verbatim
+    obligation text lists `sd_ddof` among RF's sd-defining hyperparameters;
+    E2.3-4 replaced the ddof moment with the (q84−q16)/2 half-width, so the
+    real field is `hyperparameters.sd_mapping`. The verbatim text stays; the
+    supersession is recorded on the entry's closure line (E2.4 §2, F18) —
+    fold it into the next re-statement of the obligations rather than
+    editing a quoted block.
   - **`SESSION_STATE.md` fate — [KARL — DECIDE: update / supersede with a
     pointer / delete].** It is a Phase-0 + E1.1 checkpoint (names `4160546`,
     "44 passed", next task E1.2), 52 commits and eight walkthroughs behind;
@@ -683,7 +691,7 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   (ledger row 21); the original "after E2.0" had silently expired. Detail:
   [test_data_origin_audit.py](../tests/test_data_origin_audit.py) (walk
   roots); CLAUDE.md "Data origin" (the authoring rule).
-- [ ] **E2.4 runner obligations** (recorded at E2.1, from its adversarial
+- [x] **E2.4 runner obligations** (recorded at E2.1, from its adversarial
   review — three conditions the CV runner must satisfy, none enforceable
   before it exists). (1) `assert_complete()` makes the baseline REGISTERED,
   not run: the runner must iterate `EstimatorRegistry.names()` — never
@@ -782,6 +790,31 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   docstring; [kriging.py](../engine/prospectivity/estimators/kriging.py)
   `KrigingReport`; E2.1/E2.2 review records in
   [E2.1.md](walkthroughs/E2.1.md) / [E2.2.md](walkthroughs/E2.2.md).
+  **CLOSED — IMPLEMENTED at E2.4 §2 (2026-08-19); the box is checked on THIS
+  entry and no twin was added beside it (the lesson §1 took from §4).** All
+  eight are properties of `engine/prospectivity/validation/runner.py`'s
+  `CrossValidationRunner`, each with a named test and a mutation that fails
+  it — the where-each-lands table is in [E2.4.md](walkthroughs/E2.4.md) §2.
+  In brief: (1) the runner's only way into the registry is `items()` (no
+  `get()` anywhere in the module) after `assert_complete()`; (2) the shared
+  instance is refit per fold and a refusal — at `fit` OR at `predict` — is
+  RECORDED with its phase while the prediction call sits out of reach; (3)
+  the sd=0 policy was decided at §1D and its counts reach both the structured
+  record and the flat table; (4)(5) kriging's full `report()` reaches run
+  provenance per fold, with the ceiling flag beside `range_km` and — because
+  the artifact writer sorts keys — also as one `range_km_reported` sentence;
+  (6) RF contributes exactly `validation_facing_fields()`, and no OOB-derived
+  value appears anywhere in the manifest even with the diagnostic computed;
+  (7) `uncertainty_method` + `uncertainty_semantics` are enforced CLASS
+  declarations carried beside every sd-shaped number, including the
+  baseline's own numbers nested in another estimator's pooled record; (8)
+  the theorem frames the report, and the LIVE LOCO case (kriging refuses
+  train-W, is baseline-exact on train-E) is pinned. **Supersession inside
+  obligation 6's VERBATIM text:** it names `sd_ddof`, which E2.3-4 replaced
+  with the (q84−q16)/2 half-width — the field that satisfies it is
+  `hyperparameters.sd_mapping = "half_width_(q84-q16)/2"`. The quoted text
+  stays as quoted; the correction rides here and in the P2.C batch (§2
+  review finding F18).
 - [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
   border situation on real GEBCO** (recorded at E2.0-3). Three
   literal-pinned facts and one reading rule are true of the 0.1° synthetic

@@ -41,7 +41,9 @@ seed.
                      ┌──────────▼───────────┐
                      │  4. RunManifest        │
                      │  STAGE: model run      │
-                     │  (Phase 2-4)           │
+                     │  (E2.4: CV run emitted;│
+                     │   Phase 3-4 add        │
+                     │   surfaces/TS-6/econ)  │
                      └──────────────────────┘
 ```
 
@@ -50,7 +52,7 @@ seed.
 | 1 | `CorpusManifest` | ingestion | `data/corpus/manifest.json` | per-source dispositions + real input SHA-256s + licenses; corpus totals by evidence class and `qa_status`; `training_eligible_count`; contributing sources **including fully-absorbed ones**; corpus geometry (bounding boxes, AOI containment, cluster + pairwise-distance structure) |
 | 2 | `FeatureStackManifest` | features | `<stack dir>/provenance.json` | per-covariate recipe + `recipe_version`, requested metres **and** resolved cell window (with the clamp flag), border policy, CRS strategy, DEM identity |
 | 3 | `TrainingMatrixManifest` | matrix assembly | in-memory (E2.1+ decides persistence; its hash is what downstream quotes) | Contract 8 target **value + declared origin** (the one decision upstream hashes are invariant to); `sampling_method`; `shared_cell_count` **and** `cell_groups` (the grouping is what makes the covariate-model R² ceiling recomputable next to any score); `matrix_sha256` over the matrix's canonical bytes; computed `data_origin` (combine over corpus + stack origins, never hand-declared); n/covariate names in column order |
-| 4 | `RunManifest` | model run | (emitter is Phase 2–4) | `run_id`, seed, CV scores, TS-6 agreement, economic results, output hashes |
+| 4 | `RunManifest` | model run | emitted by `engine/prospectivity/validation/runner.py: emit_run_manifest` (E2.4 §2); the real-data CV run's manifest is committed at E2.4 §3 (location recorded there) | `run_id`, seed, the flat CV score table (`CVScore`: one row per design/fold/estimator/metric, the baseline's value beside every row, `uncertainty_method` per row, refusals named by status), `cross_validation` (every design's fold assignment with required + measured separations and its `purpose`; every (design, fold, estimator) result with status / refusal / metrics / uplift / the estimator's per-fold `provenance()`; pooled metrics on comparable folds), `estimator_declarations` (input_kind, uncertainty_method, uncertainty_semantics, class — read from the declarations), `claim_eligible_designs`, computed `data_origin` (the matrix's; watermark derives, default-on), `scores_first_visible` (OUTSIDE the content hash — the pre-registration clock; its description names the COMMIT as the authoritative witness); TS-6 agreement, economic results, output hashes (Phase 3–4) |
 
 **Why the matrix gets its own artifact:** the corpus hash and the stack hash
 are both INVARIANT to the target definition, so two matrices built on
@@ -79,9 +81,13 @@ stack, by mechanical lookup rather than by convention or filename.
   "feature_stack": …}` — the matrix is the first artifact where the two
   lineages meet, and its assembler verifies the stack manifest it is handed
   actually describes the DEM being sampled before quoting it.
-- `RunManifest.upstream_hashes` will quote the training-matrix hash (which
-  itself chains to corpus + stack); the exact set is fixed when the emitter
-  is built (Phase 2).
+- `RunManifest.upstream_hashes` = `{"training_matrix": <TrainingMatrixManifest
+  content_hash>, "corpus": …, "feature_stack": …}` — the matrix artifact's
+  identity PLUS the two it chains to, quoted from the matrix manifest's own
+  upstream record so one lookup reaches all three (E2.5 condition 5). The
+  emitter RE-DERIVES the matrix's `matrix_sha256` from the arrays it is
+  handed and refuses a manifest that does not describe them (E2.4 §2D: the
+  chain is asserted, never copied). Fixed at E2.4 §2 (2026-08-19).
 
 ## The shared base
 
@@ -186,4 +192,13 @@ recorded, kept, and excluded from training; it is never dropped
   is recomputable from `cell_groups` + y, and a stored copy could go stale
   against them). No persisted file location yet — the matrix is rebuilt per
   run and its hash is what downstream quotes; E2.1+ decides persistence.
-- **RunManifest**: still a shape, not yet an emitter. Phase 2–4 fills it.
+- **RunManifest**: emitted since E2.4 §2 (the CV run). The ONE deliberate
+  exception to "no wall-clock in the substance": `scores_first_visible` is
+  recorded IN the artifact and kept OUT of `content_hash` (per-class
+  `HASH_EXCLUDED_FIELDS`, which a subclass can only extend), because the
+  DATE is the fact being recorded — and being outside the hash it is
+  mutable metadata whose authoritative witness is the commit that
+  introduced the scores (BACKLOG §2, the pre-registration clock). No
+  watermark flag here either: the watermark derives from the computed
+  `data_origin` (`run_watermark`, the matrix's rule reused). Phase 3–4 add
+  prediction/uncertainty surfaces, TS-6 agreement and economics.

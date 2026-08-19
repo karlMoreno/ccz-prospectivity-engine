@@ -15,44 +15,106 @@ is now the TEMPLATE METHOD — validate the pair, never skippable — and
 concrete estimators implement the `_predict` hook, exactly the
 `build()/_compute()` split CovariateRecipe uses.
 
-    ┌────────────────────────────────────────────────┐
-    │                Estimator (ABC)                  │
-    │  fit(features, target)            <- abstract   │
-    │  predict(features) -> (mean, std) <- TEMPLATE:  │
-    │      pair = self._predict(features)   validate  │
-    │  _predict(features)               <- hook       │
-    └────────────────────────────────────────────────┘
+    ┌──────────────────────────────────────────────────────────────┐
+    │                        Estimator (ABC)                         │
+    │  input_kind            : ClassVar  <- DECLARED (E2.4 §2C)      │
+    │  uncertainty_method    : ClassVar  <- DECLARED (obligation 7)  │
+    │  uncertainty_semantics : ClassVar  <- DECLARED (obligation 7)  │
+    │  fit(features, target)            <- abstract                  │
+    │  predict(features) -> (mean, std) <- TEMPLATE: validate pair   │
+    │  _predict(features)               <- hook                      │
+    │  provenance() -> dict             <- abstract (obligations 4–6)│
+    └──────────────────────────────────────────────────────────────┘
         ▲                ▲                ▲
   ┌────────────┐  ┌────────────┐  ┌────────────────┐
   │ MeanBaseline│  │ Kriging     │  │ RandomForest    │
   │ (E2.1)      │  │ (E2.2)      │  │ (E2.3)          │
+  │ covariates  │  │ coordinates │  │ covariates      │
   └────────────┘  └────────────┘  └────────────────┘
+
+E2.4 §2 REVISION — THREE DECLARATIONS, enforced at class definition like
+predict-is-final, so the CV runner routes and labels by DECLARATION, never
+by name (the inference-over-declaration defect this project removed in
+P2.0d-2, P2.0d-3 and again here — `if name == "ordinary_kriging": use
+coords` works and is exactly the wrong shape):
+
+  * `input_kind` — which design matrix this estimator consumes:
+    "covariates" (TrainingMatrix.X) or "coordinates" (TrainingMatrix.coords).
+    A property of the estimator's MATH (kriging consumes coordinates by
+    construction), so it lives on the class, not on a registry entry.
+  * `uncertainty_method` — a SHORT key naming the sd's kind (RF's
+    "qrf_half_width_q16_q84" is the model; the baseline's "sample_sd_ddof1",
+    kriging's "sqrt_ordinary_kriging_variance"), carried beside EVERY
+    sd-shaped number in the flat score table; and `uncertainty_semantics` —
+    the sentence that says what kind of number that is (a sample moment, a
+    model moment, a quantile half-width…), carried once per estimator in the
+    manifest's declarations and printed in the comparison tables. BACKLOG §3
+    obligation 7: a table that prints three "sd" columns without saying so
+    invites a reader to compare them as one quantity.
+  * `provenance()` — the estimator's reportable fitted state as a JSON-able
+    dict, consumed by the runner per fold (obligations 4–6); the runner never
+    reaches around it to private state.
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
+
+# The two design matrices a TrainingMatrix offers. Exhaustive; a new kind is
+# added HERE deliberately (with the runner's routing), never improvised.
+INPUT_KINDS: tuple[str, ...] = ("covariates", "coordinates")
 
 
 class Estimator(ABC):
     """A fitted spatial estimator that predicts abundance with paired uncertainty."""
 
+    input_kind: ClassVar[str]
+    uncertainty_method: ClassVar[str]
+    uncertainty_semantics: ClassVar[str]
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        """FINAL, enforced — not by convention. The E2.1 adversarial review
-        probe-demonstrated that a subclass overriding `predict` itself
-        bypasses the pairing validation entirely (and still passes the
-        registry's isinstance gate), which would put the express-but-not-
-        enforce gap right back one level up. Refused at class-definition
-        time, so a bypassing estimator cannot even be declared."""
+        """FINAL predict, and the two declarations — enforced, not by
+        convention. The E2.1 adversarial review probe-demonstrated that a
+        subclass overriding `predict` itself bypasses the pairing validation
+        entirely (and still passes the registry's isinstance gate), which
+        would put the express-but-not-enforce gap right back one level up.
+        Refused at class-definition time, so a bypassing estimator cannot
+        even be declared. E2.4 §2C adds: an estimator that does not SAY which
+        design matrix it consumes, or what kind of number its sd is, cannot
+        be declared either (looked up through the MRO: inheriting a parent's
+        declaration is a declaration)."""
         super().__init_subclass__(**kwargs)
         if "predict" in cls.__dict__:
             raise TypeError(
                 f"{cls.__name__} overrides Estimator.predict — predict() is the "
                 "pairing-validation template method and is final; implement the "
                 "_predict hook instead"
+            )
+        kind = getattr(cls, "input_kind", None)
+        if kind not in INPUT_KINDS:
+            raise TypeError(
+                f"{cls.__name__} does not declare `input_kind` as one of {INPUT_KINDS} "
+                f"(got {kind!r}) — which design matrix an estimator consumes is a "
+                "DECLARATION on the class (E2.4 §2C); the CV runner routes by it and "
+                "never matches on a name"
+            )
+        method = getattr(cls, "uncertainty_method", None)
+        if not isinstance(method, str) or not method.strip() or any(c.isspace() for c in method):
+            raise TypeError(
+                f"{cls.__name__} does not declare `uncertainty_method` (a short, "
+                "whitespace-free key naming the KIND of its paired sd, e.g. "
+                "'qrf_half_width_q16_q84') — BACKLOG §3 obligation 7: it travels beside "
+                "every sd-shaped number in the score table"
+            )
+        semantics = getattr(cls, "uncertainty_semantics", None)
+        if not isinstance(semantics, str) or not semantics.strip():
+            raise TypeError(
+                f"{cls.__name__} does not declare `uncertainty_semantics` (a non-empty "
+                "string saying what KIND of number its paired sd is) — BACKLOG §3 "
+                "obligation 7: the comparison table carries it beside every sd"
             )
 
     @abstractmethod
@@ -114,4 +176,15 @@ class Estimator(ABC):
         the template method above validates it. NEVER call `_predict`
         directly from consumer code — a caller reaching around `predict`
         skips the validation the hook's underscore exists to route through."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def provenance(self) -> dict:
+        """The fitted estimator's REPORTABLE STATE as a JSON-able dict — what
+        the CV runner carries into run provenance per (design, fold)
+        (BACKLOG §3 obligations 4–6). Each estimator decides what it
+        exposes here and what it does not: RF's OOB diagnostic is OUTSIDE
+        its `validation_facing_fields()` by construction, and the runner
+        consumes only this method, never `_forest` or any private field.
+        Raises if called before fit."""
         raise NotImplementedError

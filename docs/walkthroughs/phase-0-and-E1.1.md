@@ -276,6 +276,12 @@ economics → manifest.
 style as `IngestionPipeline`, not subclassing.
 
 **Public API:**
+> **E2.4 §2 note (2026-08-19):** the seam sketched below was REVISED — `CrossValidator`
+> is retired; the engine now holds an `EstimatorRegistry` and a `CrossValidationRunner`
+> (`engine/prospectivity/validation/runner.py`), and the feature builder returns the
+> TrainingMatrix with its manifest. Kept here as the Phase-0 record; see
+> `docs/walkthroughs/E2.4.md` §2 for before/after.
+
 ```python
 FeatureBuilder = Callable[[TerrainLayer, list[Observation]], tuple[Any, Any]]
 CrossValidator = Callable[[Any, Any, Estimator], list[CVScore]]

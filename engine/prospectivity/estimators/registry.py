@@ -27,9 +27,10 @@ the same BACKLOG entry.
     ┌─────────────────────────┐      ┌──────────────────────────────────┐
     │ caller (E2.4 CV runner,  │─────►│        EstimatorRegistry          │
     │  engine.py run)          │      │  {"mean_baseline": MeanBaseline…} │
-    └─────────────────────────┘      │  .get(name) · .names()            │
+    └─────────────────────────┘      │  .get(name) · .names() · .items() │
                                       │  .assert_complete()  ← baseline   │
-                                      │      cannot be omitted            │
+                                      │      cannot be omitted; every     │
+                                      │      instance declares routing    │
                                       └──────────────────────────────────┘
 
 `REQUIRED_ESTIMATORS` is exactly the CLAUDE.md-mandated baseline. Kriging
@@ -39,7 +40,9 @@ required — models are optional, the floor is not.
 
 from __future__ import annotations
 
-from engine.prospectivity.estimators.base import Estimator
+from collections.abc import Iterator
+
+from engine.prospectivity.estimators.base import INPUT_KINDS, Estimator
 from engine.prospectivity.estimators.mean_baseline import MeanBaselineEstimator
 
 MEAN_BASELINE_NAME = "mean_baseline"
@@ -70,6 +73,13 @@ class EstimatorRegistry:
     def names(self) -> list[str]:
         return list(self._estimators)
 
+    def items(self) -> Iterator[tuple[str, Estimator]]:
+        """EVERY registered (name, estimator), in registration order — the
+        E2.4 runner's only way in (BACKLOG §3 obligation 1): a caller that
+        iterates this cannot cherry-pick, and a complete registry therefore
+        implies a RUN baseline, not only a registered one."""
+        return iter(list(self._estimators.items()))
+
     def get(self, name: str) -> Estimator:
         try:
             return self._estimators[name]
@@ -89,6 +99,32 @@ class EstimatorRegistry:
                 "CLAUDE.md requires the mean baseline alongside every model claim; "
                 "a registry without it cannot back a claim"
             )
+        # E2.4 §2C, belt to the ABC's brace: every registered INSTANCE carries
+        # the routing and semantics declarations the runner reads. The ABC
+        # refuses an undeclared class at definition; this catches an instance
+        # whose declaration was mutated after the fact, by name.
+        for name, estimator in self._estimators.items():
+            kind = getattr(estimator, "input_kind", None)
+            if kind not in INPUT_KINDS:
+                raise ValueError(
+                    f"estimator {name!r} carries input_kind={kind!r}, not one of "
+                    f"{INPUT_KINDS} — the runner cannot route a design matrix to it"
+                )
+            for attr in ("uncertainty_method", "uncertainty_semantics"):
+                value = getattr(estimator, attr, None)
+                if not isinstance(value, str) or not value.strip():
+                    raise ValueError(
+                        f"estimator {name!r} carries no {attr} declaration — the comparison "
+                        "table cannot label its sd (obligation 7)"
+                    )
+            # The ABC's whitespace rule, re-asserted on the INSTANCE (E2.4 §2
+            # review: the belt was weaker than the brace it backs).
+            method = getattr(estimator, "uncertainty_method", "")
+            if any(character.isspace() for character in method):
+                raise ValueError(
+                    f"estimator {name!r} carries uncertainty_method {method!r} — the key "
+                    "travels in every score row and must be a short whitespace-free token"
+                )
 
 
 def build_default_registry() -> EstimatorRegistry:

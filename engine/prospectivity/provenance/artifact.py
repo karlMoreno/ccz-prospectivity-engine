@@ -40,6 +40,14 @@ artifact's SUBSTANCE: same inputs and same decisions produce the same hash on
 any machine, at any time. That is what makes it usable as an upstream
 reference and as a reproducibility check (CLAUDE.md: "same inputs + seed ->
 same outputs").
+
+E2.4 §2D: the exclusion set is a CLASS attribute (`HASH_EXCLUDED_FIELDS`)
+that a subclass may EXTEND — RunManifest adds `scores_first_visible`, the one
+deliberate exception to "no wall-clock in the substance" (BACKLOG §2, the
+pre-registration clock): a date that IS the fact being recorded, kept out of
+the hash so identical runs hash identically across days, and therefore
+MUTABLE METADATA whose authoritative witness is the commit, not the JSON.
+A subclass can only ADD exclusions, never remove the two above.
 """
 
 from __future__ import annotations
@@ -81,11 +89,23 @@ class ProvenanceArtifact(BaseModel):
         "upstream_hashes",
     )
 
+    # Fields outside the content hash. Subclasses may EXTEND (RunManifest adds
+    # scores_first_visible); the two base exclusions are always kept — see
+    # `hash_excluded_fields()`.
+    HASH_EXCLUDED_FIELDS: ClassVar[frozenset[str]] = _HASH_EXCLUDED_FIELDS
+
+    @classmethod
+    def hash_excluded_fields(cls) -> frozenset[str]:
+        """The effective exclusion set: the subclass's declaration UNION the
+        two base exclusions, so a subclass cannot pull generated_at or
+        content_hash back INTO its own hash by overriding the attribute."""
+        return frozenset(cls.HASH_EXCLUDED_FIELDS) | _HASH_EXCLUDED_FIELDS
+
     def substance(self) -> dict:
         """The artifact's hashable substance: everything except the excluded
         fields, JSON-normalized with sorted keys so ordering is never
         machine- or dict-dependent."""
-        payload = self.model_dump(mode="json", exclude=set(_HASH_EXCLUDED_FIELDS))
+        payload = self.model_dump(mode="json", exclude=set(type(self).hash_excluded_fields()))
         return payload
 
     def compute_content_hash(self) -> str:

@@ -56,8 +56,9 @@ was extrapolating between the clusters.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -73,6 +74,20 @@ from engine.prospectivity.estimators.variogram import (
 from engine.prospectivity.provenance.geometry import haversine_km
 
 COORDINATE_SYSTEMS = ("geographic_lonlat", "planar")
+
+UNCERTAINTY_SEMANTICS = (
+    "sqrt of the ordinary-kriging variance — a MODEL MOMENT under the fitted "
+    "variogram: 0 at a datum (exact interpolator), rising with distance from data "
+    "toward the sill and then EXCEEDING it by the Lagrange (mean-estimation) term "
+    "far-field. Comparable to but not the same kind of number as the baseline's "
+    "sample SD or QRF's quantile half-width."
+)
+NO_STRUCTURE_VERDICT = (
+    "no structure: the fitter's honest verdict is partial_sill == 0 and range == 0 "
+    "(a pure-nugget model), so kriging reverts to the training mean everywhere — "
+    "baseline-equivalent by the fitter's own verdict, not a tie to be tallied (E2.4 "
+    "§1B framing; a per-fold analogue of the two-fold geometry theorem)"
+)
 
 
 @dataclass(frozen=True)
@@ -108,7 +123,16 @@ class OrdinaryKrigingEstimator(Estimator):
     """Ordinary kriging with a fitted isotropic variogram (exponential
     used; spherical fitted and reported as the alternative — Karl's E2.2
     decision 3). Defaults encode decisions 1 and 2; the known-answer tests
-    override them with fixture-appropriate planar values."""
+    override them with fixture-appropriate planar values.
+
+    DECLARATIONS (E2.4 §2C / obligation 7): consumes "coordinates" — for
+    this estimator, features ARE coordinates (module docstring); the runner
+    routes TrainingMatrix.coords here by reading this class attribute,
+    never by matching the registry name."""
+
+    input_kind: ClassVar[str] = "coordinates"
+    uncertainty_method: ClassVar[str] = "sqrt_ordinary_kriging_variance"
+    uncertainty_semantics: ClassVar[str] = UNCERTAINTY_SEMANTICS
 
     def __init__(
         self,
@@ -282,6 +306,42 @@ class OrdinaryKrigingEstimator(Estimator):
         return mean, sd
 
     # --------------------------------------------------------------- report
+
+    def provenance(self) -> dict:
+        """`report()` as a JSON-able dict (BACKLOG §3 obligations 4 and 5):
+        every KrigingReport field, including `range_at_candidate_ceiling`
+        beside `range_km`, `range_below_first_supported_lag`, `residual_dof`,
+        the fitted bins the fit SAW, every excluded bin WITH its reason, the
+        unsupported lag ranges, and the spherical alternative — plus the
+        declared semantics and, when the fit found no structure, the
+        explicit verdict (NO_STRUCTURE_VERDICT) so a per-fold reader sees
+        "reverts to the training mean" and not a bare pair of zeros."""
+        report = self.report()
+        out = dataclasses.asdict(report)
+        # Obligation 5 made unmissable (E2.4 §2 review): the artifact writer
+        # serializes with sort_keys=True, which puts the floor twin BETWEEN
+        # `range_at_candidate_ceiling` and `range_km`. A reader must not have
+        # to reassemble the caveat from neighbouring keys, so the honest
+        # sentence is emitted as ONE value as well.
+        out["range_km_reported"] = (
+            f"{report.range_km:.4g} km"
+            + (" — AT THE CANDIDATE CEILING: unconstrained from above, the range exceeds "
+               "what the supported lags can resolve" if report.range_at_candidate_ceiling else "")
+            + (" — AT OR BELOW THE FIRST SUPPORTED LAG: the nugget/partial-sill split is "
+               "unidentifiable" if report.range_below_first_supported_lag else "")
+            + (f" (residual dof {report.residual_dof}"
+               + ("; 0 = an unfalsifiable near-interpolation" if report.residual_dof == 0 else "")
+               + ")")
+        )
+        out["uncertainty_method"] = self.uncertainty_method
+        out["uncertainty_semantics"] = self.uncertainty_semantics
+        out["no_structure"] = report.partial_sill == 0.0 and report.range_km == 0.0
+        out["verdict"] = NO_STRUCTURE_VERDICT if out["no_structure"] else (
+            "structured fit; range_at_candidate_ceiling=%s (True = unconstrained from "
+            "above: the range exceeds what the supported lags can resolve)"
+            % report.range_at_candidate_ceiling
+        )
+        return out
 
     def report(self) -> KrigingReport:
         if self._fit is None or self._alternative is None or self._coords is None:

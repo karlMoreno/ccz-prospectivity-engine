@@ -213,7 +213,12 @@ class FoldAssignment:
 
 
 class FoldSplitter(ABC):
-    """Strategy interface. Subclasses MUST declare `spatially_blocked`."""
+    """Strategy interface. Subclasses MUST declare `spatially_blocked`; every
+    instance also states `required_separation_km` (the minimum train–test
+    great-circle separation the design GUARANTEES, which the runner asserts
+    and records — 0.0 means "disjointness only", stated as such) and a
+    `purpose` (what the design measures, for the manifest; Karl's E2.4 §1B
+    decision made the labels binding)."""
 
     spatially_blocked: ClassVar[bool]
 
@@ -241,9 +246,39 @@ class FoldSplitter(ABC):
     def name(self) -> str:
         """The design's name as recorded in provenance."""
 
+    @property
+    @abstractmethod
+    def purpose(self) -> str:
+        """What this design measures — recorded beside its results."""
+
+    @property
+    @abstractmethod
+    def required_separation_km(self) -> float:
+        """The minimum train–test separation the design guarantees (km).
+        The runner asserts it on every fold and records it; 0.0 = the
+        design is deliberately unbuffered and only disjointness is asserted."""
+
     @abstractmethod
     def split(self, coords_lonlat: Any) -> FoldAssignment:
         """Deterministic fold assignment from coordinates alone."""
+
+
+def assert_claim_eligible(assignment: FoldAssignment) -> None:
+    """THE GUARD (E2.4 spec: random k-fold "cannot be selected as the
+    validation method for a published claim"): a design may back a claim
+    only if its recorded declaration says its folds are spatially blocked.
+    Reads the RECORD (validated as a bool at construction, written from the
+    class declaration), never a name. E2.5's refuse-to-validate re-asserts
+    this at claim time; the runner uses it to compute which designs are
+    claim-eligible and records the list."""
+    if assignment.spatially_blocked is not True:
+        raise ValueError(
+            f"design {assignment.splitter_name!r} is not spatially blocked "
+            "(spatially_blocked=False) — its scores may be REPORTED (as the "
+            "demonstrably-wrong comparison or the within-site leakage demonstration) "
+            "but can never back a published claim; CLAUDE.md: never report a plain "
+            "random-split score as validation"
+        )
 
 
 def _as_latlon_points(coords_lonlat: Any) -> list[tuple[float, float]]:
@@ -291,7 +326,14 @@ class SingleLinkageBlockSplitter(FoldSplitter):
 
     spatially_blocked: ClassVar[bool] = True
 
-    def __init__(self, *, linkage_km: float, design_name: str, min_blocks: int = 2) -> None:
+    def __init__(
+        self,
+        *,
+        linkage_km: float,
+        design_name: str,
+        min_blocks: int = 2,
+        purpose: str = "",
+    ) -> None:
         if not (linkage_km > 0 and np.isfinite(linkage_km)):
             raise ValueError(f"linkage_km must be a positive finite number, got {linkage_km!r}")
         if min_blocks < 2:
@@ -299,10 +341,26 @@ class SingleLinkageBlockSplitter(FoldSplitter):
         self._linkage_km = float(linkage_km)
         self._design_name = str(design_name)
         self._min_blocks = int(min_blocks)
+        self._purpose = str(purpose) or (
+            f"hold out one single-linkage block at {self._linkage_km:g} km linkage"
+        )
 
     @property
     def name(self) -> str:
         return self._design_name
+
+    @property
+    def purpose(self) -> str:
+        return self._purpose
+
+    @property
+    def required_separation_km(self) -> float:
+        """By construction: two stations in DIFFERENT single-linkage
+        components at threshold t are more than t apart (otherwise the edge
+        between them would have merged the components). So the guaranteed
+        separation IS the linkage, derived, not hand-picked; the measured
+        minimum per fold is recorded beside it."""
+        return self._linkage_km
 
     def split(self, coords_lonlat: Any) -> FoldAssignment:
         points = _as_latlon_points(coords_lonlat)
@@ -341,6 +399,7 @@ class SingleLinkageBlockSplitter(FoldSplitter):
             # Recorded FROM the class declaration, never a literal — the
             # provenance value E2.5 reads must be the enforced one (§1 review).
             spatially_blocked=type(self).spatially_blocked,
+            notes=(self._purpose, f"required_separation_km={self._linkage_km:g} (= the linkage, by construction)"),
             rule=(
                 "blocks are the connected components of the graph joining station pairs "
                 "within linkage_km (great-circle); one fold per block: hold the block "
@@ -356,22 +415,180 @@ class SingleLinkageBlockSplitter(FoldSplitter):
         )
 
 
+LOCO_PURPOSE = (
+    "ACROSS-CLUSTER EXTRAPOLATION (~991 km): the geometry measurement — how much the "
+    "clusters differ. Per the two-fold geometry theorem (BACKLOG §3 obligation 8) "
+    "kriging ≈ baseline here BY CONSTRUCTION; this design measures cluster A's mean "
+    "against cluster B's values and cannot rank estimators."
+)
+SITE_PURPOSE = (
+    "WITHIN-CLUSTER, site-to-site interpolation at 4.6–10 km (sites = single-linkage "
+    "blocks at 2 km; plateau [0.857, 4.614) km): THE HEADLINE within-cluster gate — "
+    "the scale the spec's '1–13 km' meant; DEM-stable because sites are physical "
+    "deployment locations, not cell artifacts (Karl, E2.4 §1B decision)."
+)
+LOSO_PURPOSE = (
+    "SUB-KILOMETRE WITHIN-SITE interpolation (every held-out station has a site-mate "
+    "within 0.86 km in training): labelled for exactly what it is — and, for RF, the "
+    "real-data leakage demonstration beside the known-answer number. Deliberately "
+    "UNBUFFERED (required_separation_km = 0; disjointness only). Never cited as a "
+    "generalization result (Karl, E2.4 §1B decision)."
+)
+RANDOM_PURPOSE = (
+    "THE DEMONSTRABLY-WRONG COMPARISON: random k-fold on autocorrelated data — reported "
+    "beside the spatial designs to show the inflation random splitting produces; can "
+    "never back a claim (spatially_blocked = False; assert_claim_eligible refuses it)."
+)
+
+
 def leave_one_cluster_out(linkage_km: float = DEFAULT_LINKAGE_KM) -> SingleLinkageBlockSplitter:
     """§1A: the across-cluster design. Default linkage = the corpus
     manifest's DEFAULT_LINKAGE_KM, so the CV clusters and the manifest's
     `spatial_summary_training_eligible.clusters` are one computation."""
-    return SingleLinkageBlockSplitter(linkage_km=linkage_km, design_name="leave_one_cluster_out")
+    return SingleLinkageBlockSplitter(
+        linkage_km=linkage_km, design_name="leave_one_cluster_out", purpose=LOCO_PURPOSE
+    )
+
+
+SITE_LINKAGE_KM = 2.0  # mid-plateau: any value in [0.857, 4.614) km gives the same five sites
+
+
+def leave_one_site_out(linkage_km: float = SITE_LINKAGE_KM) -> SingleLinkageBlockSplitter:
+    """§1B decision, design B — the headline within-cluster gate."""
+    return SingleLinkageBlockSplitter(
+        linkage_km=linkage_km, design_name="leave_one_site_out", purpose=SITE_PURPOSE
+    )
+
+
+class LeaveOneStationOutSplitter(FoldSplitter):
+    """§1B decision, design A: n folds, each holding out ONE station and
+    training on all others. `spatially_blocked = False` — deliberately: the
+    held-out station's site-mates (≤ 0.86 km) are in training, so this
+    design measures WITHIN-SITE interpolation and the real-data leakage RF
+    shows; it is the unbuffered design and can never back a claim (the
+    declaration is what E2.5 reads — the same bucket as random k-fold for
+    claim purposes, for a different, stated reason)."""
+
+    spatially_blocked: ClassVar[bool] = False
+
+    @property
+    def name(self) -> str:
+        return "leave_one_station_out"
+
+    @property
+    def purpose(self) -> str:
+        return LOSO_PURPOSE
+
+    @property
+    def required_separation_km(self) -> float:
+        return 0.0  # disjointness only — stated, not hidden
+
+    def split(self, coords_lonlat: Any) -> FoldAssignment:
+        points = _as_latlon_points(coords_lonlat)
+        n = len(points)
+        if n < 3:
+            raise ValueError(f"leave-one-station-out needs >= 3 rows (got {n}): a 2-row "
+                             "fold would train on one station")
+        folds = []
+        for i in range(n):
+            train = tuple(j for j in range(n) if j != i)
+            folds.append(
+                Fold(
+                    name=f"holdout_station_{i}",
+                    train_indices=train,
+                    test_indices=(i,),
+                    min_train_test_km=min_train_test_distance_km(points, train, (i,)),
+                )
+            )
+        return FoldAssignment(
+            splitter_name=self.name,
+            spatially_blocked=type(self).spatially_blocked,
+            rule="one fold per row: hold row i out, train on every other row; labels = row index",
+            parameters={},
+            n_rows=n,
+            labels=tuple(range(n)),
+            folds=tuple(folds),
+            stability_interval_km=None,
+            notes=(LOSO_PURPOSE, "required_separation_km=0 (unbuffered: disjointness only)"),
+            coords_sha256=coords_fingerprint(coords_lonlat),
+        )
+
+
+class RandomKFoldSplitter(FoldSplitter):
+    """The demonstrably-wrong comparison. Seeded, deterministic, and
+    DECLARED `spatially_blocked = False`, so `assert_claim_eligible` refuses
+    it by record. Its fold record still carries the measured min train–test
+    separation — which, on the real corpus, is the leakage made visible as a
+    number (a held-out station's site-mate ~0.3 km away in training)."""
+
+    spatially_blocked: ClassVar[bool] = False
+
+    def __init__(self, *, k: int, seed: int) -> None:
+        if k < 2:
+            raise ValueError("k must be >= 2")
+        self._k = int(k)
+        self._seed = int(seed)
+
+    @property
+    def name(self) -> str:
+        return "random_k_fold"
+
+    @property
+    def purpose(self) -> str:
+        return RANDOM_PURPOSE
+
+    @property
+    def required_separation_km(self) -> float:
+        return 0.0
+
+    def split(self, coords_lonlat: Any) -> FoldAssignment:
+        points = _as_latlon_points(coords_lonlat)
+        n = len(points)
+        if n < self._k:
+            raise ValueError(f"cannot make {self._k} folds from {n} rows")
+        rng = np.random.default_rng(self._seed)
+        order = rng.permutation(n)
+        labels = [0] * n
+        for position, row in enumerate(order):
+            labels[int(row)] = position % self._k
+        folds = []
+        for fold_id in range(self._k):
+            test = tuple(i for i in range(n) if labels[i] == fold_id)
+            train = tuple(i for i in range(n) if labels[i] != fold_id)
+            folds.append(
+                Fold(
+                    name=f"random_fold_{fold_id}",
+                    train_indices=train,
+                    test_indices=test,
+                    min_train_test_km=min_train_test_distance_km(points, train, test),
+                )
+            )
+        return FoldAssignment(
+            splitter_name=self.name,
+            spatially_blocked=type(self).spatially_blocked,
+            rule="rows permuted by a seeded RNG and dealt round-robin into k folds; ignores geography",
+            parameters={"k": self._k, "seed": self._seed},
+            n_rows=n,
+            labels=tuple(labels),
+            folds=tuple(folds),
+            stability_interval_km=None,
+            notes=(RANDOM_PURPOSE,),
+            coords_sha256=coords_fingerprint(coords_lonlat),
+        )
 
 
 def assert_spatially_separated(
     assignment: FoldAssignment, coords_lonlat: Any, *, min_separation_km: float
-) -> None:
+) -> dict[str, float]:
     """THE SPATIAL-LEAKAGE ASSERTION (E2.4 original requirement 4): for every
     fold, train and test are disjoint (Fold refuses otherwise at
     construction) AND separated by at least `min_separation_km`,
     RE-MEASURED here from the coordinates — not read back from the fold's
     recorded number, so a splitter that mis-recorded its own separation
-    is caught rather than trusted. Raises by fold name."""
+    is caught rather than trusted. Raises by fold name, and RETURNS the
+    measurements {fold name -> measured min km} so a caller records what was
+    MEASURED rather than re-quoting what the splitter claimed (E2.4 §2
+    review). The fold's own recorded number must equal the measurement."""
     points = _as_latlon_points(coords_lonlat)
     if len(points) != assignment.n_rows:
         raise ValueError(
@@ -385,8 +602,10 @@ def assert_spatially_separated(
                 f"the assignment was split from ({assignment.coords_sha256}) — same length, "
                 "different stations or row order; refusing to measure the wrong geometry"
             )
+    measurements: dict[str, float] = {}
     for fold in assignment.folds:
         measured = min_train_test_distance_km(points, fold.train_indices, fold.test_indices)
+        measurements[fold.name] = measured
         if measured < min_separation_km:
             raise ValueError(
                 f"fold {fold.name!r}: a training station lies {measured:.3f} km from a "
@@ -394,3 +613,10 @@ def assert_spatially_separated(
                 f"{min_separation_km} km; this fold leaks spatial structure across "
                 "the train/test boundary"
             )
+        if not np.isclose(measured, fold.min_train_test_km, rtol=1e-9, atol=1e-9):
+            raise ValueError(
+                f"fold {fold.name!r} records min_train_test_km="
+                f"{fold.min_train_test_km:.6f} but the coordinates measure "
+                f"{measured:.6f} km — the recorded separation is not a measurement"
+            )
+    return measurements

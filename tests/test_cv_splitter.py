@@ -26,10 +26,15 @@ from engine.prospectivity.validation.splitter import (
     Fold,
     FoldAssignment,
     FoldSplitter,
+    LeaveOneStationOutSplitter,
+    RandomKFoldSplitter,
     SingleLinkageBlockSplitter,
     assert_spatially_separated,
+    assert_claim_eligible,
     coords_fingerprint,
     leave_one_cluster_out,
+    leave_one_site_out,
+    min_train_test_distance_km,
 )
 
 # Four points on a meridian at 0, ~1, ~3, ~7 km (0.009° ≈ 1.001 km).
@@ -245,15 +250,16 @@ def test_fold_assignment_is_deterministic_and_identical_across_the_stability_int
     d = SingleLinkageBlockSplitter(linkage_km=900.0, design_name="leave_one_cluster_out").split(coords)
     assert a == b  # full FoldAssignment equality (dataclass __eq__)
     for other in (c, d):
-        # FULL state (rule 3): only `parameters` (the linkage) legitimately differs
-        assert dataclasses.replace(other, parameters=a.parameters) == a
+        # FULL state (rule 3): only `parameters` (the linkage) and the note
+        # that echoes it legitimately differ
+        assert dataclasses.replace(other, parameters=a.parameters, notes=a.notes) == a
     # The interval is HALF-OPEN [lo, hi): a linkage EXACTLY at lo (the
     # 10.018 km MST edge, bit-identical because the same haversine computes
     # both) reproduces the assignment; exactly at hi (986.036 km) the two
     # clusters merge into one block and the splitter refuses by name.
     lo, hi = a.stability_interval_km
     at_lo = SingleLinkageBlockSplitter(linkage_km=lo, design_name="leave_one_cluster_out").split(coords)
-    assert dataclasses.replace(at_lo, parameters=a.parameters) == a
+    assert dataclasses.replace(at_lo, parameters=a.parameters, notes=a.notes) == a
     with pytest.raises(ValueError, match="1 block"):
         SingleLinkageBlockSplitter(linkage_km=hi, design_name="leave_one_cluster_out").split(coords)
 
@@ -270,6 +276,67 @@ def test_leave_one_cluster_out_changes_when_the_linkage_leaves_the_plateau() -> 
     assert len(set(labels[~east])) == 2  # W splits into its two sites (10.018 km apart)
 
 
+# --------------------------- the two unblocked designs (E2.4 §2, §1B decision)
+
+
+def test_leave_one_station_out_is_n_folds_declared_unblocked_and_unbuffered() -> None:
+    """Karl's §1B framing, as code: A holds out ONE station, trains on all
+    others, declares `spatially_blocked = False` (its site-mates sit ≤ 0.86 km
+    away in training) and `required_separation_km = 0.0` — disjointness only,
+    stated rather than hidden."""
+    coords = _real_training_coords_lonlat()
+    splitter = LeaveOneStationOutSplitter()
+    assert splitter.spatially_blocked is False and splitter.required_separation_km == 0.0
+    assignment = splitter.split(coords)
+    assert assignment.spatially_blocked is False  # recorded FROM the class
+    assert len(assignment.folds) == 35 and assignment.labels == tuple(range(35))
+    assert all(len(f.test_indices) == 1 and len(f.train_indices) == 34 for f in assignment.folds)
+    assert min(f.min_train_test_km for f in assignment.folds) == pytest.approx(0.054, abs=1e-3)
+    assert assignment.stability_interval_km is None  # no threshold to be stable across
+    with pytest.raises(ValueError, match="never back a published claim"):
+        assert_claim_eligible(assignment)
+    with pytest.raises(ValueError, match=">= 3 rows"):
+        splitter.split(coords[:2])
+
+
+def test_random_k_fold_is_seeded_balanced_and_declared_unblocked() -> None:
+    coords = _real_training_coords_lonlat()
+    a = RandomKFoldSplitter(k=5, seed=0).split(coords)
+    b = RandomKFoldSplitter(k=5, seed=0).split(coords)
+    c = RandomKFoldSplitter(k=5, seed=1).split(coords)
+    assert a == b  # FULL-state determinism under the seed
+    assert c.labels != a.labels  # a different seed is a different partition
+    sizes = sorted(len(f.test_indices) for f in a.folds)
+    assert sizes == [7, 7, 7, 7, 7] and sum(sizes) == 35  # round-robin: balanced
+    assert a.spatially_blocked is False and a.parameters == {"k": 5, "seed": 0}
+    # the leakage it exists to demonstrate, as a number: a held-out station's
+    # nearest training neighbour is a few hundred metres away
+    assert min(f.min_train_test_km for f in a.folds) == pytest.approx(0.054, abs=1e-3)
+    with pytest.raises(ValueError, match="never back a published claim"):
+        assert_claim_eligible(a)
+    with pytest.raises(ValueError, match="k must be >= 2"):
+        RandomKFoldSplitter(k=1, seed=0)
+    with pytest.raises(ValueError, match="cannot make 40 folds from 35 rows"):
+        RandomKFoldSplitter(k=40, seed=0).split(coords)
+
+
+def test_leave_one_site_out_is_five_sites_on_the_real_corpus_and_may_back_a_claim() -> None:
+    """§1B design B: sites are single-linkage blocks at 2 km — three in the E
+    cluster (6/8/7 stations) and two in the W (7/7) — separated by at least
+    4.6 km, which is why this design (unlike A) is spatially blocked."""
+    coords = _real_training_coords_lonlat()
+    splitter = leave_one_site_out()
+    assert splitter.spatially_blocked is True and splitter.required_separation_km == 2.0
+    assignment = splitter.split(coords)
+    assert len(assignment.folds) == 5
+    assert sorted(len(f.test_indices) for f in assignment.folds) == [6, 7, 7, 7, 8]
+    assert min(f.min_train_test_km for f in assignment.folds) == pytest.approx(4.614, abs=1e-3)
+    lo, hi = assignment.stability_interval_km
+    assert lo == pytest.approx(0.857, abs=1e-3) and hi == pytest.approx(4.614, abs=1e-3)
+    assert_claim_eligible(assignment)  # does not raise
+    assert_spatially_separated(assignment, coords, min_separation_km=4.0)
+
+
 # ------------------------------------------ the spatial-leakage assertion
 
 
@@ -280,23 +347,44 @@ def test_assert_spatially_separated_remeasures_from_coordinates_and_fails_by_fol
     # Train sets are deliberately NOT "all other rows" (the buffered-design
     # generality): the ONLY fold with a sub-2 km crossing is the liar, so a
     # trusting implementation would pass everything (DID NOT RAISE) and a
-    # measuring one names near_pair.
-    lying = FoldAssignment(
-        splitter_name="probe",
-        spatially_blocked=True,
-        rule="hand-built",
-        parameters={},
-        n_rows=4,
-        labels=(0, 1, 2, 2),
-        folds=(
-            Fold("near_pair", (1,), (0,), min_train_test_km=999.0),  # really ~1.001 km
-            Fold("honest_pair", (2, 3), (1,), min_train_test_km=2.002),  # really ~2.002 km
-            Fold("far_pair", (0, 1), (2, 3), min_train_test_km=2.002),  # really ~2.002 km
-        ),
-    )
+    # measuring one names near_pair with the MEASURED distance.
+    points = [(lat, lon) for lon, lat in LINE_LONLAT]
+    truth = {
+        name: min_train_test_distance_km(points, train, test)
+        for name, train, test in (
+            ("near_pair", (1,), (0,)), ("honest_pair", (2, 3), (1,)), ("far_pair", (0, 1), (2, 3))
+        )
+    }
+
+    def build(near_record: float) -> FoldAssignment:
+        return FoldAssignment(
+            splitter_name="probe",
+            spatially_blocked=True,
+            rule="hand-built",
+            parameters={},
+            n_rows=4,
+            labels=(0, 1, 2, 2),
+            folds=(
+                Fold("near_pair", (1,), (0,), min_train_test_km=near_record),  # really ~1.001 km
+                Fold("honest_pair", (2, 3), (1,), min_train_test_km=truth["honest_pair"]),
+                Fold("far_pair", (0, 1), (2, 3), min_train_test_km=truth["far_pair"]),
+            ),
+        )
+
+    lying = build(999.0)
     with pytest.raises(ValueError, match="near_pair.*1\\.001 km"):
         assert_spatially_separated(lying, LINE_LONLAT, min_separation_km=2.0)
-    assert_spatially_separated(lying, LINE_LONLAT, min_separation_km=1.0)  # all folds >= 1 km
+    # …and even under a buffer every fold clears, the RECORDED 999 km is
+    # refused as not-a-measurement (E2.4 §2 review): the manifest's
+    # "measured" separation must be measured.
+    with pytest.raises(ValueError, match="records min_train_test_km=999.*not a measurement"):
+        assert_spatially_separated(lying, LINE_LONLAT, min_separation_km=1.0)
+    # the honest twin passes and RETURNS the measurements
+    honest = build(truth["near_pair"])
+    measured = assert_spatially_separated(honest, LINE_LONLAT, min_separation_km=1.0)
+    assert measured == truth
+    assert measured["near_pair"] == pytest.approx(1.001, abs=2e-3)
+    assert measured["far_pair"] == pytest.approx(2.002, abs=2e-3)
     with pytest.raises(ValueError, match="35 rows"):
         assert_spatially_separated(
             leave_one_cluster_out().split(_real_training_coords_lonlat()),
