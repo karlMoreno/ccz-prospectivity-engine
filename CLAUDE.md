@@ -294,31 +294,39 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **1, Track E — complete through E1.4** (as of 2026-07-29). Phase 0's scaffold +
-  seven contracts, real ingestion (E1.1 source adapters, E1.2 normalizers, E1.3 dedup +
-  corpus build, plus the P1/P1b/P2/P3 review batches), and terrain feature recipes (E1.4:
-  Contract 3 v3 metre-based windows, the 8 Option-A covariates, the plot deliverable) are
-  all built and reviewed.
+- Phase: **2, Track E — complete through E2.3** (minimal update 2026-08-18 at E2.4 §1;
+  the full status refresh is the P2.C item in `docs/BACKLOG.md` §2). Phase 0's scaffold +
+  seven contracts, Phase 1's real ingestion (E1.1–E1.3 + the P1/P1b/P2/P3 review batches),
+  terrain feature recipes (E1.4), and E1.5 are built and reviewed; Phase 2's preflight
+  (P2.0 origin taxonomy, Contract 8, P2.B/P2.A), the training matrix (E2.0), the Estimator
+  ABC + mean baseline + registry (E2.1), ordinary kriging (E2.2), and the quantile random
+  forest (E2.3) are built and reviewed; the E2.0–E2.3 review chain is audited and closed
+  (`docs/audits/2026-08-14-e2-review-disposition.md`).
 - **Corpus state:** `data/corpus/master_observations.csv` holds **108 rows** (36 SO268
   box-core events × MASS/COUNT/COVER), of which **35 are training-eligible**. It is
   **single-source** (`[01]`+`[05]` merged under `src_so268_boxcore`) until Track G delivers
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** the provenance manifest work is done for ingestion + features; Phase 2
-  (estimators + spatial CV) is next, and needs a decision on the training target first
-  (buried vs surface abundance — `docs/BACKLOG.md` §1).
+- **Next task:** E2.4 (spatially-blocked cross-validation + the comparison report;
+  `docs/prompts/phase2_prompts.md` §E2.4 as revised 2026-08-14 is the specification), then
+  E2.5 (refuse-to-validate). The training target is SETTLED as a Contract 8 slot
+  (`data/config/model_config.yaml` `target_definition`, provisional AUTHORED default,
+  P2.B → P2.A) — it does not block Track E; Isaac's citation arrives as the
+  AUTHORED→LITERATURE promotion (`docs/BACKLOG.md` §1).
 - **Open items live in `docs/BACKLOG.md`** — the single source of truth, grouped by who is
   blocked. Read it before proposing work; add an entry whenever something is deliberately
   deferred.
-- Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`,
-  `E1.3.md`, `E1.4.md`). Read the relevant one before changing that area.
+- Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`
+  … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.4.md`). Read the relevant
+  one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;
   if one needs a structural change, bump its `*_version`, tell me, and note it in the
   contracts README.
-- Do **not** jump ahead to Phase 2 (estimators, spatial CV) without my go-ahead — the
-  phase-boundary rule above still governs.
+- The phase-boundary rule above still governs: one task per prompt, STOP at each
+  boundary for review. (The former "do not jump ahead to Phase 2" line was removed at
+  E2.4 §1 — it was an active instruction contradicting the current work.)
 
 
 

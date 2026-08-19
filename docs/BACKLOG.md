@@ -36,8 +36,12 @@ pre-registration clock).
 risks, both addressed by E2.2/E2.3 and re-dispositioned); 2 triggers
 refreshed (coverage boundary, sole-observer hygiene — "after E2.0" had
 expired); the review-workflow entry gained its second layer.
-**40 open items**: §1 Track G 11, §2 Karl 6, §3
-Engineering 20, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+1 added 2026-08-18 (E2.4 §1: the P2.C doc-consistency batch, landing a
+transcript-only deferral); §4's fold-structure item re-closed on its
+ORIGINAL box (the audit had added a checked twin — deleted).
+**42 open items** (recounted from the boxes: the previous line said 40 with
+§3 at 20; the boxes said 21): §1 Track G 11, §2 Karl 7, §3
+Engineering 21, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -260,6 +264,85 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   [model_config.yaml](../data/config/model_config.yaml) header (the
   `acceptance_thresholds` slot); [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md)
   ("arrives with E2.5"); E2.3 closeout in [E2.3.md](walkthroughs/E2.3.md).
+- [ ] **P2.C — doc-consistency fixes (the deferral LANDED, E2.4 §1,
+  2026-08-18).** This batch was deferred in the Phase-2 planning
+  transcript with no landing spot — the exact shape the deferral rule
+  (CLAUDE.md workflow conventions) forbids; the E2.4 handoff named it
+  ("P2.C doc fixes … P2.D datetime dedup") and only P2.D had an entry
+  (§3, datetime). Each item below was RE-VERIFIED against the repo at E2.4
+  §1 by independent read-only checks with citations re-opened by a second
+  pass — the states are current facts, not transcript memory. One item was
+  pulled forward into E2.4 §1 itself: `CLAUDE.md`'s "Do not jump ahead to
+  Phase 2" line (an ACTIVE countermand, not stale decoration) plus the
+  minimal status refresh (1E-b). The full refresh stays here.
+  - **README status — and PUSH FIRST.** `README.md:16–25` still says
+    "Phase 1, Track E complete through E1.4" (corpus 108/35 counts are
+    still correct) and `:18` still says "dedup Specifications" — retired
+    for `DuplicateResolutionPolicy` at `c07ab80` (2026-07-30); truth:
+    Phase 2 through E2.3. `main` is **47 commits
+    ahead of `origin/main`** (remote at `b3ae97c`, E1.4) — so the GitHub
+    README is staler still. Verify the push state, push, THEN rewrite.
+  - **BACKLOG AOI denominator.** `docs/BACKLOG.md` §1 "Study area / AOI
+    scope" reads "108 of 114 corpus rows fall outside" — the 114 counted
+    the 6 fabricated in-box `[06]`/`[18]` rows removed in P1/P1b, and was
+    already wrong the day this file was created; the manifest's
+    `study_area_containment` is 108/108, `fraction_outside` 1.0 (and
+    §3's E1.5 item + `provenance.md:84` already say 108 of 108). Fix: "all
+    108 of 108 (100%)".
+  - **`covariates.yaml` title vs version.** `docs/contracts/covariates.yaml:1`
+    still reads "CONTRACT 3 (v2)" while `registry_version: 4` (line 57;
+    README row, `contract_versions.py`, `features/stack.py` and three tests
+    all agree on 4 — the header prose narrates both bumps, only the title
+    was never touched at 2→3 or 3→4). Docs-only: title → "(v4)". The
+    Contracts_v3 authoring copy is a genuine v2 and stays.
+  - **Handoff Task A–D closeout paragraph.** No handoff names the
+    2026-07-30 Phase-1 closeout Tasks A–D (`23f22f7` A, `16a6c3d` B,
+    `5f95129` C, Task D / Option C2); `HANDOFF_claude_code_phase2.md`
+    carries their RESULTS anonymously (202 tests, `DuplicateResolutionPolicy`,
+    Specification retired, fail-terminal-on-merge, testing conventions,
+    datetime item) while pointing a fresh session at E1.5.md as "most
+    recent state". Add the paragraph, or point at BACKLOG "Recently
+    closed" (which names them).
+  - **"Blocked on" framing → contract-slot framing.** The last live
+    instance was `CLAUDE.md` "Current status" ("needs a decision on the
+    training target first") — FIXED at E2.4 §1 (1E-b). BACKLOG §1's item
+    already carries the contract-slot framing; the section title "Blocked
+    on Track G" remains as a grouping label (still true for the other ten
+    items). Sweep `docs/` once more at fix time for any survivor outside
+    the historical `prompts/` and `handoffs/` records.
+  - **`docs/` prose contradicting the origin taxonomy.** Ten hits in three
+    groups: (a) `PATTERNS.md:329` and `walkthroughs/E1.5.md:232` say a
+    layer's synthetic-ness "is recorded in the layer's name" — since
+    P2.0d-3 it is the DECLARED `TerrainLayer.data_origin` (the fixture's
+    layer is literally named "bathymetry"; `tests/fixtures/rasters.py:116–118`);
+    (b) BACKLOG §1's `[06]`/`[18]` entries (~lines 89–98) describe the gate
+    as `_require_production_path()` / "a real file under `data/`" and `[18]`
+    as re-wirable — the gate is `_require_proven_measured` (declared
+    MEASURED + hash over real bytes) and `[18]` is declared LITERATURE, so it
+    cannot enter through `corpus_builder` at all (§3's admission-path item
+    already says so); (c) scattered "real"/"synthetic" used as if origin
+    followed from a filename — including `docs/contracts/README.md:163`
+    ("swap SYNTHETIC sources → REAL Phase-A downloads"), where the
+    checkpoint plan's shorthand predates the vocabulary. Fix by pointing
+    each at the declaration.
+  - **CI comment.** `.github/workflows/ci.yml:3–6` (unchanged since Phase 0,
+    `4160546`) says CI runs "the full pipeline end-to-end on synthetic
+    fixtures … over the synthetic sources in `data/fixtures/native/`"; what
+    runs is `pytest -v` over all 376 tests, which execute the REAL
+    production ingestion path (`build_corpus()` over the two hash-verified
+    PANGAEA `.tab` files in `data/sources/`), read the committed real
+    108-row corpus, and assemble the real 35-station training matrix over a
+    synthetic DEM. Rewrite the comment to say what runs; the CLAUDE.md
+    reproducibility line it quotes ("CI runs the full pipeline end-to-end
+    on synthetic fixtures every push") needs the same correction.
+  - **`SESSION_STATE.md` fate — [KARL — DECIDE: update / supersede with a
+    pointer / delete].** It is a Phase-0 + E1.1 checkpoint (names `4160546`,
+    "44 passed", next task E1.2), 52 commits and eight walkthroughs behind;
+    its only inbound references are the 2026-08-08 origin audit (:70, :165 —
+    the latter already flags it stale). Nothing else reads it.
+  Owner: Karl + E. Trigger: before Phase-2 closeout or before the repo is
+  shown to anyone, whichever comes first. Detail: this entry's citations;
+  [E2.4.md](walkthroughs/E2.4.md) §0 finding C.
 - [ ] **Uncited literature-shaped numbers in the contracts README.** The
   100 kg/m² ceiling rationale asserts "published CCZ abundances run
   ~1.5–30 kg/m²" and "~2 g/cm³ wet bulk density" with no citation —
@@ -769,22 +852,23 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   baseline BY CONSTRUCTION. Original text: "any curve through the gap is
   extrapolation, not estimation" — now a recorded property of every fit,
   not a risk. Detail: [E2.2.md](walkthroughs/E2.2.md) §1–§2.
-- [x] **Spatial CV fold structure — ANSWERED at the E2.3 closeout,
-  re-dispositioned at the E2.X audit (ledger row 21).** "With two real
-  clusters, honest spatial CV reduces to leave-one-cluster-out with n=2
-  folds. Decide how to REPORT that limitation" — the answer is stronger
-  than a reporting choice: the two-fold geometry theorem (§3 runner
-  obligation 8) says the across-cluster fold structurally CANNOT rank the
-  estimators, so it is reported as a measurement ("the two clusters differ
-  by X") and the within-cluster gate is the only model comparison. E2.4-PRE
-  carried this into the tracked prompt (`562d9a7`). Original: Owner E +
-  Karl, Trigger Phase-2 kickoff — the kickoff happened and answered it.
-  Detail: obligation 8; [phase2_prompts.md](prompts/phase2_prompts.md) E2.4.
-- [ ] **Spatial CV fold structure.** With two real clusters, honest spatial
+- [x] **Spatial CV fold structure.** With two real clusters, honest spatial
   CV reduces to leave-one-cluster-out with n=2 folds. Decide how to REPORT
   that limitation rather than papering over it with random blocks inside
   clusters. Owner: E + Karl. Trigger: Phase-2 kickoff (E2.x spatial CV).
   Detail: review discussion 2026-07-28.
+  **CLOSED — ANSWERED at the E2.3 closeout, re-dispositioned at the E2.X
+  audit (ledger row 21), box checked at E2.4 §1 (2026-08-18; the audit
+  had closed it by adding a checked twin beside this open original — the
+  twin is deleted, this is the one entry).** The answer is stronger than
+  a reporting choice: the two-fold geometry theorem (§3 runner obligation
+  8) says the across-cluster fold structurally CANNOT rank the estimators,
+  so it is reported as a measurement ("the two clusters differ by X") and
+  the within-cluster gate is the only model comparison. E2.4-PRE carried
+  this into the tracked prompt (`562d9a7`); E2.4 §1 measured the
+  within-cluster consequence (kriging cannot refit on strictly-within-
+  cluster folds — [E2.4.md](walkthroughs/E2.4.md) §1B). Detail:
+  obligation 8; [phase2_prompts.md](prompts/phase2_prompts.md) E2.4.
 
 ## 5. Contract hygiene (the P3 batch — COMPLETE 2026-07-29)
 

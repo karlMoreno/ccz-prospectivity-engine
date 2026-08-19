@@ -416,7 +416,29 @@ promote to one only if the splitters need shared state.
 spatial CV reduces to leave-one-cluster-out at n=2 folds
 (`spatial_summary_training_eligible`: 2 clusters, 974 km support gap). The
 Strategy seam is what lets a fold structure be swapped when more sources land —
-but no pattern fixes n=2. That's BACKLOG §4.
+but no pattern fixes n=2. WHY n=2 cannot rank the estimators (not only that it
+is small) is the two-fold geometry theorem — BACKLOG §3 "E2.4 runner
+obligations" (8): with the fitted range ≤ 13 km of support, kriging across the
+~991 km gap reverts to the training cluster's mean, so across clusters kriging ≈
+baseline BY CONSTRUCTION and the fold is a measurement of how much the clusters
+differ, not a model comparison. (The former "That's BACKLOG §4" pointer went to
+an item that is now closed by that theorem.)
+
+**Realized in E2.4 §1 (2026-08-18):** `FoldSplitter` ABC in
+`engine/prospectivity/validation/splitter.py` — Strategy, with a
+`spatially_blocked: ClassVar[bool]` DECLARATION enforced by `__init_subclass__`
+(the E2.1 predict-is-final precedent): a splitter that does not say whether its
+folds may back a claim cannot be declared, so E2.5's guard reads a declaration
+and never infers from a name. `split()` returns a `FoldAssignment` (labels,
+folds, rule, parameters, and the tie-break STABILITY INTERVAL of thresholds that
+reproduce the partition) — the assignment as data for the run manifest. First
+implementation: `SingleLinkageBlockSplitter` (connected components of the
+within-`linkage_km` graph — the corpus manifest's own clustering, ONE
+implementation shared via `geometry.single_linkage_labels`), which at 100 km IS
+leave-one-cluster-out. The within-cluster scheme and random k-fold (declared
+`spatially_blocked = False`) land in E2.4 §2 after Karl's §1 pick. It did need
+an ABC after all: the declaration is class-level state a bare callable cannot
+carry.
 
 ### 4.3 Economic scenarios — Strategy, probably thin
 

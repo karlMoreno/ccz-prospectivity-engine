@@ -78,11 +78,27 @@ def _pairwise_distances_km(locations: list[tuple[float, float]]) -> list[float]:
     )
 
 
-def _single_linkage_clusters(
+def single_linkage_labels(
     locations: list[tuple[float, float]], linkage_km: float
-) -> list[list[tuple[float, float]]]:
-    """Union-find single-linkage: two locations join the same cluster if they
-    are within `linkage_km`, transitively."""
+) -> list[int]:
+    """Union-find single-linkage over (lat, lon) points: two locations share
+    a label if they are within `linkage_km`, transitively. Returns one label
+    per INPUT INDEX (0-based, dense, numbered in order of each component's
+    lowest index) — the index-keyed form E2.4's fold splitter needs, where a
+    fold is a set of matrix rows, not a set of coordinates.
+
+    THE ONE IMPLEMENTATION (the E2.2 lesson: one binning, one linkage): the
+    manifest's cluster summary below and the CV fold assignment both call
+    this, so "the corpus is two clusters" and "leave-one-cluster-out has two
+    folds" are the same computation, not two that happen to agree.
+
+    ORDER-INDEPENDENT BY CONSTRUCTION: single-linkage components are the
+    connected components of the graph whose edges are pairs at distance
+    <= linkage_km. Connected components are a property of the graph, not of
+    the order edges are visited, so no tie-break exists to be sensitive to.
+    The only thing that can move a label is the threshold crossing an edge
+    length — see `minimum_spanning_tree_edge_lengths_km` for the interval
+    of thresholds over which a partition is stable."""
     parent = list(range(len(locations)))
 
     def find(i: int) -> int:
@@ -98,11 +114,63 @@ def _single_linkage_clusters(
                 if root_i != root_j:
                     parent[max(root_i, root_j)] = min(root_i, root_j)
 
+    root_to_label: dict[int, int] = {}
+    labels: list[int] = []
+    for index in range(len(locations)):
+        root = find(index)
+        if root not in root_to_label:
+            root_to_label[root] = len(root_to_label)
+        labels.append(root_to_label[root])
+    return labels
+
+
+def _single_linkage_clusters(
+    locations: list[tuple[float, float]], linkage_km: float
+) -> list[list[tuple[float, float]]]:
+    """Location-grouped view over `single_linkage_labels` (the manifest's
+    consumer). Sorted by first member so cluster order never depends on
+    dict iteration."""
+    labels = single_linkage_labels(locations, linkage_km)
     grouped: dict[int, list[tuple[float, float]]] = {}
     for index, location in enumerate(locations):
-        grouped.setdefault(find(index), []).append(location)
-    # Sorted by first member so cluster order never depends on dict iteration.
+        grouped.setdefault(labels[index], []).append(location)
     return [members for _, members in sorted(grouped.items(), key=lambda kv: kv[1][0])]
+
+
+def minimum_spanning_tree_edge_lengths_km(
+    locations: list[tuple[float, float]],
+) -> list[float]:
+    """Sorted edge lengths (great-circle km) of the minimum spanning tree over
+    (lat, lon) points — Prim's algorithm, O(n²), no scipy (not an approved
+    dependency; 35 points).
+
+    WHY THIS EXISTS (E2.4 §1A): single-linkage at threshold t yields the
+    partition obtained by cutting every MST edge longer than t. So the
+    partition is IDENTICAL for every t in [e_k, e_{k+1}) between two
+    consecutive sorted MST edge lengths — that half-open interval is the
+    tie-break-insensitivity guarantee for a fold assignment, and E2.4's
+    splitter records it in provenance beside the linkage it used. On the
+    real corpus the last two edges are 10.018 km and 986.036 km: any
+    threshold in that interval gives the same two clusters."""
+    n = len(locations)
+    if n < 2:
+        return []
+    in_tree = [False] * n
+    best = [math.inf] * n
+    best[0] = 0.0
+    edges: list[float] = []
+    for _ in range(n):
+        u = min((best[i], i) for i in range(n) if not in_tree[i])[1]
+        in_tree[u] = True
+        if u != 0:
+            # every vertex after the seed contributes the edge that added it
+            edges.append(best[u])
+        for v in range(n):
+            if not in_tree[v]:
+                d = haversine_km(*locations[u], *locations[v])
+                if d < best[v]:
+                    best[v] = d
+    return sorted(edges)
 
 
 def _rounded(value: float | None, digits: int = 4) -> float | None:
