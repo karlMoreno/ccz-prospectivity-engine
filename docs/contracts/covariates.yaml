@@ -1,4 +1,4 @@
-# CONTRACT 3 (v2) — Covariate registry
+# CONTRACT 3 (v4) — Covariate registry
 # ---------------------------------------------------------------------------
 # The single source of truth for which covariates the engine uses, and with
 # what parameters. Track E implements each ENABLED recipe deterministically

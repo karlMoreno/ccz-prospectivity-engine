@@ -173,7 +173,7 @@ the verdict.
 ## Integration checkpoints (fixture → real)
 
 ```text
-CP0  swap SYNTHETIC sources → REAL Phase-A downloads   (Contracts 1,5,7)  ← EARLY
+CP0  swap declared-SYNTHETIC/AUTHORED inputs → MEASURED (Contracts 1,5,7)  ← EARLY
      (Phase A is a fast numeric download, so the real-corpus swap happens at the START)
 CP1  swap synthetic DEM      → real bathymetry.tif      (Contracts 2,5)
 CP2  run kriging + RF + baseline on the REAL corpus with spatial CV        (spec feedback)

@@ -179,8 +179,12 @@ guard checks the proof and not the claim.
 - Every model run emits a **provenance manifest** (inputs + hashes, params, seeds, CV
   strategy + scores, baseline scores, TS-6 agreement, output hashes).
 - Set and record random seeds. Same inputs + seed → same outputs.
-- CI runs the full pipeline end-to-end on **synthetic fixtures** every push. The fixtures
-  are the concurrency safety net — keep them working.
+- CI runs the full suite every push. It exercises the REAL ingestion path (the two
+  hash-verified PANGAEA `.tab` files in `data/sources/`), the real 108-row corpus and
+  35-station matrix over a **synthetic DEM**, the estimators, spatial CV, and the claim
+  guard. The **synthetic fixtures** are the concurrency safety net — keep them working.
+  (Corrected at P2.CLOSE, 2026-08-20: this line said CI runs "on synthetic fixtures",
+  which understated it by two phases and was the sentence `ci.yml`'s stale comment quoted.)
 
 ---
 

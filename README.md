@@ -13,16 +13,42 @@ for the full build plan. The seven frozen contracts live in
 
 ## Status
 
-**Phase 1, Track E complete through E1.4.** Phase 0's scaffold + seven
-contracts, real ingestion (E1.1–E1.3: source adapters, per-evidence-class
-normalizers, dedup Specifications, corpus build), and terrain feature
-recipes (E1.4: Contract 3 v3 metre-based windows, the 8 Option-A covariates,
-plot deliverable on the labelled synthetic DEM) are built and reviewed. The
-corpus ([`data/corpus/master_observations.csv`](data/corpus/master_observations.csv))
-holds **108 rows** (36 SO268 box-core events × MASS/COUNT/COVER), **35
-training-eligible MASS rows**, and is **single-source** until Track G
-delivers real Dryad data and the TS-6 digitization. Per-task reviews live in
-[`docs/walkthroughs/`](docs/walkthroughs/).
+**Phase 2, Track E complete.** Phase 0's scaffold + eight contracts, real
+ingestion (E1.1–E1.3: source adapters, per-evidence-class normalizers,
+`DuplicateResolutionPolicy` dedup, corpus build), terrain feature recipes
+(E1.4), the training matrix, three estimators behind one `Estimator` ABC
+(mean baseline, ordinary kriging, quantile random forest), spatially-blocked
+cross-validation, and the refuse-to-validate claim guard are built and
+reviewed. The suite is **471 passed, 2 skipped**.
+
+The corpus ([`data/corpus/master_observations.csv`](data/corpus/master_observations.csv))
+holds **108 rows** (36 SO268 box-core events × MASS/COUNT/COVER), of which
+**35 are training-eligible**. It draws on **2 real open sources**, both
+**CC BY-NC 4.0**, and contains **no fabricated values** — the placeholders
+that once stood in for a third and fourth source were removed rather than
+left in place.
+
+Every value in the repo declares HOW IT CAME TO EXIST — `MEASURED`,
+`DERIVED`, `LITERATURE`, `SYNTHETIC` or `AUTHORED` — and the declarations are
+enforced, not documented: a production build path admits only a `MEASURED`
+declaration whose recorded SHA-256 re-hashes to the bytes on disk, and an
+audit test resolves the evidence for every other class. See
+[the data-origin section of `CLAUDE.md`](CLAUDE.md) and
+[`engine/prospectivity/provenance/origin.py`](engine/prospectivity/provenance/origin.py).
+
+**No output here is a scientific claim yet.** The terrain covariates are
+computed on a **SYNTHETIC DEM** until Checkpoint 1 delivers real bathymetry,
+so every run is watermarked non-scientific by that same taxonomy — the
+watermark is DERIVED from the computed origin and defaults ON. Accordingly,
+the claim guard's verdict on the real run is a **REFUSAL**, for three
+independent reasons: no acceptance threshold was pre-registered before the
+scores existed, the covariates are synthetic, and at the honest
+within-cluster gate neither model beats the mean baseline. That refusal is
+the machinery working, and it is recorded rather than described:
+[`docs/walkthroughs/E2.5.md`](docs/walkthroughs/E2.5.md).
+
+Per-task reviews live in [`docs/walkthroughs/`](docs/walkthroughs/); open
+items in [`docs/BACKLOG.md`](docs/BACKLOG.md).
 
 ## Development
 

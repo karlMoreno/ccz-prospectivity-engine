@@ -101,19 +101,23 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   [model_config.yaml](../data/config/model_config.yaml) header; the parsing
   hazard for anyone re-running the analysis is §3 ("[05] Depth sed parsing
   hazard").
-- [ ] **Study area / AOI scope.** 108 of 114 corpus rows fall outside
-  `study_area.geojson`'s Phase-0 placeholder (E1.4 preflight confirmed 0/35
-  training points on the placeholder AOI). Options: AOI = sampled areas
+- [ ] **Study area / AOI scope.** ALL **108 of 108** corpus rows fall
+  outside `study_area.geojson`'s Phase-0 placeholder — `fraction_outside`
+  1.0 in `data/corpus/manifest.json` (E1.4 preflight confirmed 0/35 training
+  points on the placeholder AOI). *Corrected at P2.CLOSE, 2026-08-20: this
+  read "108 of 114", a denominator that counted the 6 fabricated in-box
+  `[06]`/`[18]` rows removed in P1/P1b — so it was already wrong the day
+  this file was created.* Options: AOI = sampled areas
   only; AOI = full CCZ with distance-growing uncertainty; or defer.
   Recommendation: defer, then define the AOI around where the data actually
   sits. Owner: G + Karl. Trigger: before Phase-2 prediction surfaces.
   Detail: [data/aoi/study_area.geojson](../data/aoi/study_area.geojson);
   E1.4.md §1.
 - [ ] **Real Dryad `[06]` data.** Removed from `REAL_ADAPTER_BUILDERS` in P1
-  as fabricated; `_require_production_path()` blocks re-wiring until a real
+  as fabricated; `_require_proven_measured()` blocks re-wiring until a real
   file exists under `data/`. Owner: G downloads, E re-wires. Trigger: real
   Dryad file delivered. Detail:
-  [corpus_builder.py:168](../engine/prospectivity/ingestion/corpus_builder.py#L168);
+  [corpus_builder.py:234](../engine/prospectivity/ingestion/corpus_builder.py#L234);
   E1.3.md §13.
 - [ ] **Real TS-6 `[18]` digitization (Contract 6).** Same P1b guard as
   `[06]`; `ts6_reference.yaml`'s method/figure/role_note/metrics fields are
@@ -1020,7 +1024,21 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   as the record of what each was originally due against; **the batch trigger
   above supersedes them all.**
 
-  - **(a)** *(moved from §2 — Karl + E)* **P2.C — doc-consistency fixes (the deferral LANDED, E2.4 §1,
+  - **(a) DONE 2026-08-20 (P2.CLOSE commit 3).** All nine items dispositioned;
+    three needed no edit and are recorded as such (the fixtures README was
+    already done at P2.0d-3; the "blocked on" framing had no live instance
+    left outside the deliberate section title; obligation 6's `sd_ddof` keeps
+    its verbatim text by its own disposition). Two premises did not survive
+    checking and are corrected in the walkthrough: the root README read
+    "Phase 1, Track E complete through E1.4", not "Phase 0 (scaffold)"; and
+    `SESSION_STATE.md` lives at `docs/`, with TWO inbound markdown links in
+    the origin audit that would have dangled — flattened, not left broken.
+    Two further mismatches were found by the in-file scan item 1 asked for:
+    §1's `[06]` entry cited `corpus_builder.py:168` (now a column mapping;
+    the guard is at :234) and named `_require_production_path()` where
+    callers actually hit `_require_proven_measured()`. Detail:
+    [P2-closeout.md](walkthroughs/P2-closeout.md) commit 3.
+    *(original entry, for the record)* **P2.C — doc-consistency fixes (the deferral LANDED, E2.4 §1,
     2026-08-18).** This batch was deferred in the Phase-2 planning
     transcript with no landing spot — the exact shape the deferral rule
     (CLAUDE.md workflow conventions) forbids; the E2.4 handoff named it

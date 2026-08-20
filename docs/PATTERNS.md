@@ -348,7 +348,11 @@ Two things the bridge also fixed:
   is gone**, replaced by a real computed hash — as is the identical placeholder
   in `FixtureTS6Reference`, fixed in the same pass since leaving one of two
   identical fakes would just reintroduce the problem at Checkpoint 3. Being
-  synthetic is recorded in the layer's name, never by faking a hash.
+  synthetic is recorded in the layer's DECLARED `data_origin`, never by
+  faking a hash and never by its name. *(Corrected at P2.CLOSE, 2026-08-20:
+  this said "recorded in the layer's name". Since P2.0d-3 no code may infer
+  origin from a name — the synthetic fixture's layer is literally named
+  "bathymetry" — and `TerrainLayer.data_origin` is the record.)*
 
 `DemGrid.load(path)` remains for direct use (the plot CLI, tests) — it is the
 low-level reader the bridge delegates to, not a competing way in.

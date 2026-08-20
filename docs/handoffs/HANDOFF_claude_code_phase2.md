@@ -76,6 +76,32 @@ Env        Python 3.11 pinned · requirements.lock · pangaeapy in the [fetch] e
 the real dedup rules turned out neither composable nor pure. `PATTERNS.md` records the
 reverse audit; don't reintroduce them.
 
+**THE PHASE-1 CLOSEOUT, TASKS A–D (2026-07-30) — named, because this document
+carried their results anonymously.** Added at P2.CLOSE (2026-08-20) closing the
+P2.C item: a fresh session reading "202 tests" and "`DuplicateResolutionPolicy`"
+could not tell which review produced them or what else that review found.
+
+* **Task A (`23f22f7`)** — the reverse audit of `PATTERNS.md` against the code:
+  three findings, all closed since (combinators deleted, `TerrainSource` wired,
+  `CorpusCsvSampleSource` implemented at E2.0-1).
+* **Task B (`16a6c3d`)** — **the test-name audit: 17 tests whose names claimed
+  more, less, or other than their bodies checked.** Two could have caused a
+  wrong ACTION rather than confusion: `test_mass_rows_are_training_eligible`
+  stated a rule FALSE since P1 (a flagged MASS row is not eligible) and
+  contradicted `test_sample_source.py`'s opposite assertion; and
+  `..._reconciles_exactly_for_at_least_31_of_36_events` invited a maintainer to
+  "fix" a failure by loosening toward 31, erasing the documented D8 residual the
+  test exists to pin. This audit is why CLAUDE.md's testing convention 1 exists.
+* **Task C (`c07ab80`)** — `Specification` retired for `DuplicateResolutionPolicy`
+  returning a `Resolution`; the exhaustive-dispatch idiom later reused by E2.5's
+  precondition set.
+* **Task D (Option C2)** — fail-terminal-on-merge, plus the datetime finding
+  (naive-vs-aware comparison in dedup) which is STILL OPEN as P2.D in
+  `docs/BACKLOG.md` §3.
+
+`docs/BACKLOG.md` "Recently closed" names these too; this paragraph exists so
+the handoff does not send a reader looking.
+
 ---
 
 ## Invariants Phase 2 must not break

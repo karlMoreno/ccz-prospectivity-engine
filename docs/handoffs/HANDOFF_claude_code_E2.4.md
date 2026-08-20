@@ -52,5 +52,5 @@ Open, owned by Karl — none blocks E2.4
 
 * Within-cluster blocking choice — the one STOP in this task.
 * `src_bathymetry_primary` / GEBCO TID classification (before Checkpoint 1).
-* `SESSION_STATE.md` fate (gates P2.C item 9 only).
+* ~~`SESSION_STATE.md` fate (gates P2.C item 9 only).~~ **ANSWERED at P2.CLOSE, 2026-08-20: DELETE. Done.**
 * Contract `change_class: metadata|semantic` (before the next metadata-shaped contract addition).

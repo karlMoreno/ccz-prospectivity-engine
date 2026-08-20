@@ -1,9 +1,19 @@
 name: CI
 
-# CLAUDE.md: "CI runs the full pipeline end-to-end on synthetic fixtures every
-# push." Phase 0's "full pipeline" is the ingestion Template Method over the
-# synthetic sources in data/fixtures/native/ — real per-source adapters and
-# the modeling stages land in later phases and grow this workflow, not replace it.
+# WHAT THIS ACTUALLY RUNS (corrected at P2.CLOSE, 2026-08-20; the comment
+# below it had been unchanged since Phase 0 and understated CI by two phases).
+# `pytest -v` over the whole suite, which exercises:
+#   * the REAL production ingestion path — build_corpus() over the two
+#     hash-verified PANGAEA .tab files in data/sources/, through the same
+#     _require_proven_measured guard production uses;
+#   * the committed REAL 108-row corpus and the REAL 35-station training
+#     matrix, assembled over a SYNTHETIC DEM (covariates are synthetic until
+#     Checkpoint 1 — see the data-origin taxonomy in CLAUDE.md);
+#   * the estimators, spatially-blocked cross-validation, and the
+#     refuse-to-validate claim guard.
+# CLAUDE.md's reproducibility line ("CI runs the full pipeline end-to-end on
+# synthetic fixtures every push") is corrected in the same commit: the
+# FIXTURES are the concurrency safety net, but they are not all that runs.
 on:
   push:
   pull_request:
