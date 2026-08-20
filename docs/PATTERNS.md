@@ -147,9 +147,11 @@ recipe declares its border policy) and
 
 The eight BACKLOG §3 runner obligations are properties of this one object:
 iterating `items()` makes "the baseline RAN" follow from "the baseline is
-REGISTERED" (the structural half E2.1 could not supply), and the try/else
-shape makes a stale-state predict after a refused refit impossible rather
-than forbidden. `engine.py`'s old `cross_validator` callable seam (one
+REGISTERED" (the structural half E2.1 could not supply), and the
+early-return-from-the-except-handler shape makes a stale-state predict after a
+refused refit impossible rather than forbidden (corrected at the E2.4 audit,
+F-16 sweep: this said "the try/else shape", a construct `_fit_score` does not
+contain — there are two `try` blocks and no `else:`). `engine.py`'s old `cross_validator` callable seam (one
 estimator, no coordinates) is RETIRED for this — §4.2 below, realized.
 
 ### 2.5 Observer + Null Object — provenance recording

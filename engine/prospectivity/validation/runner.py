@@ -13,8 +13,12 @@ The fixed sequence, never overridden:
             for (name, estimator) in registry.items():  ← EVERY estimator,
                 features = route(estimator, matrix)        never get(): a
                 try: estimator.fit(features[train], y[train])   complete registry
-                except ValueError as refusal: RECORD, no predict   ⇒ a RUN baseline
-                else: predict → score → provenance()
+                except ValueError: RECORD refusal, RETURN          ⇒ a RUN baseline
+                try: estimator.predict(features[test])   ← ONLY the predict call
+                except ValueError: RECORD refusal (phase=predict)  is inside this try
+                score_predictions(...); estimator.provenance()     ← outside it: a
+                                                                     failure here is a
+                                                                     bug and propagates
             join every estimator's fold row to the BASELINE's fold row
         pool each estimator's scored folds (+ the baseline on the SAME folds)
     emit_run_manifest(report, matrix, matrix_manifest)  ← the provenance chain
@@ -25,9 +29,17 @@ implemented here, not paraphrased; the section is the specification:
       `assert_complete()` first, so REGISTERED ⇒ RUN.
   (2) the ONE shared instance is refit per fold; a refused fit is recorded
       per (design, fold, estimator) and `predict` is structurally
-      unreachable after it (the `else:` of the try) — the E2.2 atomic-fit
-      precedent made a runner property. LIVE on the real data: kriging fits
-      the fold that trains on E and REFUSES the fold that trains on W.
+      unreachable after it — TWO separate `try` blocks, and the fit
+      handler RETURNS, so the predict call below it cannot be reached
+      (there is no `else:`; this docstring said there was until the E2.4
+      audit, F-2 — the drift entered when the §2 review's predict-time
+      refusal split one try/except/else into two blocks). The E2.2
+      atomic-fit precedent, made a runner property. LIVE on the real data:
+      kriging REFUSES the leave-one-cluster-out fold that trains on W (on a
+      never-fitted instance, so nothing stale exists there) and, in
+      leave-one-site-out, refuses fold 3 WHILE STILL HOLDING fold 2's
+      28-station fit — that is the order that can falsify this, and no
+      prediction is served from it.
   (3) the sd=0 policy is the metrics module's (decided at §1D); the runner
       passes every paired sd through unfloored and carries the counts.
   (4)(5)(6) each estimator's `provenance()` is recorded PER FOLD — kriging's

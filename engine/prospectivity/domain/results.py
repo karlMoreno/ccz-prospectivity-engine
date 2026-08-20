@@ -1,5 +1,12 @@
-"""Result types emitted by ProspectivityEngine.run() (Phase 2-4 fill these in;
-Phase 0 only needs the shapes to exist so interfaces can reference them).
+"""Result types emitted by ProspectivityEngine.run().
+
+`CVScore` and `RunManifest` are EMITTED and tested since E2.4 §2 — the run
+manifest is written by `validation/runner.py: emit_run_manifest` and a real
+one is committed at `data/runs/e2.4/run_manifest.json`. `PredictionSurface`,
+`UncertaintySurface`, `TS6Agreement` and `EconomicScenarioResult` are still
+Phase-0 shapes that Phases 3–4 fill in. (The former blanket "Phase 2-4 fill
+these in" was corrected at the E2.4 audit, F-3: it survived the §2B
+stale-reference sweep and contradicted the same file's own contents.)
 """
 
 from __future__ import annotations

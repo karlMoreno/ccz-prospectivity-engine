@@ -43,9 +43,11 @@ ORIGINAL box (the audit had added a checked twin — deleted).
 the ORIGINAL entry, no twin).
 1 added 2026-08-19 (E2.4 §3: the feature-stack manifest hashes absolute
 paths, so no downstream artifact identity is portable — found by the run
-manifest's own chain assertion).
-**42 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
-Engineering 21, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+manifest's own chain assertion); 2 more added 2026-08-19 at the E2.4 audit
+(the leakage test's non-seed-robust magnitude pins; nothing observes the
+walkthrough's own tables).
+**44 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
+Engineering 23, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -818,6 +820,54 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `hyperparameters.sd_mapping = "half_width_(q84-q16)/2"`. The quoted text
   stays as quoted; the correction rides here and in the P2.C batch (§2
   review finding F18).
+- [ ] **Nothing observes the walkthrough's own comparison tables** (E2.4 audit
+  F-6 residue, recorded 2026-08-19 when the column half was fixed and this
+  half was not). Obligation 7's uncertainty-semantics column is now a real
+  column in both §3 tables that print sd-derived numbers, and the MANIFEST
+  side is tested end to end — but `test_every_sd_shaped_number_in_the_artifact_carries_its_semantics`
+  reads the artifact, not the markdown, so the column can be deleted from
+  `docs/walkthroughs/E2.4.md` with a green suite. There is no report renderer
+  in `engine/` to test: the tables are hand-written. Options: (a) accept —
+  markdown drift is caught by review, not by pytest; (b) generate the §3
+  tables from the manifest so the column cannot be dropped without the
+  generator changing; (c) a doc-lint test that asserts the semantics column
+  exists in any table printing `cov ±1σ` or `z-RMS`. Owner: Karl + E.
+  Trigger: at Phase-2 closeout, or the first time a table is edited by hand.
+  Detail: [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
+  F-6.
+- [ ] **The known-answer leakage test's MAGNITUDE pins are not seed-robust —
+  the test is green at ONE of eight sampled seeds** (E2.4 audit row L,
+  2026-08-19; entry written when Karl approved the deferral, the finding
+  itself having been recorded in the audit at `dc0290a`).
+  `tests/test_cv_known_answer.py` pins six things on the planted two-cluster
+  field. **Measured by sweeping the FIELD seed over 11–18** (the k-fold,
+  runner and RF seeds are held at 0 and were NOT swept):
+
+  | assertion | holds at |
+  |---|---|
+  | floor `0.75 ≤ ratio_baseline ≤ 1.0` | **8 of 8** |
+  | `ratio_baseline − ratio_RF ≥ 0.15` | **8 of 8** |
+  | `ratio_baseline − ratio_kriging ≥ 0.15` | 6 of 8 (fails 11, 17) |
+  | `ratio_kriging ≤ 0.65` | 4 of 8 (fails 11, 14, 15, 16) |
+  | `ratio_RF ≤ 0.60` | 5 of 8 (fails 11, 12, 18) |
+  | the three ± 0.02 point pins | seed 13 only, by construction |
+
+  **The whole test would be RED at 7 of 8 seeds**, and the ratio CEILINGS are
+  more fragile than the gap. What survives is the DIRECTION — both spatial
+  models below the baseline's floor at every seed — which is what §3's
+  conclusion rests on. **Decision needed, and it must cover ALL the magnitude
+  pins, not just the gap:** re-pin on the direction (each model's ratio
+  strictly below the baseline's, 8/8) and demote the ceilings, the gap and the
+  point values to REPORTED numbers; or raise the fixture size until the
+  magnitudes are properties of the method rather than of seed 13. A remedy
+  that removes only the `≥ 0.15` gap leaves the test red at 6 of 8. Either is
+  a CODE change, which is why the audit listed it rather than fixing it.
+  Owner: E. Trigger: before the leakage number is cited outside the
+  walkthrough, and before any fixture-size change at Checkpoint 1. Detail:
+  [E2.4.md](walkthroughs/E2.4.md) §3 (the seed-robustness paragraph and its
+  table);
+  [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
+  row L / F-7 (the eight-seed ratio table).
 - [ ] **The feature-stack manifest hashes ABSOLUTE PATHS, so no downstream
   artifact's identity is portable** (found at E2.4 §3, 2026-08-19, by the
   run manifest's own chain assertion — recorded at the moment of deferral).
