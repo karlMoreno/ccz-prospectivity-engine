@@ -870,6 +870,33 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   deliberately"); `data/config/model_config.yaml` header; §2's
   pre-registration-clock entry above.
 
+- [ ] **The THEOREM test's numeric tolerances are seed-calibrated too — the
+  same defect as the leakage pins, in the test next to them** (found at
+  P2.CLOSE commit 1, 2026-08-20, by a premise check that swept the file's
+  OTHER test; **not fixed there — outside that item's stated scope**, which
+  named the leakage test's magnitude pins).
+  `tests/test_cv_known_answer.py::test_across_the_synthetic_clusters_kriging_reverts_to_the_training_mean_the_theorem_on_the_fixture`
+  asserts kriging ≈ baseline across the 50 km gap with three tolerances
+  (per-fold RMSE within 5%, bias within 0.2, pooled within 2%). **Swept over
+  seeds 1–8: all three hold fully at 2 of 8** (seeds 8 and 13); the
+  structural assertion `range_km < 30.0` holds **8 of 8**.
+  Worked example at seed 3, fold 0: kriging RMSE 3.5409 vs baseline 3.2365
+  — **9.41%**, against a 5% tolerance, with a fitted range of 13.89 km.
+
+  **The claim is sound; the TOLERANCE is what is calibrated to seed 13.** The
+  theorem is asymptotic, not exact: with a fitted range R and a 50 km gap the
+  far-field weights carry a residual ~exp(−50/R), which at R = 13.89 km is
+  ~2.7% and not zero — so how tightly kriging matches the baseline depends on
+  the seed's fitted range, and the current numbers were read off one draw.
+  NOT a defect in the estimator: the 22.07 km range recurring across seeds is
+  the DECLARED `range_at_candidate_ceiling` (checked — the flag is True
+  exactly there), which is honest behaviour, not a fallback.
+  **Candidate fix, same shape as commit 1's:** assert what is structural
+  (`range_km < 30`, 8/8; kriging strictly closer to the baseline than to a
+  no-skill predictor) and report the tolerances. Owner: E.
+  **Trigger: before the theorem is cited outside the walkthrough, or the next
+  time this file is edited.** Detail:
+  [P2-closeout.md](walkthroughs/P2-closeout.md) commit 1.
 - [ ] **The provenance chain's identity is NOT portable: the feature-stack
   manifest hashes the caller-supplied PATH STRING, so no downstream artifact
   hash can be verified anywhere but the machine that wrote it** (found at
