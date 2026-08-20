@@ -874,6 +874,33 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   deliberately"); `data/config/model_config.yaml` header; §2's
   pre-registration-clock entry above.
 
+- [ ] **LITERATURE's evidence requirement has NO OBSERVER — the one evidence
+  check of five that nothing tests** (found at P2.CLOSE commit 4, 2026-08-20,
+  by the sole-observer measurement; **not fixed there — that commit is
+  docstrings-only by instruction**).
+  **The measurement:** deleting the `LITERATURE without a citation` branch
+  from the audit resolver (`tests/test_data_origin_audit.py:329–332`) fails
+  **ZERO of 471 tests**. Its siblings each have exactly one observer —
+  SYNTHETIC-without-generator 1, SYNTHETIC-without-seed 1,
+  DERIVED-without-formula 1 — measured in the same run, so this is a gap in
+  coverage and not an artifact of how the mutation was applied.
+
+  **Why it matters more than a missing test usually would.** CLAUDE.md's
+  data-origin section states that "all five evidence requirements are
+  ENFORCED, which is checkable", and names the audit resolver as LITERATURE's
+  enforcer. The check EXISTS and would fire — no tracked file currently
+  declares LITERATURE without a citation, which is exactly why nothing
+  noticed. **This is coverage-that-isn't at the level of the taxonomy's own
+  enforcement**, and LITERATURE is the class Track G's contributions arrive
+  as (Isaac's citation is the AUTHORED→LITERATURE promotion), so the check
+  starts mattering the moment Track G delivers.
+
+  **The fix is one negation fixture**, in the shape the other two already
+  use: a `data_origin: LITERATURE` node with no citation must appear in
+  `findings.invalid`, and one with a locating citation must not. Owner: E.
+  **Trigger: with the next Track G delivery, or the next time
+  `test_data_origin_audit.py` is edited** — whichever comes first. Detail:
+  [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4.
 - [ ] **The THEOREM test's numeric tolerances are seed-calibrated too — the
   same defect as the leakage pins, in the test next to them** (found at
   P2.CLOSE commit 1, 2026-08-20, by a premise check that swept the file's

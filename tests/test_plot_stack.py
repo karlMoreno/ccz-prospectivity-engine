@@ -73,7 +73,15 @@ def test_rendered_plot_actually_consumes_the_declaration(tmp_path: Path) -> None
     catch a plot that ignores the helper and hardcodes the old suptitle).
     Same DEM, three declarations — the PNGs must differ pairwise, because
     the watermark and panel label differ. A plot that ignores the origin
-    renders all three identically and fails here."""
+    renders all three identically and fails here.
+
+    SOLE OBSERVER (measured at P2.CLOSE, 2026-08-20, over the full 471-test suite): bypassing the watermark helper in the renderer
+    (`watermark = dem_watermark(declared)` -> `watermark = None`) fails this
+    test and nothing else — 1 of 471. The helper-level tests still pass,
+    because the helper still WORKS; what only this test sees is whether the
+    rendered bytes actually USED it. That is the whole d-2 lesson, and it is
+    why deleting this test would leave the watermark verified in principle
+    and unobserved in practice."""
     dem_path = tmp_path / "synthetic.tif"
     write_synthetic_bathymetry(dem_path)
     renders = {}

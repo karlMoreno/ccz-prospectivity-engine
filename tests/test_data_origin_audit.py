@@ -551,7 +551,14 @@ def test_audit_reports_an_unknown_origin_label_and_a_missing_author(tmp_path: Pa
 def test_audit_reports_synthetic_declarations_missing_generator_or_seed(tmp_path: Path) -> None:
     """SYNTHETIC's evidence bar, both halves independently: no generator at
     all, and a generator with no seed. This is the check separating a seeded
-    generator from hand-typed values under a synthetic_* filename."""
+    generator from hand-typed values under a synthetic_* filename.
+
+    SOLE OBSERVER (measured at P2.CLOSE, 2026-08-20, over the full 471-test suite): this is the ONLY test in the suite that fails when EITHER half of
+    the SYNTHETIC evidence check is removed — 1 of 471 for the generator
+    check, 1 of 471 for the seed check. It protects the distinction CLAUDE.md
+    calls "the only thing separating a seeded generator from hand-typed
+    values under a synthetic_* filename"; weaken it and a SYNTHETIC
+    declaration needs no evidence at all."""
     _write(tmp_path, "bare.yaml", "data_origin: SYNTHETIC\n")
     _write(tmp_path, "seedless.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\n")
     _write(tmp_path, "proper.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\nseed: 7\n")
@@ -564,6 +571,13 @@ def test_audit_reports_synthetic_declarations_missing_generator_or_seed(tmp_path
 
 
 def test_audit_reports_derived_declarations_missing_their_derivation(tmp_path: Path) -> None:
+    """DERIVED's evidence bar: a derivation formula, or the artifact recording
+    it.
+
+    SOLE OBSERVER (measured at P2.CLOSE, 2026-08-20, over the full 471-test suite): removing the DERIVED evidence check fails this test and nothing
+    else — 1 of 471. Without it a DERIVED label is a bare assertion that a
+    value came from somewhere, which is the claim the origin taxonomy exists
+    to stop anyone making for free."""
     _write(tmp_path, "underived.yaml", "data_origin: DERIVED\n")
     _write(tmp_path, "complete.yaml", "data_origin: DERIVED\nderivation: 'x = y / z'\n")
     rel_paths = ["underived.yaml", "complete.yaml"]
