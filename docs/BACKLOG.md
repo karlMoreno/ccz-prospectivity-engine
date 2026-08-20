@@ -368,46 +368,75 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
 
 ## 3. Engineering (Track E)
 
-- [ ] **Review workflows must run against a COMMITTED state or a copy —
-  never against the sole uncommitted copy of the work under review**
-  (INCIDENT, E2.2 §2 review, 2026-08-14). A reviewer is a READER; one
-  that writes to the work it then approves is grading its own
-  restoration. What happened (per the workflow's own logs): reviewer
-  `review:math` ran `git checkout -- engine/prospectivity/estimators/
-  variogram.py` to undo its own mutation probe, forgetting the file's
-  baseline was UNCOMMITTED — this reverted the file to the committed
-  report-only version and destroyed the uncommitted fitter (~178 lines);
-  it then rewrote the file from its session-start read. What
-  verification COULD establish: the restoration Write is byte-identical
-  (sha256 `ed6c9ee7…`) to a `cp` backup an independent reviewer
-  (`review:fixtures`) took at review start BEFORE any mutation; the suite
-  and the real-corpus fit reproduce to 16 digits. What it could NOT: no
-  committed object existed to diff against — "matches" means matches two
-  reviewers' independent copies, not git. Residual risk: small (two
-  independent byte-identical copies), not zero. The fix is PROCEDURAL,
-  not code: commit or stash before an adversarial review launches, or
-  point reviewers at a worktree. P2.0c and E2.0-2 sequenced this
-  correctly (work staged/committed before review); this session inverted
-  the order — the E2.1 and E2.2 reviews both ran on sole uncommitted
-  copies. **TWO LAYERS, both recorded now so whoever does this later knows
-  the second exists (E2.X disposition audit, ledger row 15):**
-  **(a)** commit or stash before an adversarial review launches, or point
-  reviewers at a worktree — E2.3-2 did this (WIP commit `efc683a` before
-  the review; the reviewers left the tree clean and said so).
-  **(b)** a reviewer that probes by MUTATION takes a `cp` copy before its
-  first write and restores by `cp`, verifying with `cmp` — NEVER by
-  `git checkout`, which is not undo against a file git does not hold. This
-  is not hypothetical: in the E2.2 review the `review:math` agent ran
-  `git checkout -- variogram.py` to undo its own mutation and its log
-  records the realization ONE COMMAND LATE ("git checkout would revert to
-  committed version, losing the uncommitted fitter!"), while the
-  `review:fixtures` agent independently did it right — `cp` backup at
-  review start, every restore `cmp`-verified — and that backup is what
-  made the restoration byte-verifiable. Both layers go into every future
-  review prompt's instructions verbatim (E2.3-2's prompt carried (a); (b)
-  is added from here). Owner: Karl + E. Trigger: **before the next
-  adversarial review runs.** Detail: [E2.2.md](walkthroughs/E2.2.md) §2
-  "Review incident".
+- [ ] **ANY process that mutates the tree — reviewer, harness, or the session
+  itself — takes a verified copy first and restores by `cp`** (E2.2 §2 review
+  INCIDENT 2026-08-14; **WIDENED at the E2.4 audit, row N, 2026-08-19, after a
+  SECOND incident of the same shape**). The rule used to bind "review
+  workflows"; both incidents were mutating processes with broken restores and
+  the second was **the session's own mutation harness**, which the old scoping
+  did not reach.
+
+  **THE RULE, in four steps — (b) is the one whose absence caused the second
+  incident:**
+  1. **(a) Take a copy before the first write.**
+  2. **(b) VERIFY THE COPY EXISTS AND MATCHES before mutating anything.** A
+     backup command that fails silently leaves you mutating with no undo, and
+     you will not find out until the restore is a no-op.
+  3. **(c) Restore by `cp`, never `git checkout`** — `git checkout` is not undo
+     against a file git does not hold, and it is not undo against uncommitted
+     work at all. (If the work IS committed first — the layer-(a) discipline
+     below — `git checkout` becomes safe, and that is the better setup.)
+  4. **(d) `cmp`-verify the restore**, and confirm the tree is clean.
+  A fifth step earned at E2.4: **verify the mutation actually CHANGED the
+  file** — a no-op edit makes the probe pass vacuously, which is
+  indistinguishable from a guard working.
+
+  **INCIDENT 1 (E2.2 §2, 2026-08-14) — a reviewer.** `review:math` ran
+  `git checkout -- engine/prospectivity/estimators/variogram.py` to undo its own
+  mutation probe, forgetting the file's baseline was UNCOMMITTED; this reverted
+  the file to the committed report-only version and destroyed the uncommitted
+  fitter (~178 lines), which it then rewrote from its session-start read. What
+  verification COULD establish: the restoration is byte-identical (sha256
+  `ed6c9ee7…`) to a `cp` backup an independent reviewer (`review:fixtures`) had
+  taken BEFORE any mutation, and the suite and the real-corpus fit reproduce to
+  16 digits. What it could NOT: no committed object existed to diff against.
+  Recovered by RECONSTRUCTION, not from a verified backup.
+
+  **INCIDENT 2 (E2.4 §2, 2026-08-19) — the session's own harness.** The
+  mutation loop was written `for f in $FILES` with `FILES` an unquoted scalar;
+  **zsh does not word-split it**, so `cp` never made a single backup, `restore`
+  was a no-op, and all 16 mutations ACCUMULATED in the tree. Detected only
+  because the suite went red and stayed red. Recovered by hand-inverting all 16
+  string replacements, confirming the suite returned to its exact prior count,
+  and re-running the batch against a committed baseline. Again
+  RECONSTRUCTION, not restoration — and this time no independent copy existed
+  at all.
+
+  **The discipline exists; it just was not written down as binding.** E2.4's
+  AUDIT harness did it correctly and is the worked example: it cloned the repo
+  at HEAD into a scratch directory and ran every mutation there (so no audit
+  write could touch the tree the read-only lenses were reading), and its helper
+  refused to proceed unless the backup existed and was byte-identical, refused
+  a no-op mutation, and `cmp`-verified every restore with a final
+  `git status --short` check. `E2.3-2` and `E2.4 §2` also satisfied the
+  layer-(a) discipline (WIP commit `efc683a` / `ff2d0c6` before the review
+  launched, reviewers left the tree clean and said so).
+
+  **Two layers, both still binding, now for any mutating process:**
+  **(a)** commit or stash before an adversarial review or a mutation batch
+  launches, or point it at a worktree or a clone — with a committed baseline,
+  `git checkout` restore is safe and is the preferred setup;
+  **(b)** absent that, the four steps above, with the verify-the-copy step
+  treated as the load-bearing one.
+  Both go into every future review AND harness prompt verbatim. Owner: Karl + E.
+  Trigger: **before the next adversarial review OR mutation batch runs** — this
+  entry has now been triggered twice and widened once; a third instance means
+  the rule is being written down but not read. Detail:
+  [E2.2.md](walkthroughs/E2.2.md) §2 "Review incident";
+  [E2.4.md](walkthroughs/E2.4.md) §2 (the harness incident, recorded in the
+  review record);
+  [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
+  row N.
 
 - [ ] **Pipeline-level row quarantine.** One malformed row aborts the whole
   batch at Pydantic validation — worse than dropping, and it contradicts
@@ -868,29 +897,69 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   table);
   [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
   row L / F-7 (the eight-seed ratio table).
-- [ ] **The feature-stack manifest hashes ABSOLUTE PATHS, so no downstream
-  artifact's identity is portable** (found at E2.4 §3, 2026-08-19, by the
-  run manifest's own chain assertion — recorded at the moment of deferral).
-  `FeatureStackManifest`'s substance carries `dem.path` (and the per-layer
-  output paths), so building the SAME DEM bytes in two different directories
-  yields two different `content_hash` values — which propagates into
-  `TrainingMatrixManifest.upstream_hashes` and then into
-  `RunManifest.upstream_hashes` and `content_hash`. **Measured:** two runs
-  from identical inputs and seed produce byte-identical `cross_validation`,
-  `cv_scores`, `estimator_declarations` and `matrix_sha256`, and DIFFERENT
-  `content_hash` / `upstream_hashes` (E2.4 §3; the committed
-  `data/runs/e2.4/run_manifest.json` therefore reproduces in its science and
-  not in its identity). This contradicts PROVENANCE.md's stated property —
-  "same inputs and same decisions produce the same hash **on any machine, at
-  any time**" — and the DEM's own `content_hash` is already in the record, so
-  the path adds nothing the hash does not. Fix (small, but it changes an E1.4
-  artifact's substance and every pinned hash, so it is NOT E2.4's to make):
-  record paths as basenames or repo-relative, or exclude them from the
-  substance as `generated_at` is excluded. Owner: E. Trigger: before any
-  cross-machine reproducibility claim, and before Checkpoint 1 re-hashes the
-  stack on real GEBCO. Detail: [E2.4.md](walkthroughs/E2.4.md) §3
-  ("what does and does not reproduce"); `features/stack.py` manifest
-  assembly; [PROVENANCE.md](contracts/PROVENANCE.md) "CONTENT HASH SCHEME".
+- [ ] **The provenance chain's identity is NOT portable: the feature-stack
+  manifest hashes the caller-supplied PATH STRING, so no downstream artifact
+  hash can be verified anywhere but the machine that wrote it** (found at
+  E2.4 §3 by the run manifest's own chain assertion; **SCOPED at the E2.4
+  audit, row M, 2026-08-19** — this entry is the audit's version, not the
+  original assumption, which said "absolute paths" and "a different machine"
+  and understated both).
+
+  **What is machine-dependent, exactly.** `FeatureStackManifest`'s substance
+  carries the DEM's path string **nine times** — once at `dem.path` and once
+  inside each of the eight `layers[i].dem.path`. Nothing else
+  environment-derived enters any substance (no hostname, username, locale or
+  timestamp; the two wall-clock fields are already excluded). The trigger is
+  **wider than a different machine**: the manifest records whatever string the
+  caller passed, so the SAME file in the SAME directory, passed relatively vs
+  absolutely, yields two different `content_hash` values while
+  `dem.content_hash` is identical and the rasters are byte-identical.
+
+  **The test that claims the property cannot observe it.**
+  `tests/test_covariate_stack.py::test_two_independent_builds_produce_identical_rasters_and_substance`
+  builds both stacks from ONE `dem_path`, varying only the OUTPUT directory —
+  i.e. it varies the axis the manifest does NOT record and holds fixed the one
+  it DOES. Measured: same dem path + different output dir → hashes equal;
+  different dem path → hashes differ. Its assertion is true and its docstring's
+  claim ("two independent builds must produce the SAME hash") is broader than
+  the fixture can see. **This is coverage-that-isn't sitting under
+  PROVENANCE.md's most-cited invariant**, and it has passed since E1.4.
+
+  **The blast radius, measured.** `FeatureStackManifest` →
+  `TrainingMatrixManifest.upstream_hashes` → `RunManifest.upstream_hashes` and
+  `content_hash`. Of the run manifest's three upstream hashes, only **`corpus`**
+  is verifiable off-machine (`data/corpus/manifest.json` is committed and its
+  hash matches); `feature_stack` and `training_matrix` are **not** — no stack or
+  matrix artifact is committed to compare against, and recomputing gives
+  different values. `matrix_sha256` (over the arrays) IS stable and reproduces;
+  a latent second-order caveat is that `ndarray.tobytes()` uses NATIVE byte
+  order, so `matrix_sha256` and `coords_fingerprint` are portable only across
+  same-endianness hosts while `training_matrix.py`'s docstring says
+  "Deterministic across machines" unqualified.
+
+  **State it plainly: PROVENANCE.md claims a property the implementation does
+  not deliver.** Its CONTENT HASH SCHEME says "same inputs and same decisions
+  produce the same hash **on any machine, at any time**". Until this is fixed,
+  an `upstream_hashes` reference proves origin **only on the machine that wrote
+  it** — the chaining rule is locally checkable, not portably checkable.
+  Measured consequence, already visible: the committed
+  `data/runs/e2.4/run_manifest.json` reproduces byte-identically in all 15 of
+  its SUBSTANCE fields from a different directory, and in neither of its
+  identity fields.
+
+  **Fix** (small in code, wide in consequence — it changes an E1.4 artifact's
+  substance and every pinned hash, which is why E2.4 listed it rather than
+  making it): record paths as basenames or repo-relative, or exclude them from
+  the substance as `generated_at` is; then re-pin. The determinism test must be
+  rebuilt to vary the DEM PATH, or it will keep passing either way.
+
+  Owner: E. **Trigger: BEFORE CHECKPOINT 1** — real GEBCO arrives at a new path
+  and every stack hash changes for a reason that has nothing to do with the
+  terrain, which is the worst possible moment to discover this. Detail:
+  [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
+  row M (a, b, c); [E2.4.md](walkthroughs/E2.4.md) §3 "what does and does not
+  reproduce"; `features/stack.py` manifest assembly;
+  [PROVENANCE.md](contracts/PROVENANCE.md) "CONTENT HASH SCHEME".
 - [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
   border situation on real GEBCO** (recorded at E2.0-3). Three
   literal-pinned facts and one reading rule are true of the 0.1° synthetic
