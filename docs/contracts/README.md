@@ -146,7 +146,7 @@ distinct from Contract 7's ingestion policy) and grows additively as Phase-2
 tasks need them; its `target_definition` enum is fixed by P2.B's data verdict
 (see the contract's own header for the excluded dead ends and their evidence).
 
-**Version 2 (C8.1, 2026-08-19)** adds `acceptance_thresholds`, closing P2.A's
+**Version 2 (C8.1, 2026-08-20)** adds `acceptance_thresholds`, closing P2.A's
 deferral on its own stated condition — the field "arrives with E2.5's
 refuse-to-validate guard", and E2.5 built the consumer. **The change is
 ADDITIVE**: no existing field's value or semantics moved, so Track G's

@@ -247,7 +247,7 @@ hard way — the evidence is cited, not asserted.
    named — are the more fragile assertion.
 
    **A CORRECTION PASS IS SCOPED TO THE CLAIM, NOT THE ENTRY** (added at the
-   C8.1 approval, 2026-08-19). Correcting one sentence in a document does not
+   C8.1 approval, 2026-08-20). Correcting one sentence in a document does not
    inspect its neighbours, and a reviewer who has just fixed an entry feels
    like that entry has been checked.
    *Evidence:* the E2.5-approval pass corrected `BACKLOG.md` §2's
@@ -269,6 +269,38 @@ hard way — the evidence is cited, not asserted.
    That convention is carrying more weight than anyone assigned it — with one
    measured limit: its date is when the claim was STATED, not when it entered
    the repo (four days apart here), so it buys traceability, not chronology.
+
+6. **When a finding becomes a fix, re-run its measurement at the FIX's
+   stakes, not the finding's.** A measurement adequate to DETECT a problem may
+   be inadequate to GROUND the remedy — and it will reproduce perfectly while
+   being too small, which is what makes it convincing.
+   *Evidence:* P2.CLOSE commit 1. The E2.4 audit's 8-seed sweep reproduced
+   EXACTLY, down to which seeds fail which pin, and it supported a remedy —
+   "assert the direction and `base − RF >= 0.15`, both 8/8" — that a 40-seed
+   sweep showed would have **shipped RED**: `base − RF >= 0.15` fails at seed
+   4, which is in the test's own seed list. The same sweep showed the baseline
+   floor holds at only **29/40**, a fragility the 8-seed finding never
+   surfaced because the floor passed 8 of 8 there. Only the DIRECTION survived
+   40/40, and it is what the test now asserts.
+
+   **This is ADJACENT to convention 5, not a special case of it — neither
+   absorbs the other.** Convention 5 asks whether a claim is TRUE against its
+   primary source; the 8-seed measurement was true, reproducible, and
+   correctly reported. This asks whether the evidence is SUFFICIENT for the
+   weight about to be placed on it. A finding needs only enough resolution to
+   show something is wrong; a fix needs enough to show what is right, and the
+   second bar is higher precisely where the first was cleared convincingly.
+
+7. **`violations = [... if cond]; assert not violations` is GREEN when `cond`
+   breaks** — an empty list passes. Prefer a POSITIVE FULL-STATE COMPARISON
+   (what satisfied the rule vs everything examined), and where the
+   collection's SIZE carries the claim — a multi-seed property, an every-fold
+   property — assert the size too, because shrinking the input shrinks both
+   sides of a comparison silently.
+   *Evidence:* P2.CLOSE commits 1 and 2, mutations M3 and M4 — see the
+   inventory row below for the three citable instances. Two independent
+   drafts in ONE batch had it, which is why it is written as an idiom to
+   avoid rather than an incident.
 
 Corollaries worth keeping in mind:
 
@@ -298,6 +330,7 @@ below, not asserted; each instance is citable.
 | **Fixture degeneracy** — the fixture cannot separate the claim from its neighbours or its negation | **×5** | `[2, 4, 6]`, where SD = MAD = half-range = 2.0 (E2.1 MB9); `shared_cell_count == len(stations)`, true on the real corpus (E2.0-2); the rank-4 RF fixture, blind to `aggregate_leaves_first` (E2.3 review); the metrics fixture where mean\|e\| = median\|e\| = 2.0, blind to a mean→median swap in MAE (E2.4 §1 review); **K3-A** — the audit's own stale-refit probe, run on a fold order where no stale state could exist (E2.4 audit) |
 | **Deferral without a landing spot** — a disposition that survives only in a transcript | **×4** (the prompt proposing this table said ×3; the fourth is named here) | three of 22 review findings at the E2.X disposition audit; **and P2.C + the `SESSION_STATE.md` question at E2.4 §0 finding C**, which existed only in a planning transcript AFTER the deferral rule was written — the rule's first post-adoption instance |
 | **Correction drift** — a fix, a remedy, or a PREMISE asserts something the primary source does not support | **×4** (3 of 4 caught PRE-COMMIT) | (a) the four false claims in the E2.4 doc fixes (rule 5 above), caught pre-commit by a verification pass over the corrections; (b) **the E2.5 prompt's tripwire inventory** asserted that Contract 8's loader "already refuses an AUTHORED acceptance threshold" — there is no `acceptance_thresholds` slot at all, and the loader has no origin-based refusal. The deferral was DESIGNED in P2.A ("`acceptance_thresholds` arrives with E2.5 … a field with no consumer is a field nobody has tested the meaning of") and recorded in the contract header, then asserted two tasks later as already built. **The site is new: a task PROMPT's premises, not a correction's text** — and it was caught only because the session applied rule 5 to the prompt rather than only to its own edits; (c) **this very commit** — the sentence recording (b) claimed P2.C carries "two `[KARL — DECIDE]` points"; the block carries ONE. Caught by grepping the block rather than re-reading the sentence. Karl's approval specified ×2; the third is counted here because the row's counts are DERIVED and a tally that omits the drift produced while writing the tally is the defect it names; (d) **C8.1's walkthrough** claimed the false premise "was written into the BACKLOG five days earlier", conflating the day the tripwire was STATED (2026-08-14) with the day it was COMMITTED (2026-08-18, `009835e`) — caught pre-commit by `git log -S`, inside the table that is itself about mis-dated premises |
+| **Vacuous collection** — an idiom whose failure mode is SILENT EMPTINESS: the check is capable of observing the violation, but the collection it reports through can be emptied or shrunk without the assertion noticing | **×3** (all caught by mutation, none escaped) | **(a)** P2.CLOSE commit 1, M3 — `violations = [... if not r[name] < r[BASE]]` with `assert not violations`; breaking the CONDITION to `if False` left the direction assertion unable to fail, on the test whose whole purpose was that direction; **(b)** P2.CLOSE commit 2, M3 — the same shape in the F-6 doc-lint (`missing = [...]`), written independently an hour later, which is why this is an idiom and not an incident; **(c)** P2.CLOSE commit 1, M4 — the SILENT-SHRINKAGE variant: with the fix in place, cutting `LEAKAGE_SEEDS` to one seed still passed, because `expected` derives from the same list and both sides shrank together. **Distinct from its neighbours:** not coverage-that-isn't (the check CAN observe the violation — it is the reporting channel that empties), and not fixture degeneracy (no symmetry, no coinciding statistics; the fixture is fine) |
 
 The counts are the point: **coverage-that-isn't and fixture degeneracy are not
 historical, they are recurring**, and the two most recent instances of each were
@@ -308,6 +341,14 @@ says "the primary source" rather than "the finding": a premise has no finding to
 re-read, only a repo to check. Its third arrived inside the commit that wrote
 its second down — which is the most economical demonstration the file has that
 the class is not a story about past carelessness.
+
+**The newest class is the only one whose instances are all from a single
+batch, and that is the point about it:** two independent drafts reached for
+`assert not violations` within an hour of each other, so it is a REFLEX
+rather than a lapse — the reason convention 7 states an idiom to avoid
+instead of citing an incident. It is also the only class so far with a 100%
+mutation-catch rate and zero escapes, which is what a defect class looks like
+when the instrument that finds it is run as a matter of course.
 
 **The ratio is the argument for the verification step: 3 of the 4 were caught
 PRE-COMMIT, and the one that was not — (b) — is the one that reached a task

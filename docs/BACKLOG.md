@@ -54,7 +54,7 @@ the leakage test's seed-fragile pins, the sole-observer pass — became §3's
 single **Phase-2 closeout batch**, since E2.5 IS that closeout and all four
 would otherwise have expired there one at a time. No twins: the four boxes
 were removed, their bodies moved whole, and §2 keeps a pointer, not a box.
-1 CLOSED 2026-08-19 (C8.1: Contract 8's `acceptance_thresholds` slot — box
+1 CLOSED 2026-08-20 (C8.1: Contract 8's `acceptance_thresholds` slot — box
 checked on the ORIGINAL entry, no twin; the §2 pre-registration entry stays
 OPEN, because a slot is not a threshold). The same commit corrected the §2
 TRIPWIRE bullet that asserted a loader refusal which did not exist — the
@@ -65,8 +65,10 @@ and all four of its sub-items are done; the two additions are findings its
 own premise checks turned up and which were deliberately NOT fixed inside a
 closeout — the theorem test's seed-calibrated tolerances, and LITERATURE's
 missing evidence observer (§3). Net 41 − 1 + 2 = 42.
-**42 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 22, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+1 ADDED at the P2.CLOSE approval (2026-08-20): the two C8.1 date labels left
+in `model_config.yaml` by that commit's docs-only fence.
+**43 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 23, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -252,12 +254,12 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   **regardless of origin; corrected at the E2.5 approval, which found this
   sentence describing the admissible-set check as an AUTHORED refusal, the
   same conflation the E2.5 prompt's inventory made one level up** — and
-  `acceptance_thresholds` HAS A SLOT as of C8.1 (2026-08-19,
+  `acceptance_thresholds` HAS A SLOT as of C8.1 (2026-08-20,
   `model_config_version` 2) — it had none when this entry was written, and
   the loader now refuses an AUTHORED gate outright, so Track E STILL cannot
   pre-register one: the slot is Track G's to fill, with a citation.
 
-  **THIS ENTRY STAYS OPEN — confirmed at the C8.1 approval (2026-08-19).**
+  **THIS ENTRY STAYS OPEN — confirmed at the C8.1 approval (2026-08-20).**
   A SLOT IS NOT A THRESHOLD. C8.1 built the place a gate goes and the refusals
   that keep a bad one out; it did not create a gate, and it could not have.
   The admissible origins are LITERATURE, MEASURED and DERIVED: LITERATURE
@@ -304,7 +306,7 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
     ~~Contract 8's loader refusing AUTHORED thresholds~~, E2.4's
     `scores_first_visible`, the pre-registration verdict ("no
     pre-registered gate existed when these scores were computed").
-    **CORRECTED AT C8.1 (2026-08-19): the struck clause was FALSE when
+    **CORRECTED AT C8.1 (2026-08-20): the struck clause was FALSE when
     written** — stated 2026-08-14, committed 2026-08-18 (`009835e`), one day
     before E2.5. No such refusal existed, and
     no `acceptance_thresholds` slot existed either — P2.A had deliberately
@@ -826,7 +828,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   stays as quoted; the correction rides here and in the P2.C batch (§2
   review finding F18).
 - [x] **ADD Contract 8's `acceptance_thresholds` slot — DECIDED by Karl at the
-  E2.5 approval (2026-08-19); DONE at C8.1 the same day.** Landed exactly as
+  E2.5 approval (2026-08-19); DONE at C8.1 the NEXT day (2026-08-20).** Landed exactly as
   decided: `value: null`, no `data_origin`, `[GEOLOGY — ISAAC]`,
   `model_config_version` **1 → 2** with the contracts-README note. The loader
   got both refusals P2.A specified (a value with no origin; an AUTHORED gate
@@ -879,6 +881,15 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   deliberately"); `data/config/model_config.yaml` header; §2's
   pre-registration-clock entry above.
 
+- [ ] **Two C8.1 date labels in `data/config/model_config.yaml` still read
+  2026-08-19; C8.1 committed 2026-08-20** (`58ca461`). Lines 18 (the
+  version-history block) and 81 (the `acceptance_thresholds` comment).
+  Comment-only, no structural change and no version bump. **Deferred rather
+  than fixed at the P2.CLOSE approval only because that commit was fenced to
+  docs/CLAUDE.md/BACKLOG** — every other site was corrected there. Owner: E.
+  **Trigger: the next commit that touches `model_config.yaml` for any
+  reason.** Detail: [C8.1.md](walkthroughs/C8.1.md) (its own §0 documents the
+  stated-vs-committed distinction this violates).
 - [ ] **LITERATURE's evidence requirement has NO OBSERVER — the one evidence
   check of five that nothing tests** (found at P2.CLOSE commit 4, 2026-08-20,
   by the sole-observer measurement; **not fixed there — that commit is
@@ -900,11 +911,25 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   as (Isaac's citation is the AUTHORED→LITERATURE promotion), so the check
   starts mattering the moment Track G delivers.
 
+  **The consequence, stated because the fact alone understates it:**
+  `CLAUDE.md`'s data-origin section tells every reader that all five evidence
+  requirements are ENFORCED *and checkable*, and names this resolver as
+  LITERATURE's enforcer. **The first real citation Isaac supplies would land
+  against an unexercised check** — and the AUTHORED→LITERATURE promotion is
+  exactly how Track G's work is designed to arrive (Contract 8's
+  `target_definition`, `acceptance_thresholds`, and the `[18]` TS-6 values
+  all promote this way). Nothing is currently wrong in the repo; the check
+  would fire today. What is missing is any evidence that it still will after
+  the next edit to the resolver.
+
   **The fix is one negation fixture**, in the shape the other two already
   use: a `data_origin: LITERATURE` node with no citation must appear in
   `findings.invalid`, and one with a locating citation must not. Owner: E.
-  **Trigger: with the next Track G delivery, or the next time
-  `test_data_origin_audit.py` is edited** — whichever comes first. Detail:
+  **Trigger: BEFORE TRACK G SUPPLIES ANY CITED VALUE** — which is sooner than
+  Phase 3, since the AOI decision and Isaac's target citation both arrive as
+  LITERATURE (confirmed at the P2.CLOSE approval, 2026-08-20; the earlier
+  wording, "with the next Track G delivery", made the trigger contingent on a
+  delivery rather than preceding it). Detail:
   [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4.
 - [ ] **The THEOREM test's numeric tolerances are seed-calibrated too — the
   same defect as the leakage pins, in the test next to them** (found at
@@ -924,9 +949,16 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   far-field weights carry a residual ~exp(−50/R), which at R = 13.89 km is
   ~2.7% and not zero — so how tightly kriging matches the baseline depends on
   the seed's fitted range, and the current numbers were read off one draw.
-  NOT a defect in the estimator: the 22.07 km range recurring across seeds is
-  the DECLARED `range_at_candidate_ceiling` (checked — the flag is True
-  exactly there), which is honest behaviour, not a fallback.
+  **CHECKED AND CLEARED, recorded so the next reader does not re-investigate
+  it (P2.CLOSE, 2026-08-20):** the fitted range **22.07 km** recurs across
+  seeds 1, 3, 4 and 13, in different folds — which looks exactly like a
+  hardcoded fallback. It is not. It is the DECLARED
+  `range_at_candidate_ceiling`, and the flag reads `True` at precisely those
+  folds and `False` elsewhere (verified by printing both together). The
+  estimator already says, in a field designed for it, that the range is
+  unconstrained from above because it exceeds what the supported lags can
+  resolve. Honest behaviour, correctly labelled — **do not spend a session on
+  it again.**
   **Candidate fix, same shape as commit 1's:** assert what is structural
   (`range_km < 30`, 8/8; kriging strictly closer to the baseline than to a
   no-skill predictor) and report the tolerances. Owner: E.
