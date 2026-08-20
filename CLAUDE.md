@@ -350,10 +350,14 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **Checkpoint 2** (Karl + Isaac). Track E has nothing queued behind
-  E2.5 — E2.4 (spatial CV + the comparison report, audited and approved) and E2.5
-  (the refuse-to-validate guard) are done, and the guard's honest verdict on today's
-  data is a REFUSAL for three correct reasons (`docs/walkthroughs/E2.5.md` §2).
+- **Next task:** the **Phase-2 closeout batch** (`docs/BACKLOG.md` §3 — four items
+  consolidated so they stop expiring individually), then **Checkpoint 2** (Karl +
+  Isaac). E2.4 (spatial CV + the comparison report, audited and approved), E2.5
+  (the refuse-to-validate guard) and C8.1 (Contract 8's `acceptance_thresholds`
+  slot, `model_config_version` 2) are done, and the guard's honest verdict on
+  today's data is a REFUSAL for three correct reasons (`docs/walkthroughs/E2.5.md`
+  §2) — unchanged by C8.1, which moved the refusal's route from ABSENT to NULL
+  without moving the verdict.
   The training target is SETTLED as a Contract 8 slot
   (`data/config/model_config.yaml` `target_definition`, provisional AUTHORED default,
   P2.B → P2.A) — it does not block Track E; Isaac's citation arrives as the
@@ -363,7 +367,7 @@ ccz-prospectivity-engine/
   deferred.
 - Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`
   … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.5.md`, whose second
-  half is the PHASE-2 TRACK-E CLOSEOUT). Read the relevant
+  half is the PHASE-2 TRACK-E CLOSEOUT, and `C8.1.md`). Read the relevant
   one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;

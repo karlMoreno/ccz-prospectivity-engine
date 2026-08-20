@@ -10,10 +10,24 @@
 # spent eight commits making visible.
 #
 # GROWS ADDITIVELY as Phase-2 tasks need parameters (additive changes are
-# non-breaking per docs/contracts/README.md's own rule):
-# acceptance_thresholds arrives with E2.5's refuse-to-validate guard;
-# spatial_range_prior_km with E2.2's variogram. Nothing is pre-declared —
-# a field with no consumer is a field nobody has tested the meaning of.
+# non-breaking per docs/contracts/README.md's own rule). Nothing is
+# pre-declared — a field with no consumer is a field nobody has tested the
+# meaning of.
+#
+# VERSION HISTORY (structural changes only):
+#   1 -> 2  C8.1, 2026-08-19: ADDS acceptance_thresholds, closing P2.A's
+#           deferral on its own stated condition — the field "arrives with
+#           E2.5's refuse-to-validate guard", and E2.5 built the consumer
+#           (model_config.acceptance_thresholds() + precondition 6). THE BUMP
+#           IS REAL because the SHAPE changed; the change is ADDITIVE, so no
+#           existing field's value or semantics moved and TRACK G'S RE-SYNC
+#           IS A READ, NOT A REVIEW.
+#
+# STILL DEFERRED, on the same rule: spatial_range_prior_km. P2.A paired it
+# with "E2.2's variogram"; E2.2 shipped ordinary kriging WITHOUT needing a
+# contract-supplied prior (it fits the range from the data), so no consumer
+# exists and the field stays out. Recorded here because a deferral whose
+# stated trigger has passed is invisible otherwise.
 #
 # target_definition's admissible values are FIXED BY P2.B's verdict
 # (2026-08-09; docs/walkthroughs/P2.B-and-P2.A.md). EXCLUDED, with the
@@ -36,7 +50,7 @@
 # resolve the [05]-vs-[01] burial contradiction; that arrives as a NEW
 # admissible value with a citation, never by editing code.
 
-model_config_version: 1
+model_config_version: 2
 
 # P2.0 authoring rule (CLAUDE.md "Data origin: every value is classified"):
 # a new value-bearing file is classified in the same edit that creates it.
@@ -62,3 +76,66 @@ target_definition:
     - total_as_published
   data_origin: AUTHORED
   author: model
+
+acceptance_thresholds:
+  # THE GATE A VALIDATED CLAIM MUST CLEAR — arrived at C8.1 (2026-08-19),
+  # deferred by P2.A until a consumer existed. E2.5's refuse-to-validate
+  # guard is that consumer (precondition 6,
+  # engine/prospectivity/validation/claim.py). [GEOLOGY — ISAAC] keeps its
+  # TASK-ROUTING half here per P2.0c; the origin claim lives in the field.
+  #
+  # value: null IS THE ONLY ADMISSIBLE DEFAULT, and the reason belongs here
+  # rather than only in a doc:
+  #   * a threshold chosen AFTER seeing the scores is not a gate, it is a
+  #     rationalization; and
+  #   * a threshold invented by TRACK E is Track E grading its own work.
+  # Both are the failure this slot exists to prevent. So there is no
+  # "provisional default" here the way target_definition has one — the
+  # OPPOSITE default rule, deliberately (see the ASYMMETRY note in
+  # engine/prospectivity/model_config.py, which states it where the code
+  # enforces it).
+  #
+  # NO data_origin KEY WHILE value IS null: there is no value to classify.
+  # "null, awaiting classification" and "classified" are DIFFERENT STATES to
+  # the loader (P2.A's requirement), and a value may never arrive without an
+  # origin attached — the loader refuses that outright, as it refuses
+  # AUTHORED. Isaac's value-with-a-citation makes the origin LITERATURE, and
+  # that transition is the promotion (the target_definition precedent).
+  #
+  # TWO QUESTIONS, GATED SEPARATELY — E2.4 proved they are different
+  # questions, and a bare "thresholds: null" would ask neither:
+  #
+  #   (a) WHAT MARGIN over the mean baseline counts as CREDIBLE UPLIFT, and
+  #       ON WHICH METRIC? The runner reports rmse_uplift, rmse_ratio,
+  #       r2_pooled, standardized_rmse and coverage_1sigma per design; a gate
+  #       must name one metric and one number, not "better than baseline".
+  #
+  #   (b) DOES A MODEL THAT BEATS THE BASELINE *WITHIN* CLUSTERS BUT NOT
+  #       *ACROSS* THEM PASS? Note before answering: on THIS geometry the
+  #       across-cluster comparison CANNOT RANK ESTIMATORS AT ALL — the
+  #       two-fold geometry theorem (fitted variogram range <= 13 km against
+  #       clusters ~991 km apart, so kriging reverts to the training
+  #       cluster's mean and ties the baseline exactly). So (b) is really
+  #       "IS THE WITHIN-SITE GATE SUFFICIENT FOR A CLAIM?" — a scientific
+  #       judgement about generalization, not a number to compute.
+  #
+  # WHAT WHOEVER FILLS THIS IS WALKING INTO — stated because it cannot be
+  # undone: THE SCORES ALREADY EXIST. E2.4's run is committed and dated
+  # (scores_first_visible in data/runs/e2.4/run_manifest.json, with the
+  # COMMIT as the authoritative witness — the timestamp is mutable metadata).
+  # Therefore ANY threshold set from now on is POST-HOC FOR THIS DATASET,
+  # PERMANENTLY: in the FULL sense for kriging, which fits real coordinates
+  # against real y; only WEAKLY for the random forest, whose covariates are
+  # synthetic noise. The slot does not pretend otherwise — declare
+  # `set_after_scores: true` and the guard refuses on it BY NAME, and
+  # `declared_at:` (ISO-8601) is compared against scores_first_visible.
+  # E2.5's refusal records the honest verdict either way.
+  #
+  # NO admissible_values ENUM, unlike target_definition: an enum of
+  # acceptable gates would be Track E pre-deciding the standard its own work
+  # is measured against — the same defect as an AUTHORED value, one level up.
+  # The POPULATED SHAPE (a single expression vs a mapping of the two gates
+  # above) is deliberately NOT fixed today either: fixing it would
+  # pre-declare a shape nobody has tested the meaning of, which is the rule
+  # that deferred this whole field in the first place.
+  value: null

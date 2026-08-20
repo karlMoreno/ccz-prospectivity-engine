@@ -54,9 +54,15 @@ the leakage test's seed-fragile pins, the sole-observer pass — became §3's
 single **Phase-2 closeout batch**, since E2.5 IS that closeout and all four
 would otherwise have expired there one at a time. No twins: the four boxes
 were removed, their bodies moved whole, and §2 keeps a pointer, not a box.
-**42 open items** (recounted from the boxes; 45 − 4 + 1): §1 Track G 11, §2
-Karl 6, §3 Engineering 22, §4 Phase-2 risks 0 (both closed), §6 later phases
-3. §5 is fully closed.
+1 CLOSED 2026-08-19 (C8.1: Contract 8's `acceptance_thresholds` slot — box
+checked on the ORIGINAL entry, no twin; the §2 pre-registration entry stays
+OPEN, because a slot is not a threshold). The same commit corrected the §2
+TRIPWIRE bullet that asserted a loader refusal which did not exist — the
+source the E2.5 prompt inherited its false premise from, left standing by the
+E2.5 approval's own correction pass over that entry.
+**41 open items** (recounted from the boxes; 45 − 4 + 1 − 1): §1 Track G 11,
+§2 Karl 6, §3 Engineering 21, §4 Phase-2 risks 0 (both closed), §6 later
+phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -237,9 +243,10 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   **regardless of origin; corrected at the E2.5 approval, which found this
   sentence describing the admissible-set check as an AUTHORED refusal, the
   same conflation the E2.5 prompt's inventory made one level up** — and
-  `acceptance_thresholds` has no slot yet (it "arrives with E2.5" per the
-  contract header), so Track E cannot pre-register one
-  even if it wanted to. That design is correct; the SEQUENCING must
+  `acceptance_thresholds` HAS A SLOT as of C8.1 (2026-08-19,
+  `model_config_version` 2) — it had none when this entry was written, and
+  the loader now refuses an AUTHORED gate outright, so Track E STILL cannot
+  pre-register one: the slot is Track G's to fill, with a citation. That design is correct; the SEQUENCING must
   therefore be honest rather than fixed:
   - **E2.4 runs anyway.** Its scores are measurements under the SYNTHETIC
     watermark, and E2.5's refuse-to-validate is the RECORDED VERDICT, not
@@ -268,9 +275,23 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
     than arguable.
   - **THE E2.5 TRIPWIRE (Karl, E2.X approval, 2026-08-14):** E2.5 is
     expected to be predominantly ASSEMBLY of refusals that already exist —
-    Contract 8's loader refusing AUTHORED thresholds, E2.4's
+    ~~Contract 8's loader refusing AUTHORED thresholds~~, E2.4's
     `scores_first_visible`, the pre-registration verdict ("no
-    pre-registered gate existed when these scores were computed"). If E2.5
+    pre-registered gate existed when these scores were computed").
+    **CORRECTED AT C8.1 (2026-08-19): the struck clause was FALSE when
+    written** — stated 2026-08-14, committed 2026-08-18 (`009835e`), one day
+    before E2.5. No such refusal existed, and
+    no `acceptance_thresholds` slot existed either — P2.A had deliberately
+    deferred both. THIS LINE IS THE SOURCE of the correction-drift instance
+    the E2.5 approval recorded at "a task prompt's premises": the E2.5
+    prompt did not invent the claim, it INHERITED it from here. The
+    approval's correction pass over this very entry fixed a different
+    sentence (the admissible-set conflation, above) and left this one
+    standing — **the fix landed in the right entry, on the wrong
+    sentence.** C8.1 built the refusal, so the clause is now true; it is
+    struck rather than silently updated, because a premise that was false
+    for five days is a fact about how this repo fails, and quietly making
+    it accurate would delete the evidence. If E2.5
     turns out to require substantial NEW machinery, **STOP and investigate
     what leaked upstream before building it: the SIZE of E2.5 is itself a
     diagnostic.** (Placed here rather than in the runner-obligations entry
@@ -778,8 +799,19 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   `hyperparameters.sd_mapping = "half_width_(q84-q16)/2"`. The quoted text
   stays as quoted; the correction rides here and in the P2.C batch (§2
   review finding F18).
-- [ ] **ADD Contract 8's `acceptance_thresholds` slot — DECIDED by Karl at the
-  E2.5 approval (2026-08-19); it is the NEXT TASK.** Shape, as decided: the
+- [x] **ADD Contract 8's `acceptance_thresholds` slot — DECIDED by Karl at the
+  E2.5 approval (2026-08-19); DONE at C8.1 the same day.** Landed exactly as
+  decided: `value: null`, no `data_origin`, `[GEOLOGY — ISAAC]`,
+  `model_config_version` **1 → 2** with the contracts-README note. The loader
+  got both refusals P2.A specified (a value with no origin; an AUTHORED gate
+  — widened to "less real than LITERATURE", derived from the taxonomy's own
+  realness order rather than hand-listed), and the guard's verdict on today's
+  data is UNCHANGED: same passing set, same failing set, `eligible False` —
+  only the route moved from ABSENT to NULL. Detail:
+  [C8.1.md](walkthroughs/C8.1.md). **What it does NOT close: the
+  pre-registration entry in §2** — a slot is not a threshold, and the
+  post-hoc caveat below is now permanent for this dataset.
+  The original decision, for the record: Shape, as decided: the
   field arrives with `value: null`, **no `data_origin` — because there is no
   value to classify** (the deliberate contrast with `target_definition`, whose
   provisional `AUTHORED` / `author: model` origin IS its marker per P2.A);

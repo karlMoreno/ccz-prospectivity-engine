@@ -203,10 +203,24 @@ def test_precondition_5_refuses_a_run_whose_provenance_omits_an_upstream_hash() 
 
 
 def test_precondition_6_refuses_an_absent_null_authored_or_post_dated_threshold() -> None:
-    """All four ways a gate fails to be pre-registered, each named."""
+    """All four ways a gate fails to be pre-registered, each named.
+
+    THE AUTHORED CASE CHANGED ROUTE AT C8.1, not verdict: the loader now
+    rejects an AUTHORED threshold OUTRIGHT, so this function never sees one
+    and reports the loader's refusal instead of testing the origin itself.
+    The assertions below therefore check the reason SURVIVES the hand-off —
+    the failure a bare `precondition in failures` check would miss.
+
+    SOLE OBSERVER for the HAND-OFF (E2.0-1b convention, measured at C8.1):
+    drop `{unusable}` from the guard's refusal message and this is the only
+    test in the suite that fails. Everything else still sees precondition 6
+    refuse — the SET is unchanged — while the refusal stops saying WHY. That
+    is the whole risk of moving a rule into the loader, and this test is what
+    stands between the move and a silent loss of the reason."""
     absent = _evaluate(_eligible_run(), contract={})
     assert {r.precondition for r in absent.failures} == {Precondition.PRE_REGISTERED_THRESHOLD}
-    assert "no pre-registered gate existed when these scores were computed" in absent.failures[0].detail
+    assert "no admissible pre-registered gate existed" in absent.failures[0].detail
+    assert "no acceptance_thresholds field" in absent.failures[0].detail
 
     null = _evaluate(_eligible_run(), contract={
         "acceptance_thresholds": {"value": None, "data_origin": "LITERATURE"}})
@@ -218,7 +232,12 @@ def test_precondition_6_refuses_an_absent_null_authored_or_post_dated_threshold(
     assert {r.precondition for r in authored.failures} == {Precondition.PRE_REGISTERED_THRESHOLD}, \
         "an AUTHORED threshold must be refused — a number someone typed is not a gate"
     assert "declared AUTHORED" in authored.failures[0].detail
-    assert "a number someone typed is not a pre-registered gate" in authored.failures[0].detail
+    assert "inventing the standard its own work is measured against" in authored.failures[0].detail
+
+    unclassified = _evaluate(_eligible_run(), contract={
+        "acceptance_thresholds": {"value": "uplift >= 0.5"}})
+    assert {r.precondition for r in unclassified.failures} == {Precondition.PRE_REGISTERED_THRESHOLD}
+    assert "with no data_origin" in unclassified.failures[0].detail
 
     post_hoc = _evaluate(_eligible_run(), contract={
         "acceptance_thresholds": {"value": "uplift >= 0.5", "data_origin": "LITERATURE",
@@ -309,7 +328,13 @@ def test_the_committed_e2_4_run_is_refused_for_exactly_the_honest_reasons() -> N
     passed = {r.precondition for r in verdict.results if r.passed}
     assert passed == set(Precondition) - {Precondition.PRE_REGISTERED_THRESHOLD}
     assert {r.precondition for r in verdict.failures} == {Precondition.PRE_REGISTERED_THRESHOLD}
-    assert "no pre-registered gate existed" in verdict.failures[0].detail
+    # The ROUTE changed at C8.1 and the VERDICT did not: before the slot
+    # existed this refused because the FIELD was absent; it now refuses
+    # because the field is explicitly NULL. Both assertions above — the
+    # passing set and the failing set — are byte-identical across that
+    # change, which is the property C8.1 had to preserve.
+    assert "explicitly NULL" in verdict.failures[0].detail
+    assert "no gate existed when these scores were computed" in verdict.failures[0].detail
     assert verdict.eligible is False
     assert verdict.watermark is not None and verdict.is_scientific is False
 

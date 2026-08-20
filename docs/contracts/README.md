@@ -135,7 +135,7 @@ moves its `content_hash` — accounted in `docs/walkthroughs/P2.0.md` §c.
 | 5 | Phase-A source queue | `data/sources/source_queue.yaml` | one `SourceAdapter` per entry; enforce `is_open` gate | download the queue; fill license/area/hash/accessed |
 | 6 | TS-6 reference | `data/ts6/ts6_reference.yaml` (+ `ts6_abundance.tif`) | read via `TS6Reference`; compute agreement | digitize the TS-6 surface; set `role_note` |
 | 7 | Normalization policy | `data/config/normalization.yaml` | one `AbundanceNormalizer` per evidence class | confirm geology: areas, mean nodule mass, join tolerance |
-| 8 | Model parameters | `data/config/model_config.yaml` | read via `engine/prospectivity/model_config.py`; E2.0 records `target_definition` (value + declared origin) in training-matrix provenance | decide the training target (buried vs surface — P2.B's verdict fixed the current enum); a value with a citation promotes the field AUTHORED → LITERATURE |
+| 8 | Model parameters | `data/config/model_config.yaml` (**v2**) | read via `engine/prospectivity/model_config.py`; E2.0 records `target_definition` (value + declared origin) in training-matrix provenance; **C8.1: reads `acceptance_thresholds`, REFUSES an AUTHORED gate outright (and anything less real than LITERATURE), and E2.5's precondition 6 gates every validated claim on it** | decide the training target (buried vs surface — P2.B's verdict fixed the current enum); a value with a citation promotes the field AUTHORED → LITERATURE. **Fill `acceptance_thresholds` (with a citation): (a) what margin over the mean baseline counts as credible uplift, and on which metric; (b) whether a within-cluster-only win passes. Read the slot's own comment first — the E2.4 scores already exist, so any threshold set now is post-hoc for this dataset** |
 
 **Contract 8 (P2.A, 2026-08-09).** The seven-contract framing in the Phase-0
 docs now reads EIGHT: Contracts 1–7 defined what a MASS row is, how it
@@ -145,6 +145,18 @@ which y it trains on. Contract 8 holds Phase-2 modelling parameters (as
 distinct from Contract 7's ingestion policy) and grows additively as Phase-2
 tasks need them; its `target_definition` enum is fixed by P2.B's data verdict
 (see the contract's own header for the excluded dead ends and their evidence).
+
+**Version 2 (C8.1, 2026-08-19)** adds `acceptance_thresholds`, closing P2.A's
+deferral on its own stated condition — the field "arrives with E2.5's
+refuse-to-validate guard", and E2.5 built the consumer. **The change is
+ADDITIVE**: no existing field's value or semantics moved, so Track G's
+re-sync is a READ, not a review. The field ships `value: null` with **no**
+`data_origin` (there is no value to classify) and the loader keeps three
+states apart — absent raises, null is "awaiting", populated returns value +
+origin — while rejecting an AUTHORED gate outright. That last rule is the
+deliberate OPPOSITE of `target_definition`'s: an AUTHORED target is a
+recorded, swappable stand-in, whereas an AUTHORED threshold silently becomes
+the verdict.
 
 > **Data-access reality:** DeepData's nodule **abundance/grade layer is CONFIDENTIAL** with **no public API** — so it is **not** the sample source. The **Phase-A queue** (Contract 5) draws abundance from open PANGAEA/DOMES/Dryad datasets; DeepData's **public** polygons + **GEBCO** bathymetry are context only. Phase B/C are out of the alpha.
 

@@ -167,7 +167,10 @@ def test_upstream_hashes_match_the_actual_corpus_and_stack_manifests(
 def test_contract_versions_include_model_config_version(real_assembly: dict) -> None:
     """The matrix is Contract 8's first consumer, so the manifest records
     which model_config version defined its y."""
-    assert real_assembly["manifest"].contract_versions["model_config_version"] == 1
+    # 2 since C8.1 (2026-08-19) added acceptance_thresholds. This pin is
+    # UPDATED IN THE COMMIT THAT BUMPS THE CONTRACT, never loosened: a pinned
+    # version that drifts silently is indistinguishable from one nobody set.
+    assert real_assembly["manifest"].contract_versions["model_config_version"] == 2
 
 
 def test_changing_the_recorded_target_value_changes_the_content_hash(

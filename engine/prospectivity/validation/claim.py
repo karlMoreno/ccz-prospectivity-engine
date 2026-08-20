@@ -325,24 +325,32 @@ def _check_pre_registered_threshold(inputs: ClaimInputs) -> str:
     """
     try:
         declared: DeclaredField = acceptance_thresholds(inputs.contract)
-    except ValueError as absent:
+    except ValueError as unusable:
+        # TWO LOADER REFUSALS LAND HERE, and both mean the same thing at claim
+        # time: the SLOT IS ABSENT, or the declared threshold is REJECTED
+        # OUTRIGHT (AUTHORED — or any origin less real than LITERATURE — and
+        # a value with no origin at all). C8.1 moved the origin rule INTO the
+        # loader, where it belongs: a threshold Track E invented must not
+        # reach a consumer at all, not merely fail a check downstream.
+        #
+        # THE AUTHORED BRANCH THAT USED TO SIT HERE WAS DELETED, NOT LOST.
+        # With the loader rejecting AUTHORED, this function can no longer
+        # receive an AUTHORED DeclaredField — `acceptance_thresholds()` is
+        # the only way in, including through the `contract` test seam — so an
+        # `if declared.data_origin == "AUTHORED"` here would be unreachable
+        # code with a test that appeared to exercise it: coverage-that-isn't,
+        # the defect class CLAUDE.md tracks. One rule, one site; the loader's
+        # own message is inlined below so the refusal still SAYS why.
         raise ClaimRefused(
             Precondition.PRE_REGISTERED_THRESHOLD,
-            f"no pre-registered gate existed when these scores were computed. {absent}",
-        ) from absent
+            f"no admissible pre-registered gate existed when these scores were "
+            f"computed. {unusable}",
+        ) from unusable
     if declared.value is None:
         raise ClaimRefused(
             Precondition.PRE_REGISTERED_THRESHOLD,
             "Contract 8 declares acceptance_thresholds explicitly NULL — a declared "
             "absence is still an absence: no gate existed when these scores were computed",
-        )
-    if declared.data_origin == "AUTHORED":
-        raise ClaimRefused(
-            Precondition.PRE_REGISTERED_THRESHOLD,
-            f"the acceptance threshold is declared AUTHORED (author "
-            f"{declared.author!r}) — a number someone typed is not a pre-registered gate; "
-            "it arrives as LITERATURE with a citation that locates it, or as a MEASURED "
-            "or DERIVED value with its evidence",
         )
     raw_field = (inputs.contract or {}).get("acceptance_thresholds", {}) if inputs.contract else _raw_threshold_field()
     if raw_field.get("set_after_scores") is True:
