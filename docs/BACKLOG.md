@@ -246,7 +246,24 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `acceptance_thresholds` HAS A SLOT as of C8.1 (2026-08-19,
   `model_config_version` 2) — it had none when this entry was written, and
   the loader now refuses an AUTHORED gate outright, so Track E STILL cannot
-  pre-register one: the slot is Track G's to fill, with a citation. That design is correct; the SEQUENCING must
+  pre-register one: the slot is Track G's to fill, with a citation.
+
+  **THIS ENTRY STAYS OPEN — confirmed at the C8.1 approval (2026-08-19).**
+  A SLOT IS NOT A THRESHOLD. C8.1 built the place a gate goes and the refusals
+  that keep a bad one out; it did not create a gate, and it could not have.
+  The admissible origins are LITERATURE, MEASURED and DERIVED: LITERATURE
+  needs a citation that LOCATES the number, MEASURED needs a file and its
+  hash — neither is Track E's to produce. DERIVED is the one Track E could
+  technically declare, by computing a threshold from data; but a gate derived
+  from the very scores it grades is post-hoc BY CONSTRUCTION, so the taxonomy
+  permits it while the clock below forbids it. That is the pairing that makes
+  this entry load-bearing rather than redundant with the loader. **The post-hoc caveat above
+  is now PERMANENT for this dataset**: E2.4's scores are committed and dated,
+  so no threshold set from here is pre-registered for these numbers, in the
+  full sense for kriging and weakly for RF. Closing this entry would require a
+  threshold that predates the scores, which no future work can produce.
+
+  That design is correct; the SEQUENCING must
   therefore be honest rather than fixed:
   - **E2.4 runs anyway.** Its scores are measurements under the SYNTHETIC
     watermark, and E2.5's refuse-to-validate is the RECORDED VERDICT, not

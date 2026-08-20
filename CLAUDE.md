@@ -242,6 +242,30 @@ hard way — the evidence is cited, not asserted.
    red at 6 of 8 seeds, because the ratio ceilings — which the finding had not
    named — are the more fragile assertion.
 
+   **A CORRECTION PASS IS SCOPED TO THE CLAIM, NOT THE ENTRY** (added at the
+   C8.1 approval, 2026-08-19). Correcting one sentence in a document does not
+   inspect its neighbours, and a reviewer who has just fixed an entry feels
+   like that entry has been checked.
+   *Evidence:* the E2.5-approval pass corrected `BACKLOG.md` §2's
+   admissible-set conflation — a sentence in that entry's opening paragraph —
+   and left standing, in the FOURTH AND LAST BULLET OF THE SAME ENTRY, the
+   tripwire clause asserting a loader refusal that did not exist — the clause the E2.5 prompt had inherited its false premise from.
+   The fix landed in the right entry, on the wrong sentence.
+
+   **AND: BEING IN THE REPO IS NOT EVIDENCE — IT IS ONLY PERSISTENCE.** That
+   false premise was not misremembered when a prompt was written; it was
+   WRITTEN INTO the repo by an approval (`009835e`, 2026-08-18) and read back
+   as corroboration one day later. All three provenance channels this project
+   built — VALUES (the origin taxonomy), INSTRUCTIONS (tracked prompts and
+   handoffs), VERDICTS (the ledger) — are repo-resident, and **none of them
+   distinguishes a claim that was VERIFIED from one that was merely
+   RECORDED.** What made this one refutable was the ATTRIBUTION convention:
+   the bullet self-attributed "(Karl, E2.X approval, 2026-08-14)", so it
+   traced to a person and a date instead of reading as ambient repo fact.
+   That convention is carrying more weight than anyone assigned it — with one
+   measured limit: its date is when the claim was STATED, not when it entered
+   the repo (four days apart here), so it buys traceability, not chronology.
+
 Corollaries worth keeping in mind:
 
 - **A fixture must be able to distinguish the claim from its negation.** If every
@@ -269,7 +293,7 @@ below, not asserted; each instance is citable.
 | **Coverage-that-isn't** — a test that counts as coverage while guarding nothing | **×4** | the test-name audit's 17 misnamed tests (rule 1); `test_observation_schema.py` reading the corpus through the validator that forbids the violation (rule 2); `..._adds_nothing` comparing row count and IDs while every merged row's `notes` tripled (rule 3); `test_covariate_stack.py`'s determinism test, which varies the output dir (not in the substance) and holds the DEM path fixed (in it) — passing since E1.4 under PROVENANCE.md's most-cited invariant (E2.4 audit row M(b)) |
 | **Fixture degeneracy** — the fixture cannot separate the claim from its neighbours or its negation | **×5** | `[2, 4, 6]`, where SD = MAD = half-range = 2.0 (E2.1 MB9); `shared_cell_count == len(stations)`, true on the real corpus (E2.0-2); the rank-4 RF fixture, blind to `aggregate_leaves_first` (E2.3 review); the metrics fixture where mean\|e\| = median\|e\| = 2.0, blind to a mean→median swap in MAE (E2.4 §1 review); **K3-A** — the audit's own stale-refit probe, run on a fold order where no stale state could exist (E2.4 audit) |
 | **Deferral without a landing spot** — a disposition that survives only in a transcript | **×4** (the prompt proposing this table said ×3; the fourth is named here) | three of 22 review findings at the E2.X disposition audit; **and P2.C + the `SESSION_STATE.md` question at E2.4 §0 finding C**, which existed only in a planning transcript AFTER the deferral rule was written — the rule's first post-adoption instance |
-| **Correction drift** — a fix, a remedy, or a PREMISE asserts something the primary source does not support | **×3**, at three different SITES | (a) the four false claims in the E2.4 doc fixes (rule 5 above), caught pre-commit by a verification pass over the corrections; (b) **the E2.5 prompt's tripwire inventory** asserted that Contract 8's loader "already refuses an AUTHORED acceptance threshold" — there is no `acceptance_thresholds` slot at all, and the loader has no origin-based refusal. The deferral was DESIGNED in P2.A ("`acceptance_thresholds` arrives with E2.5 … a field with no consumer is a field nobody has tested the meaning of") and recorded in the contract header, then asserted two tasks later as already built. **The site is new: a task PROMPT's premises, not a correction's text** — and it was caught only because the session applied rule 5 to the prompt rather than only to its own edits; (c) **this very commit** — the sentence recording (b) claimed P2.C carries "two `[KARL — DECIDE]` points"; the block carries ONE. Caught by grepping the block rather than re-reading the sentence. Karl's approval specified ×2; the third is counted here because the row's counts are DERIVED and a tally that omits the drift produced while writing the tally is the defect it names |
+| **Correction drift** — a fix, a remedy, or a PREMISE asserts something the primary source does not support | **×4** (3 of 4 caught PRE-COMMIT) | (a) the four false claims in the E2.4 doc fixes (rule 5 above), caught pre-commit by a verification pass over the corrections; (b) **the E2.5 prompt's tripwire inventory** asserted that Contract 8's loader "already refuses an AUTHORED acceptance threshold" — there is no `acceptance_thresholds` slot at all, and the loader has no origin-based refusal. The deferral was DESIGNED in P2.A ("`acceptance_thresholds` arrives with E2.5 … a field with no consumer is a field nobody has tested the meaning of") and recorded in the contract header, then asserted two tasks later as already built. **The site is new: a task PROMPT's premises, not a correction's text** — and it was caught only because the session applied rule 5 to the prompt rather than only to its own edits; (c) **this very commit** — the sentence recording (b) claimed P2.C carries "two `[KARL — DECIDE]` points"; the block carries ONE. Caught by grepping the block rather than re-reading the sentence. Karl's approval specified ×2; the third is counted here because the row's counts are DERIVED and a tally that omits the drift produced while writing the tally is the defect it names; (d) **C8.1's walkthrough** claimed the false premise "was written into the BACKLOG five days earlier", conflating the day the tripwire was STATED (2026-08-14) with the day it was COMMITTED (2026-08-18, `009835e`) — caught pre-commit by `git log -S`, inside the table that is itself about mis-dated premises |
 
 The counts are the point: **coverage-that-isn't and fixture degeneracy are not
 historical, they are recurring**, and the two most recent instances of each were
@@ -280,6 +304,14 @@ says "the primary source" rather than "the finding": a premise has no finding to
 re-read, only a repo to check. Its third arrived inside the commit that wrote
 its second down — which is the most economical demonstration the file has that
 the class is not a story about past carelessness.
+
+**The ratio is the argument for the verification step: 3 of the 4 were caught
+PRE-COMMIT, and the one that was not — (b) — is the one that reached a task
+prompt and cost two tasks to unwind.** So an escapes-only tally would read
+ONE, and a tally that counted only what escaped would trend toward zero
+precisely BECAUSE the check works, then be cited as grounds for dropping it.
+This row counts OCCURRENCE, deliberately: the number is a measure of how
+often the class is produced, not of how often it survives.
 
 ---
 
