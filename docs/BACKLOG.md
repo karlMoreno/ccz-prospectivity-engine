@@ -47,9 +47,16 @@ manifest's own chain assertion); 2 more added 2026-08-19 at the E2.4 audit
 (the leakage test's non-seed-robust magnitude pins; nothing observes the
 walkthrough's own tables); 1 more at E2.5 (Contract 8's acceptance_thresholds
 slot — the structural change the guard did not make unilaterally).
-**45 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
-Engineering 24, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
-fully closed.
+1 entry REWRITTEN + 4 CONSOLIDATED INTO 1 at the E2.5 approval (2026-08-19):
+the `acceptance_thresholds` entry became Karl's decision to ADD the slot, and
+the four items each due "at Phase-2 closeout" — P2.C, the F-6 table residue,
+the leakage test's seed-fragile pins, the sole-observer pass — became §3's
+single **Phase-2 closeout batch**, since E2.5 IS that closeout and all four
+would otherwise have expired there one at a time. No twins: the four boxes
+were removed, their bodies moved whole, and §2 keeps a pointer, not a box.
+**42 open items** (recounted from the boxes; 45 − 4 + 1): §1 Track G 11, §2
+Karl 6, §3 Engineering 22, §4 Phase-2 risks 0 (both closed), §6 later phases
+3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -226,9 +233,12 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   (E2.3 closeout, 2026-08-14).** E2.4 produces the comparison scores. The
   moment they exist in a walkthrough, every acceptance threshold set
   afterward is POST-HOC FOR THIS DATASET, PERMANENTLY — and Contract 8's
-  loader (`model_config.py`) refuses an AUTHORED value outside its
-  admissible set, and `acceptance_thresholds` has no slot yet (it "arrives
-  with E2.5" per the contract header), so Track E cannot pre-register one
+  loader (`model_config.py`) refuses a value outside its admissible set —
+  **regardless of origin; corrected at the E2.5 approval, which found this
+  sentence describing the admissible-set check as an AUTHORED refusal, the
+  same conflation the E2.5 prompt's inventory made one level up** — and
+  `acceptance_thresholds` has no slot yet (it "arrives with E2.5" per the
+  contract header), so Track E cannot pre-register one
   even if it wanted to. That design is correct; the SEQUENCING must
   therefore be honest rather than fixed:
   - **E2.4 runs anyway.** Its scores are measurements under the SYNTHETIC
@@ -271,92 +281,10 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   [model_config.yaml](../data/config/model_config.yaml) header (the
   `acceptance_thresholds` slot); [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md)
   ("arrives with E2.5"); E2.3 closeout in [E2.3.md](walkthroughs/E2.3.md).
-- [ ] **P2.C — doc-consistency fixes (the deferral LANDED, E2.4 §1,
-  2026-08-18).** This batch was deferred in the Phase-2 planning
-  transcript with no landing spot — the exact shape the deferral rule
-  (CLAUDE.md workflow conventions) forbids; the E2.4 handoff named it
-  ("P2.C doc fixes … P2.D datetime dedup") and only P2.D had an entry
-  (§3, datetime). Each item below was RE-VERIFIED against the repo at E2.4
-  §1 by independent read-only checks with citations re-opened by a second
-  pass — the states are current facts, not transcript memory. One item was
-  pulled forward into E2.4 §1 itself: `CLAUDE.md`'s "Do not jump ahead to
-  Phase 2" line (an ACTIVE countermand, not stale decoration) plus the
-  minimal status refresh (1E-b). The full refresh stays here.
-  - **README status — and PUSH FIRST.** `README.md:16–25` still says
-    "Phase 1, Track E complete through E1.4" (corpus 108/35 counts are
-    still correct) and `:18` still says "dedup Specifications" — retired
-    for `DuplicateResolutionPolicy` at `c07ab80` (2026-07-30); truth:
-    Phase 2 through E2.3. `main` is **47 commits
-    ahead of `origin/main`** (remote at `b3ae97c`, E1.4) — so the GitHub
-    README is staler still. Verify the push state, push, THEN rewrite.
-  - **BACKLOG AOI denominator.** `docs/BACKLOG.md` §1 "Study area / AOI
-    scope" reads "108 of 114 corpus rows fall outside" — the 114 counted
-    the 6 fabricated in-box `[06]`/`[18]` rows removed in P1/P1b, and was
-    already wrong the day this file was created; the manifest's
-    `study_area_containment` is 108/108, `fraction_outside` 1.0 (and
-    §3's E1.5 item + `provenance.md:84` already say 108 of 108). Fix: "all
-    108 of 108 (100%)".
-  - **`covariates.yaml` title vs version.** `docs/contracts/covariates.yaml:1`
-    still reads "CONTRACT 3 (v2)" while `registry_version: 4` (line 57;
-    README row, `contract_versions.py`, `features/stack.py` and three tests
-    all agree on 4 — the header prose narrates both bumps, only the title
-    was never touched at 2→3 or 3→4). Docs-only: title → "(v4)". The
-    Contracts_v3 authoring copy is a genuine v2 and stays.
-  - **Handoff Task A–D closeout paragraph.** No handoff names the
-    2026-07-30 Phase-1 closeout Tasks A–D (`23f22f7` A, `16a6c3d` B,
-    `5f95129` C, Task D / Option C2); `HANDOFF_claude_code_phase2.md`
-    carries their RESULTS anonymously (202 tests, `DuplicateResolutionPolicy`,
-    Specification retired, fail-terminal-on-merge, testing conventions,
-    datetime item) while pointing a fresh session at E1.5.md as "most
-    recent state". Add the paragraph, or point at BACKLOG "Recently
-    closed" (which names them).
-  - **"Blocked on" framing → contract-slot framing.** The last live
-    instance was `CLAUDE.md` "Current status" ("needs a decision on the
-    training target first") — FIXED at E2.4 §1 (1E-b). BACKLOG §1's item
-    already carries the contract-slot framing; the section title "Blocked
-    on Track G" remains as a grouping label (still true for the other ten
-    items). Sweep `docs/` once more at fix time for any survivor outside
-    the historical `prompts/` and `handoffs/` records.
-  - **`docs/` prose contradicting the origin taxonomy.** Ten hits in three
-    groups: (a) `PATTERNS.md:329` and `walkthroughs/E1.5.md:232` say a
-    layer's synthetic-ness "is recorded in the layer's name" — since
-    P2.0d-3 it is the DECLARED `TerrainLayer.data_origin` (the fixture's
-    layer is literally named "bathymetry"; `tests/fixtures/rasters.py:116–118`);
-    (b) BACKLOG §1's `[06]`/`[18]` entries (~lines 89–98) describe the gate
-    as `_require_production_path()` / "a real file under `data/`" and `[18]`
-    as re-wirable — the gate is `_require_proven_measured` (declared
-    MEASURED + hash over real bytes) and `[18]` is declared LITERATURE, so it
-    cannot enter through `corpus_builder` at all (§3's admission-path item
-    already says so); (c) scattered "real"/"synthetic" used as if origin
-    followed from a filename — including `docs/contracts/README.md:163`
-    ("swap SYNTHETIC sources → REAL Phase-A downloads"), where the
-    checkpoint plan's shorthand predates the vocabulary. Fix by pointing
-    each at the declaration.
-  - **CI comment.** `.github/workflows/ci.yml:3–6` (unchanged since Phase 0,
-    `4160546`) says CI runs "the full pipeline end-to-end on synthetic
-    fixtures … over the synthetic sources in `data/fixtures/native/`"; what
-    runs is `pytest -v` over all 376 tests, which execute the REAL
-    production ingestion path (`build_corpus()` over the two hash-verified
-    PANGAEA `.tab` files in `data/sources/`), read the committed real
-    108-row corpus, and assemble the real 35-station training matrix over a
-    synthetic DEM. Rewrite the comment to say what runs; the CLAUDE.md
-    reproducibility line it quotes ("CI runs the full pipeline end-to-end
-    on synthetic fixtures every push") needs the same correction.
-  - **BACKLOG obligation 6 names a field that cannot exist.** The verbatim
-    obligation text lists `sd_ddof` among RF's sd-defining hyperparameters;
-    E2.3-4 replaced the ddof moment with the (q84−q16)/2 half-width, so the
-    real field is `hyperparameters.sd_mapping`. The verbatim text stays; the
-    supersession is recorded on the entry's closure line (E2.4 §2, F18) —
-    fold it into the next re-statement of the obligations rather than
-    editing a quoted block.
-  - **`SESSION_STATE.md` fate — [KARL — DECIDE: update / supersede with a
-    pointer / delete].** It is a Phase-0 + E1.1 checkpoint (names `4160546`,
-    "44 passed", next task E1.2), 52 commits and eight walkthroughs behind;
-    its only inbound references are the 2026-08-08 origin audit (:70, :165 —
-    the latter already flags it stale). Nothing else reads it.
-  Owner: Karl + E. Trigger: before Phase-2 closeout or before the repo is
-  shown to anyone, whichever comes first. Detail: this entry's citations;
-  [E2.4.md](walkthroughs/E2.4.md) §0 finding C.
+*(P2.C — the doc-consistency batch — moved to §3's* **Phase-2 closeout
+batch** *at the E2.5 approval, 2026-08-19. It is not a §2 box any more;
+its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
+
 - [ ] **Uncited literature-shaped numbers in the contracts README.** The
   100 kg/m² ceiling rationale asserts "published CCZ abundances run
   ~1.5–30 kg/m²" and "~2 g/cm³ wet bulk density" with no citation —
@@ -850,84 +778,49 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `hyperparameters.sd_mapping = "half_width_(q84-q16)/2"`. The quoted text
   stays as quoted; the correction rides here and in the P2.C batch (§2
   review finding F18).
-- [ ] **Contract 8's `acceptance_thresholds` SLOT — the structural change E2.5
-  did not make unilaterally** (E2.5, 2026-08-19). Contract 8's header says the
-  slot "arrives with E2.5's refuse-to-validate guard". The guard arrived and is
-  its consumer (`model_config.acceptance_thresholds` +
-  `validation/claim.py` precondition 6), but adding the FIELD is a STRUCTURAL
-  contract change — bump `model_config_version`, tell Karl, note it in the
-  contracts README — and the VALUE is Track G's. E2.5 therefore made the
-  ABSENCE refusable by name instead: the accessor raises, the guard reports
-  "no pre-registered gate existed when these scores were computed", and that
-  refusal is E2.5's recorded headline. **Two decisions, in order:** (1) Karl —
-  add the slot (with `value: null`, its `data_origin`, and optionally
-  `declared_at` / `set_after_scores`, which the guard already reads)? The
-  accessor distinguishes ABSENT from explicitly-NULL and refuses both, so the
-  guard works either way and the difference is which refusal a reader sees.
-  (2) Track G — the threshold VALUE, which must not be AUTHORED (the guard
-  refuses a number someone typed) and whose provenance must predate
-  `scores_first_visible` — E2.4's scores are already visible, so **any
-  threshold set now is post-hoc for this dataset, permanently**, and the
-  honest path is a threshold cited from the literature or derived, not chosen.
-  Owner: Karl (the slot) + Track G (the value). Trigger: before any run is
-  emitted as a validated claim; revisit at Checkpoint 2. Detail:
-  [E2.5.md](walkthroughs/E2.5.md) §0 and §2; `data/config/model_config.yaml`
-  header; BACKLOG §2's pre-registration-clock entry.
-- [ ] **Nothing observes the walkthrough's own comparison tables** (E2.4 audit
-  F-6 residue, recorded 2026-08-19 when the column half was fixed and this
-  half was not). Obligation 7's uncertainty-semantics column is now a real
-  column in both §3 tables that print sd-derived numbers, and the MANIFEST
-  side is tested end to end — but `test_every_sd_shaped_number_in_the_artifact_carries_its_semantics`
-  reads the artifact, not the markdown, so the column can be deleted from
-  `docs/walkthroughs/E2.4.md` with a green suite. There is no report renderer
-  in `engine/` to test: the tables are hand-written. Options: (a) accept —
-  markdown drift is caught by review, not by pytest; (b) generate the §3
-  tables from the manifest so the column cannot be dropped without the
-  generator changing; (c) a doc-lint test that asserts the semantics column
-  exists in any table printing `cov ±1σ` or `z-RMS`. Owner: Karl + E.
-  Trigger: at Phase-2 closeout, or the first time a table is edited by hand.
-  Detail: [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
-  F-6.
-- [ ] **The known-answer leakage test's MAGNITUDE pins are not seed-robust —
-  the test is green at ONE of eight sampled seeds** (E2.4 audit row L,
-  2026-08-19; entry written when Karl approved the deferral, the finding
-  itself having been recorded in the audit at `dc0290a`).
-  `tests/test_cv_known_answer.py` pins six things on the planted two-cluster
-  field. **Measured by sweeping the FIELD seed over 11–18** (the k-fold,
-  runner and RF seeds are held at 0 and were NOT swept):
+- [ ] **ADD Contract 8's `acceptance_thresholds` slot — DECIDED by Karl at the
+  E2.5 approval (2026-08-19); it is the NEXT TASK.** Shape, as decided: the
+  field arrives with `value: null`, **no `data_origin` — because there is no
+  value to classify** (the deliberate contrast with `target_definition`, whose
+  provisional `AUTHORED` / `author: model` origin IS its marker per P2.A);
+  tagged `[GEOLOGY — ISAAC]` for task routing; `model_config_version` **1 → 2**
+  with the contracts-README note, since adding a field is a structural change.
+  (The approving prompt called this "the TYPE 2 slot P2.A specified"; that
+  label is not a term this repo carries — P2.A draws the distinction without
+  naming it — so the shape is recorded here and the label is not.)
 
-  | assertion | holds at |
-  |---|---|
-  | floor `0.75 ≤ ratio_baseline ≤ 1.0` | **8 of 8** |
-  | `ratio_baseline − ratio_RF ≥ 0.15` | **8 of 8** |
-  | `ratio_baseline − ratio_kriging ≥ 0.15` | 6 of 8 (fails 11, 17) |
-  | `ratio_kriging ≤ 0.65` | 4 of 8 (fails 11, 14, 15, 16) |
-  | `ratio_RF ≤ 0.60` | 5 of 8 (fails 11, 12, 18) |
-  | the three ± 0.02 point pins | seed 13 only, by construction |
+  **Rationale, on the record:** the guard's REFUSAL is identical whether the
+  field is absent or explicitly null — E2.5 verified both paths — so this is
+  not about the refusal. **The contract is Track G's INTERFACE, and a slot
+  that does not exist cannot be filled by the person whose job it is to fill
+  it.** P2.A deferred the field on the rule that "a field with no consumer is
+  a field nobody has tested the meaning of"; E2.5 built the consumer
+  (`model_config.acceptance_thresholds` + `validation/claim.py` precondition
+  6), so the condition P2.A set is now met.
 
-  **The whole test would be RED at 7 of 8 seeds**, and the ratio CEILINGS are
-  more fragile than the gap.
+  **The loader work this needs** — what P2.A specified and the E2.5 prompt's
+  inventory wrongly assumed was already built: **"null, awaiting
+  classification" and "classified" are DIFFERENT STATES**, and the accessor
+  must keep them apart (it already does — absent, null and populated are three
+  distinct refusals). And **an AUTHORED acceptance threshold is REJECTED
+  OUTRIGHT rather than recorded** — a threshold Track E invented is Track E
+  grading its own work. E2.5's guard already refuses it; the contract must not
+  offer AUTHORED as an admissible origin for this field.
 
-  **THE CANDIDATE FIX — pin what survives seed variation, report what does
-  not.** ASSERT: (i) the DIRECTION — each spatial model's ratio strictly below
-  the baseline's, which held 8/8 and is what §3's conclusion actually rests on;
-  and (ii) `ratio_baseline − ratio_RF ≥ 0.15`, which also held 8/8. DEMOTE to
-  reported-not-asserted: (iii) the absolute gap `ratio_baseline −
-  ratio_kriging ≥ 0.15` (fails 11, 17); (iv) `ratio_kriging ≤ 0.65` (fails 11,
-  14, 15, 16); (v) `ratio_RF ≤ 0.60` (fails 11, 12, 18); (vi) the three ± 0.02
-  point pins (seed 13 only, by construction). The alternative is to raise the
-  fixture size until the magnitudes ARE properties of the method rather than of
-  seed 13 — which is the better science and the larger change. **A remedy
-  naming only the `≥ 0.15` gap leaves the test red at 6 of 8**, which is the
-  correction-drift shape CLAUDE.md rule 5 now names. Either way it is a CODE
-  change, which is why the audit listed it rather than fixing it.
-  Owner: E. **Trigger: before Phase-2 closeout** (and in any case before the
-  leakage number is cited outside the walkthrough, or the fixture is resized at
-  Checkpoint 1). Detail:
-  [E2.4.md](walkthroughs/E2.4.md) §3 (the seed-robustness paragraph and its
-  table);
-  [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
-  row L / F-7 (the eight-seed ratio table).
+  **E2.5's guard needs no change beyond reading the slot** — the accessor and
+  precondition 6 are written against exactly this shape.
+
+  **The post-hoc caveat that rides with it:** E2.4's scores are already
+  visible, so any threshold VALUE set from now on is post-hoc for this
+  dataset, permanently — and for kriging in the full sense (real coordinates,
+  real y). The honest path is a threshold cited from the literature or
+  derived, never chosen after looking. Owner: E (the slot + loader) + Karl
+  (the structural bump). **Trigger: the next task.** Detail:
+  [E2.5.md](walkthroughs/E2.5.md) §0 and §2;
+  [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md) ("One field,
+  deliberately"); `data/config/model_config.yaml` header; §2's
+  pre-registration-clock entry above.
+
 - [ ] **The provenance chain's identity is NOT portable: the feature-stack
   manifest hashes the caller-supplied PATH STRING, so no downstream artifact
   hash can be verified anywhere but the machine that wrote it** (found at
@@ -1027,27 +920,195 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   [dem_grid.py](../engine/prospectivity/features/dem_grid.py)
   `load()`; E2.0-2 review record in
   [E2.0.md](walkthroughs/E2.0.md) §E2.0-2.
-- [ ] **Sole-observer hygiene pass** (recorded at E2.0-2; convention
-  established in E2.0-1b: a SOLE OBSERVER warning in the test's own
-  docstring, with its mutation evidence — the person tempted to weaken a
-  test is reading the test, not a module header). Candidates already
-  documented as single-observer in prior mutation tables but carrying no
-  in-file warning: the SYNTHETIC and DERIVED evidence-check negation
-  fixtures (P2.0d-2 §0.1, each "FAILED alone"); d-3's render-level
-  bytes-differ test ("the ONLY test that catches" a plot bypassing the
-  watermark helper); and P2.0c review mutations #9 (layer-origin copy) and
-  #10 (hardcoded composition), where the record names one catching test
-  without stating whether others also failed — those two need their
-  mutations re-run to establish the fact before any docstring claims it.
-  E2.0-2's two new sole observers (border-NaN, shared-cell hardcode)
-  already carry the warning in-file and are NOT part of this pass. E2.2's
-  three (border-NaN, shared-cell hardcode, shape-mismatch) and E2.3's
-  (RF10's injected-crossing observer) likewise carry theirs. Owner: E.
-  Trigger: **before Phase-2 closeout (Checkpoint 2)** — refreshed at the
-  E2.X disposition audit (ledger row 7); the original "after E2.0" had
-  silently expired. Detail:
-  [E2.0.md](walkthroughs/E2.0.md) §E2.0-1b "Other known single-observer
-  cases"; P2.0.md mutation tables.
+- [ ] **PHASE-2 CLOSEOUT BATCH — four items that were each due "at Phase-2
+  closeout" and would each have expired there separately** (consolidated at
+  the E2.5 approval, 2026-08-19, by Karl's instruction: "so they stop
+  expiring individually"). E2.5 IS the last Track-E task in Phase 2, so all
+  four triggers have now FIRED; this entry is what they fired into.
+  **Owner: E. Trigger: before Phase 3, or before the repo is shown to anyone,
+  whichever comes first** — the wording P2.C already carried, with "Phase-2
+  closeout" replaced now that the closeout is the present moment.
+
+  **Two sub-items are not purely E's**, and the batch's single owner line must
+  not quietly reassign them: (a) P2.C carries one `[KARL — DECIDE]` point —
+  the `SESSION_STATE.md` fate — and was owned "Karl + E" as an entry; and
+  (b) F-6's three options are a Karl-and-E choice about whether markdown
+  drift is pytest's problem at all. E can do everything else in the batch
+  unblocked. (Counted, not remembered: one `[KARL — DECIDE]` tag inside the
+  P2.C body. An earlier draft of this very sentence said "two" — the
+  correction-drift shape CLAUDE.md rule 5 names, caught by grepping the
+  block instead of re-reading the sentence.)
+
+  **Nothing below is a summary** — each sub-item is its original entry, moved
+  whole with its citations. The per-item trigger sentences are left in place
+  as the record of what each was originally due against; **the batch trigger
+  above supersedes them all.**
+
+  - **(a)** *(moved from §2 — Karl + E)* **P2.C — doc-consistency fixes (the deferral LANDED, E2.4 §1,
+    2026-08-18).** This batch was deferred in the Phase-2 planning
+    transcript with no landing spot — the exact shape the deferral rule
+    (CLAUDE.md workflow conventions) forbids; the E2.4 handoff named it
+    ("P2.C doc fixes … P2.D datetime dedup") and only P2.D had an entry
+    (§3, datetime). Each item below was RE-VERIFIED against the repo at E2.4
+    §1 by independent read-only checks with citations re-opened by a second
+    pass — the states are current facts, not transcript memory. One item was
+    pulled forward into E2.4 §1 itself: `CLAUDE.md`'s "Do not jump ahead to
+    Phase 2" line (an ACTIVE countermand, not stale decoration) plus the
+    minimal status refresh (1E-b). The full refresh stays here.
+    - **README status — and PUSH FIRST.** `README.md:16–25` still says
+      "Phase 1, Track E complete through E1.4" (corpus 108/35 counts are
+      still correct) and `:18` still says "dedup Specifications" — retired
+      for `DuplicateResolutionPolicy` at `c07ab80` (2026-07-30); truth:
+      Phase 2 through E2.3. `main` is **47 commits
+      ahead of `origin/main`** (remote at `b3ae97c`, E1.4) — so the GitHub
+      README is staler still. Verify the push state, push, THEN rewrite.
+    - **BACKLOG AOI denominator.** `docs/BACKLOG.md` §1 "Study area / AOI
+      scope" reads "108 of 114 corpus rows fall outside" — the 114 counted
+      the 6 fabricated in-box `[06]`/`[18]` rows removed in P1/P1b, and was
+      already wrong the day this file was created; the manifest's
+      `study_area_containment` is 108/108, `fraction_outside` 1.0 (and
+      §3's E1.5 item + `provenance.md:84` already say 108 of 108). Fix: "all
+      108 of 108 (100%)".
+    - **`covariates.yaml` title vs version.** `docs/contracts/covariates.yaml:1`
+      still reads "CONTRACT 3 (v2)" while `registry_version: 4` (line 57;
+      README row, `contract_versions.py`, `features/stack.py` and three tests
+      all agree on 4 — the header prose narrates both bumps, only the title
+      was never touched at 2→3 or 3→4). Docs-only: title → "(v4)". The
+      Contracts_v3 authoring copy is a genuine v2 and stays.
+    - **Handoff Task A–D closeout paragraph.** No handoff names the
+      2026-07-30 Phase-1 closeout Tasks A–D (`23f22f7` A, `16a6c3d` B,
+      `5f95129` C, Task D / Option C2); `HANDOFF_claude_code_phase2.md`
+      carries their RESULTS anonymously (202 tests, `DuplicateResolutionPolicy`,
+      Specification retired, fail-terminal-on-merge, testing conventions,
+      datetime item) while pointing a fresh session at E1.5.md as "most
+      recent state". Add the paragraph, or point at BACKLOG "Recently
+      closed" (which names them).
+    - **"Blocked on" framing → contract-slot framing.** The last live
+      instance was `CLAUDE.md` "Current status" ("needs a decision on the
+      training target first") — FIXED at E2.4 §1 (1E-b). BACKLOG §1's item
+      already carries the contract-slot framing; the section title "Blocked
+      on Track G" remains as a grouping label (still true for the other ten
+      items). Sweep `docs/` once more at fix time for any survivor outside
+      the historical `prompts/` and `handoffs/` records.
+    - **`docs/` prose contradicting the origin taxonomy.** Ten hits in three
+      groups: (a) `PATTERNS.md:329` and `walkthroughs/E1.5.md:232` say a
+      layer's synthetic-ness "is recorded in the layer's name" — since
+      P2.0d-3 it is the DECLARED `TerrainLayer.data_origin` (the fixture's
+      layer is literally named "bathymetry"; `tests/fixtures/rasters.py:116–118`);
+      (b) BACKLOG §1's `[06]`/`[18]` entries (~lines 89–98) describe the gate
+      as `_require_production_path()` / "a real file under `data/`" and `[18]`
+      as re-wirable — the gate is `_require_proven_measured` (declared
+      MEASURED + hash over real bytes) and `[18]` is declared LITERATURE, so it
+      cannot enter through `corpus_builder` at all (§3's admission-path item
+      already says so); (c) scattered "real"/"synthetic" used as if origin
+      followed from a filename — including `docs/contracts/README.md:163`
+      ("swap SYNTHETIC sources → REAL Phase-A downloads"), where the
+      checkpoint plan's shorthand predates the vocabulary. Fix by pointing
+      each at the declaration.
+    - **CI comment.** `.github/workflows/ci.yml:3–6` (unchanged since Phase 0,
+      `4160546`) says CI runs "the full pipeline end-to-end on synthetic
+      fixtures … over the synthetic sources in `data/fixtures/native/`"; what
+      runs is `pytest -v` over all 376 tests, which execute the REAL
+      production ingestion path (`build_corpus()` over the two hash-verified
+      PANGAEA `.tab` files in `data/sources/`), read the committed real
+      108-row corpus, and assemble the real 35-station training matrix over a
+      synthetic DEM. Rewrite the comment to say what runs; the CLAUDE.md
+      reproducibility line it quotes ("CI runs the full pipeline end-to-end
+      on synthetic fixtures every push") needs the same correction.
+    - **BACKLOG obligation 6 names a field that cannot exist.** The verbatim
+      obligation text lists `sd_ddof` among RF's sd-defining hyperparameters;
+      E2.3-4 replaced the ddof moment with the (q84−q16)/2 half-width, so the
+      real field is `hyperparameters.sd_mapping`. The verbatim text stays; the
+      supersession is recorded on the entry's closure line (E2.4 §2, F18) —
+      fold it into the next re-statement of the obligations rather than
+      editing a quoted block.
+    - **`SESSION_STATE.md` fate — [KARL — DECIDE: update / supersede with a
+      pointer / delete].** It is a Phase-0 + E1.1 checkpoint (names `4160546`,
+      "44 passed", next task E1.2), 52 commits and eight walkthroughs behind;
+      its only inbound references are the 2026-08-08 origin audit (:70, :165 —
+      the latter already flags it stale). Nothing else reads it.
+    Owner: Karl + E. Trigger: before Phase-2 closeout or before the repo is
+    shown to anyone, whichever comes first. Detail: this entry's citations;
+    [E2.4.md](walkthroughs/E2.4.md) §0 finding C.
+
+  - **(b)** *(was §3 — Karl + E: the three options are a choice)* **Nothing observes the walkthrough's own comparison tables** (E2.4 audit
+    F-6 residue, recorded 2026-08-19 when the column half was fixed and this
+    half was not). Obligation 7's uncertainty-semantics column is now a real
+    column in both §3 tables that print sd-derived numbers, and the MANIFEST
+    side is tested end to end — but `test_every_sd_shaped_number_in_the_artifact_carries_its_semantics`
+    reads the artifact, not the markdown, so the column can be deleted from
+    `docs/walkthroughs/E2.4.md` with a green suite. There is no report renderer
+    in `engine/` to test: the tables are hand-written. Options: (a) accept —
+    markdown drift is caught by review, not by pytest; (b) generate the §3
+    tables from the manifest so the column cannot be dropped without the
+    generator changing; (c) a doc-lint test that asserts the semantics column
+    exists in any table printing `cov ±1σ` or `z-RMS`. Owner: Karl + E.
+    Trigger: at Phase-2 closeout, or the first time a table is edited by hand.
+    Detail: [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
+    F-6.
+
+  - **(c)** *(was §3 — the ONLY sub-item that is a CODE change)* **The known-answer leakage test's MAGNITUDE pins are not seed-robust —
+    the test is green at ONE of eight sampled seeds** (E2.4 audit row L,
+    2026-08-19; entry written when Karl approved the deferral, the finding
+    itself having been recorded in the audit at `dc0290a`).
+    `tests/test_cv_known_answer.py` pins six things on the planted two-cluster
+    field. **Measured by sweeping the FIELD seed over 11–18** (the k-fold,
+    runner and RF seeds are held at 0 and were NOT swept):
+
+    | assertion | holds at |
+    |---|---|
+    | floor `0.75 ≤ ratio_baseline ≤ 1.0` | **8 of 8** |
+    | `ratio_baseline − ratio_RF ≥ 0.15` | **8 of 8** |
+    | `ratio_baseline − ratio_kriging ≥ 0.15` | 6 of 8 (fails 11, 17) |
+    | `ratio_kriging ≤ 0.65` | 4 of 8 (fails 11, 14, 15, 16) |
+    | `ratio_RF ≤ 0.60` | 5 of 8 (fails 11, 12, 18) |
+    | the three ± 0.02 point pins | seed 13 only, by construction |
+
+    **The whole test would be RED at 7 of 8 seeds**, and the ratio CEILINGS are
+    more fragile than the gap.
+
+    **THE CANDIDATE FIX — pin what survives seed variation, report what does
+    not.** ASSERT: (i) the DIRECTION — each spatial model's ratio strictly below
+    the baseline's, which held 8/8 and is what §3's conclusion actually rests on;
+    and (ii) `ratio_baseline − ratio_RF ≥ 0.15`, which also held 8/8. DEMOTE to
+    reported-not-asserted: (iii) the absolute gap `ratio_baseline −
+    ratio_kriging ≥ 0.15` (fails 11, 17); (iv) `ratio_kriging ≤ 0.65` (fails 11,
+    14, 15, 16); (v) `ratio_RF ≤ 0.60` (fails 11, 12, 18); (vi) the three ± 0.02
+    point pins (seed 13 only, by construction). The alternative is to raise the
+    fixture size until the magnitudes ARE properties of the method rather than of
+    seed 13 — which is the better science and the larger change. **A remedy
+    naming only the `≥ 0.15` gap leaves the test red at 6 of 8**, which is the
+    correction-drift shape CLAUDE.md rule 5 now names. Either way it is a CODE
+    change, which is why the audit listed it rather than fixing it.
+    Owner: E. **Trigger: before Phase-2 closeout** (and in any case before the
+    leakage number is cited outside the walkthrough, or the fixture is resized at
+    Checkpoint 1). Detail:
+    [E2.4.md](walkthroughs/E2.4.md) §3 (the seed-robustness paragraph and its
+    table);
+    [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
+    row L / F-7 (the eight-seed ratio table).
+
+  - **(d)** *(was §3 — this trigger had ALREADY expired once, at "after E2.0")* **Sole-observer hygiene pass** (recorded at E2.0-2; convention
+    established in E2.0-1b: a SOLE OBSERVER warning in the test's own
+    docstring, with its mutation evidence — the person tempted to weaken a
+    test is reading the test, not a module header). Candidates already
+    documented as single-observer in prior mutation tables but carrying no
+    in-file warning: the SYNTHETIC and DERIVED evidence-check negation
+    fixtures (P2.0d-2 §0.1, each "FAILED alone"); d-3's render-level
+    bytes-differ test ("the ONLY test that catches" a plot bypassing the
+    watermark helper); and P2.0c review mutations #9 (layer-origin copy) and
+    #10 (hardcoded composition), where the record names one catching test
+    without stating whether others also failed — those two need their
+    mutations re-run to establish the fact before any docstring claims it.
+    E2.0-2's two new sole observers (border-NaN, shared-cell hardcode)
+    already carry the warning in-file and are NOT part of this pass. E2.2's
+    three (border-NaN, shared-cell hardcode, shape-mismatch) and E2.3's
+    (RF10's injected-crossing observer) likewise carry theirs. Owner: E.
+    Trigger: **before Phase-2 closeout (Checkpoint 2)** — refreshed at the
+    E2.X disposition audit (ledger row 7); the original "after E2.0" had
+    silently expired. Detail:
+    [E2.0.md](walkthroughs/E2.0.md) §E2.0-1b "Other known single-observer
+    cases"; P2.0.md mutation tables.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
