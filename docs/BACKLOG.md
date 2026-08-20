@@ -882,17 +882,24 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   | the three ± 0.02 point pins | seed 13 only, by construction |
 
   **The whole test would be RED at 7 of 8 seeds**, and the ratio CEILINGS are
-  more fragile than the gap. What survives is the DIRECTION — both spatial
-  models below the baseline's floor at every seed — which is what §3's
-  conclusion rests on. **Decision needed, and it must cover ALL the magnitude
-  pins, not just the gap:** re-pin on the direction (each model's ratio
-  strictly below the baseline's, 8/8) and demote the ceilings, the gap and the
-  point values to REPORTED numbers; or raise the fixture size until the
-  magnitudes are properties of the method rather than of seed 13. A remedy
-  that removes only the `≥ 0.15` gap leaves the test red at 6 of 8. Either is
-  a CODE change, which is why the audit listed it rather than fixing it.
-  Owner: E. Trigger: before the leakage number is cited outside the
-  walkthrough, and before any fixture-size change at Checkpoint 1. Detail:
+  more fragile than the gap.
+
+  **THE CANDIDATE FIX — pin what survives seed variation, report what does
+  not.** ASSERT: (i) the DIRECTION — each spatial model's ratio strictly below
+  the baseline's, which held 8/8 and is what §3's conclusion actually rests on;
+  and (ii) `ratio_baseline − ratio_RF ≥ 0.15`, which also held 8/8. DEMOTE to
+  reported-not-asserted: (iii) the absolute gap `ratio_baseline −
+  ratio_kriging ≥ 0.15` (fails 11, 17); (iv) `ratio_kriging ≤ 0.65` (fails 11,
+  14, 15, 16); (v) `ratio_RF ≤ 0.60` (fails 11, 12, 18); (vi) the three ± 0.02
+  point pins (seed 13 only, by construction). The alternative is to raise the
+  fixture size until the magnitudes ARE properties of the method rather than of
+  seed 13 — which is the better science and the larger change. **A remedy
+  naming only the `≥ 0.15` gap leaves the test red at 6 of 8**, which is the
+  correction-drift shape CLAUDE.md rule 5 now names. Either way it is a CODE
+  change, which is why the audit listed it rather than fixing it.
+  Owner: E. **Trigger: before Phase-2 closeout** (and in any case before the
+  leakage number is cited outside the walkthrough, or the fixture is resized at
+  Checkpoint 1). Detail:
   [E2.4.md](walkthroughs/E2.4.md) §3 (the seed-robustness paragraph and its
   table);
   [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
@@ -955,7 +962,9 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
 
   Owner: E. **Trigger: BEFORE CHECKPOINT 1** — real GEBCO arrives at a new path
   and every stack hash changes for a reason that has nothing to do with the
-  terrain, which is the worst possible moment to discover this. Detail:
+  terrain. **Separating "the DEM changed" from "the path changed" at that
+  moment is the expensive version of this fix**, and it lands exactly when the
+  hashes are supposed to be proving that the terrain is what changed. Detail:
   [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
   row M (a, b, c); [E2.4.md](walkthroughs/E2.4.md) §3 "what does and does not
   reproduce"; `features/stack.py` manifest assembly;

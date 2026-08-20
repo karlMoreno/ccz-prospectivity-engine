@@ -228,6 +228,20 @@ hard way — the evidence is cited, not asserted.
    fixture could catch the hardcode. When building a fixture, state in its docstring
    which neighboring claims it separates.
 
+5. **A correction is verified against the PRIMARY SOURCE, not against the
+   finding that prompted it — and a remedy is written from the full
+   measurement, not the part the finding named.**
+   *Evidence:* the E2.4 doc fixes introduced FOUR false claims while correcting
+   true findings, none caught by re-reading the findings and all caught by a
+   verification pass over the CORRECTIONS. Two show the two halves of the rule:
+   a correction cited `ff2d0c6` as the mutation-restore baseline when the guards
+   those mutations target exist only in `64679a9` (checkable in one command:
+   `refusal_phase` is ABSENT from `ff2d0c6`'s runner and present throughout
+   `64679a9`'s — 7 occurrences on 6 lines, a count worth stating precisely in a
+   rule about stating things precisely); and a remedy naming only the gap pins would have left the test
+   red at 6 of 8 seeds, because the ratio ceilings — which the finding had not
+   named — are the more fragile assertion.
+
 Corollaries worth keeping in mind:
 
 - **A fixture must be able to distinguish the claim from its negation.** If every
@@ -238,6 +252,29 @@ Corollaries worth keeping in mind:
 - **Prefer a mutation check to a green run.** Break the thing on purpose, watch the test
   fail, restore it. This project's established practice, and it is how every guard above
   was verified.
+- **The check itself is in scope.** A probe, a fixture or a harness can carry the
+  same defect as the code it examines — E2.4's audit proved its strongest claim on
+  a fold order where the failure it was testing for could not occur, and its
+  mutation harness silently made no backups. Run the rule against the instrument.
+
+### The defect classes this project keeps finding, with their counts
+
+Created at the E2.4 doc-fix approval (2026-08-19) because the four rules above
+cite their evidence individually and nothing carried the TALLY — and a class
+that recurs is a different fact from a rule that exists. Counts are derived
+below, not asserted; each instance is citable.
+
+| Class | Count | Instances |
+|---|---|---|
+| **Coverage-that-isn't** — a test that counts as coverage while guarding nothing | **×4** | the test-name audit's 17 misnamed tests (rule 1); `test_observation_schema.py` reading the corpus through the validator that forbids the violation (rule 2); `..._adds_nothing` comparing row count and IDs while every merged row's `notes` tripled (rule 3); `test_covariate_stack.py`'s determinism test, which varies the output dir (not in the substance) and holds the DEM path fixed (in it) — passing since E1.4 under PROVENANCE.md's most-cited invariant (E2.4 audit row M(b)) |
+| **Fixture degeneracy** — the fixture cannot separate the claim from its neighbours or its negation | **×5** | `[2, 4, 6]`, where SD = MAD = half-range = 2.0 (E2.1 MB9); `shared_cell_count == len(stations)`, true on the real corpus (E2.0-2); the rank-4 RF fixture, blind to `aggregate_leaves_first` (E2.3 review); the metrics fixture where mean\|e\| = median\|e\| = 2.0, blind to a mean→median swap in MAE (E2.4 §1 review); **K3-A** — the audit's own stale-refit probe, run on a fold order where no stale state could exist (E2.4 audit) |
+| **Deferral without a landing spot** — a disposition that survives only in a transcript | **×4** (the prompt proposing this table said ×3; the fourth is named here) | three of 22 review findings at the E2.X disposition audit; **and P2.C + the `SESSION_STATE.md` question at E2.4 §0 finding C**, which existed only in a planning transcript AFTER the deferral rule was written — the rule's first post-adoption instance |
+| **Correction drift** — a fix introduces a new false claim, or a remedy addresses only the part the finding named | **×1** | the four false claims in the E2.4 doc fixes (rule 5 above), caught pre-commit by a verification pass over the corrections |
+
+The counts are the point: **coverage-that-isn't and fixture degeneracy are not
+historical, they are recurring**, and the two most recent instances of each were
+found in the CHECKING apparatus (a determinism test; an audit probe), not in the
+work under test.
 
 ---
 
