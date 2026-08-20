@@ -331,7 +331,7 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **2, Track E — complete through E2.3** (minimal update 2026-08-18 at E2.4 §1;
+- Phase: **2, Track E — COMPLETE (E2.5 landed 2026-08-19)** (minimal update;
   the full status refresh is the P2.C item in `docs/BACKLOG.md` §2). Phase 0's scaffold +
   seven contracts, Phase 1's real ingestion (E1.1–E1.3 + the P1/P1b/P2/P3 review batches),
   terrain feature recipes (E1.4), and E1.5 are built and reviewed; Phase 2's preflight
@@ -345,9 +345,11 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** E2.4 (spatially-blocked cross-validation + the comparison report;
-  `docs/prompts/phase2_prompts.md` §E2.4 as revised 2026-08-14 is the specification), then
-  E2.5 (refuse-to-validate). The training target is SETTLED as a Contract 8 slot
+- **Next task:** **Checkpoint 2** (Karl + Isaac). Track E has nothing queued behind
+  E2.5 — E2.4 (spatial CV + the comparison report, audited and approved) and E2.5
+  (the refuse-to-validate guard) are done, and the guard's honest verdict on today's
+  data is a REFUSAL for three correct reasons (`docs/walkthroughs/E2.5.md` §2).
+  The training target is SETTLED as a Contract 8 slot
   (`data/config/model_config.yaml` `target_definition`, provisional AUTHORED default,
   P2.B → P2.A) — it does not block Track E; Isaac's citation arrives as the
   AUTHORED→LITERATURE promotion (`docs/BACKLOG.md` §1).
@@ -355,7 +357,8 @@ ccz-prospectivity-engine/
   blocked. Read it before proposing work; add an entry whenever something is deliberately
   deferred.
 - Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`
-  … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.4.md`). Read the relevant
+  … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.5.md`, whose second
+  half is the PHASE-2 TRACK-E CLOSEOUT). Read the relevant
   one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;

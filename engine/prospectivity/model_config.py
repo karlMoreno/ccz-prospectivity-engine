@@ -80,3 +80,45 @@ def target_definition(contract: dict | None = None) -> DeclaredField:
         data_origin=field["data_origin"],
         author=field.get("author"),
     )
+
+
+def acceptance_thresholds(contract: dict | None = None) -> DeclaredField:
+    """The acceptance gate a validated claim must clear, WITH its origin —
+    E2.5's precondition 6 (the pre-registration clock, docs/BACKLOG.md §2).
+
+    THE SLOT DOES NOT EXIST TODAY, and that is the honest state, not an
+    oversight: Contract 8's header says `acceptance_thresholds` "arrives with
+    E2.5's refuse-to-validate guard", and this accessor is the consumer that
+    arrival now has — but the VALUE is Track G's to supply, and the same
+    header forbids pre-declaring "a field with no consumer is a field nobody
+    has tested the meaning of". Adding the field is a STRUCTURAL contract
+    change (version bump + Karl + the contracts README), so E2.5 does not
+    make it; it makes the absence REFUSABLE BY NAME instead.
+
+    Three distinct states, three different messages, because a consumer that
+    cannot tell them apart cannot report which one it hit:
+      * field ABSENT      -> raises: no slot exists at all (today's state);
+      * value None        -> DeclaredField(value=None, ...), a declared
+                             absence the guard refuses as "not populated";
+      * value present     -> returned with its origin, for the guard to
+                             classify (an AUTHORED threshold is a number
+                             someone typed, and precondition 6 refuses it).
+
+    `contract` is a testability seam (the `target_definition` precedent);
+    production callers omit it."""
+    contract = contract if contract is not None else load_model_config()
+    if "acceptance_thresholds" not in contract:
+        raise ValueError(
+            "model_config.yaml has no acceptance_thresholds field — Contract 8's "
+            "header records that it 'arrives with E2.5's refuse-to-validate guard', "
+            "and the guard is here, but the SLOT is a structural contract change "
+            "(bump model_config_version, tell Karl, note it in the contracts README) "
+            "and the VALUE is Track G's. Until both happen, no acceptance gate "
+            "exists and no run can be emitted as a validated claim."
+        )
+    field = contract["acceptance_thresholds"]
+    return DeclaredField(
+        value=field.get("value"),
+        data_origin=field["data_origin"],
+        author=field.get("author"),
+    )

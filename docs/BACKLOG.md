@@ -45,9 +45,10 @@ the ORIGINAL entry, no twin).
 paths, so no downstream artifact identity is portable — found by the run
 manifest's own chain assertion); 2 more added 2026-08-19 at the E2.4 audit
 (the leakage test's non-seed-robust magnitude pins; nothing observes the
-walkthrough's own tables).
-**44 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
-Engineering 23, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+walkthrough's own tables); 1 more at E2.5 (Contract 8's acceptance_thresholds
+slot — the structural change the guard did not make unilaterally).
+**45 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 7, §3
+Engineering 24, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -849,6 +850,29 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `hyperparameters.sd_mapping = "half_width_(q84-q16)/2"`. The quoted text
   stays as quoted; the correction rides here and in the P2.C batch (§2
   review finding F18).
+- [ ] **Contract 8's `acceptance_thresholds` SLOT — the structural change E2.5
+  did not make unilaterally** (E2.5, 2026-08-19). Contract 8's header says the
+  slot "arrives with E2.5's refuse-to-validate guard". The guard arrived and is
+  its consumer (`model_config.acceptance_thresholds` +
+  `validation/claim.py` precondition 6), but adding the FIELD is a STRUCTURAL
+  contract change — bump `model_config_version`, tell Karl, note it in the
+  contracts README — and the VALUE is Track G's. E2.5 therefore made the
+  ABSENCE refusable by name instead: the accessor raises, the guard reports
+  "no pre-registered gate existed when these scores were computed", and that
+  refusal is E2.5's recorded headline. **Two decisions, in order:** (1) Karl —
+  add the slot (with `value: null`, its `data_origin`, and optionally
+  `declared_at` / `set_after_scores`, which the guard already reads)? The
+  accessor distinguishes ABSENT from explicitly-NULL and refuses both, so the
+  guard works either way and the difference is which refusal a reader sees.
+  (2) Track G — the threshold VALUE, which must not be AUTHORED (the guard
+  refuses a number someone typed) and whose provenance must predate
+  `scores_first_visible` — E2.4's scores are already visible, so **any
+  threshold set now is post-hoc for this dataset, permanently**, and the
+  honest path is a threshold cited from the literature or derived, not chosen.
+  Owner: Karl (the slot) + Track G (the value). Trigger: before any run is
+  emitted as a validated claim; revisit at Checkpoint 2. Detail:
+  [E2.5.md](walkthroughs/E2.5.md) §0 and §2; `data/config/model_config.yaml`
+  header; BACKLOG §2's pre-registration-clock entry.
 - [ ] **Nothing observes the walkthrough's own comparison tables** (E2.4 audit
   F-6 residue, recorded 2026-08-19 when the column half was fixed and this
   half was not). Obligation 7's uncertainty-semantics column is now a real
