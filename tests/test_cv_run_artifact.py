@@ -20,6 +20,7 @@ non-portable identity is a named backlog item rather than a green test.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -157,3 +158,108 @@ def test_the_run_entry_point_composes_the_four_designs_the_report_reads() -> Non
     assert build_splitters()[3].split.__self__._k == DEFAULT_RANDOM_K  # type: ignore[attr-defined]
     committed = json.loads(ARTIFACT.read_text())
     assert [d["name"] for d in committed["cross_validation"]["designs"]] == [s.name for s in splitters]
+
+
+# --------------------------------------------- obligation 7's ONE observer
+#
+# F-6 RESIDUE (E2.4 audit; closed at P2.CLOSE commit 2, 2026-08-20). The
+# finding, RE-VERIFIED before this test was written: the uncertainty-semantics
+# column was deleted from §3's fold table and the full suite stayed GREEN at
+# 470 passed. Obligation 7 was structural on the MANIFEST side and merely
+# documentary on the REPORT side, which is the distinction this project draws
+# everywhere else.
+#
+# THE CHOICE, and its trade-off. The audit offered three shapes: (a) parse the
+# tables, (b) generate them from the manifest, (c) assert on the renderer.
+# Karl leaned (c) — but (c)'s premise does not hold: THERE IS NO RENDERER.
+# `grep` over engine/ finds no markdown emitter, the §3 tables are
+# hand-written, and the audit's own table-verification script was never
+# committed. Implementing (c) would mean BUILDING a renderer and regenerating
+# a walkthrough — converting a frozen historical record into generated output,
+# against the convention C8.1 just re-affirmed. So this is (a), knowingly:
+#
+#   WHAT IT CATCHES: the exact defect found — an sd-derived table losing the
+#     column that says what its sd MEANS.
+#   WHAT IT DOES NOT CATCH: a WRONG semantics value (it checks the column
+#     exists, not that the sentence is right); a renamed column heading, which
+#     reads as removal and fails loudly rather than silently; and drift in any
+#     document this list does not name. A test that parses prose is brittle by
+#     nature — that brittleness is the price of observing a hand-written file
+#     at all, and it is paid here rather than pretended away.
+#
+# SCOPE FENCE (the audit's finding names one gap, not a class): one obligation,
+# one observer, one document list. No walkthrough-verification framework —
+# that is the ceremony PATTERNS.md §3 refuses.
+
+WALKTHROUGHS = Path(__file__).resolve().parent.parent / "docs" / "walkthroughs"
+SD_DERIVED_COLUMNS = {"cov ±1σ", "z-RMS"}
+DOCS_REPORTING_SD_NUMBERS = ("E2.4.md",)
+_SEPARATOR = re.compile(r"\|[\s:|-]+\|")
+
+
+def _tables_with_sd_columns(markdown: str) -> list[list[str]]:
+    """Header cells of every table whose HEADER declares an sd-derived column.
+
+    TWO SEPARATE GUARDS, and it is worth being exact about which does what —
+    a mutation run proved the obvious explanation wrong:
+
+    * EXACT CELL EQUALITY (`SD_DERIVED_COLUMNS & set(cells)`) is what keeps
+      this lint off PROSE. E2.4.md's test inventory has a row whose cell
+      mentions "z-RMS 0" in a sentence; substring matching would fire on
+      documentation ABOUT the metric instead of a report OF it.
+    * The header-and-separator pairing is what makes "header" mean header, so
+      a data ROW whose first cell were exactly "z-RMS" is not mistaken for
+      one.
+
+    Removing the separator check is a NO-OP on today's file — measured, not
+    assumed — because the exact-match guard already excludes the only prose
+    candidate. It stays because the two guards answer different questions.
+    """
+    lines = markdown.splitlines()
+    headers = []
+    for i in range(len(lines) - 1):
+        if lines[i].startswith("|") and _SEPARATOR.fullmatch(lines[i + 1].strip()):
+            cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+            if SD_DERIVED_COLUMNS & set(cells):
+                headers.append(cells)
+    return headers
+
+
+def test_every_walkthrough_table_printing_sd_derived_numbers_declares_its_uncertainty_semantics() -> None:
+    """OBLIGATION 7, ON THE REPORT SIDE — the half that was documentary until
+    now. Every hand-written table that prints `cov ±1σ` or `z-RMS` must also
+    carry the column naming what its sd MEANS, because those three numbers are
+    not comparable across estimators whose sd means different things (a
+    quantile half-width is not a Gaussian σ, and the baseline's sample SD is
+    neither).
+
+    SOLE OBSERVER of the report side: `test_every_sd_shaped_number_in_the_artifact_carries_its_semantics`
+    reads the ARTIFACT and cannot see the markdown; measured at P2.CLOSE, the
+    column was deleted from §3's fold table with the whole suite green.
+    """
+    examined = [
+        (name, tuple(header))
+        for name in DOCS_REPORTING_SD_NUMBERS
+        for header in _tables_with_sd_columns((WALKTHROUGHS / name).read_text())
+    ]
+    # POSITIVE CONTROL, not decoration: without it a parser that matched
+    # nothing — a renamed file, changed table syntax, a broken regex — would
+    # pass vacuously on an empty result.
+    assert len(examined) >= 2, (
+        f"expected at least the two §3 report tables, parsed {len(examined)} — "
+        "the lint found nothing to check, which is a broken lint, not a clean file"
+    )
+    # A POSITIVE FULL-STATE COMPARISON (CLAUDE.md rule 3), for the reason
+    # commit 1 hit an hour earlier in this same batch: collecting what is
+    # MISSING and asserting the list is empty stays GREEN when the collecting
+    # CONDITION is broken to `if False`. Comparing what DECLARED against what
+    # was EXAMINED fails in both directions.
+    declaring = [
+        (name, header)
+        for name, header in examined
+        if any("semantics" in cell.lower() for cell in header)
+    ]
+    assert declaring == examined, (
+        "a table printing sd-derived numbers has no uncertainty-semantics "
+        f"column: {[e for e in examined if e not in declaring]}"
+    )
