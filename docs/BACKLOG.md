@@ -60,9 +60,14 @@ OPEN, because a slot is not a threshold). The same commit corrected the §2
 TRIPWIRE bullet that asserted a loader refusal which did not exist — the
 source the E2.5 prompt inherited its false premise from, left standing by the
 E2.5 approval's own correction pass over that entry.
-**41 open items** (recounted from the boxes; 45 − 4 + 1 − 1): §1 Track G 11,
-§2 Karl 6, §3 Engineering 21, §4 Phase-2 risks 0 (both closed), §6 later
-phases 3. §5 is fully closed.
+1 CLOSED + 2 ADDED at P2.CLOSE (2026-08-20): the **Phase-2 closeout batch**
+and all four of its sub-items are done; the two additions are findings its
+own premise checks turned up and which were deliberately NOT fixed inside a
+closeout — the theorem test's seed-calibrated tolerances, and LITERATURE's
+missing evidence observer (§3). Net 41 − 1 + 2 = 42.
+**42 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 22, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -1027,8 +1032,16 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   [dem_grid.py](../engine/prospectivity/features/dem_grid.py)
   `load()`; E2.0-2 review record in
   [E2.0.md](walkthroughs/E2.0.md) §E2.0-2.
-- [ ] **PHASE-2 CLOSEOUT BATCH — four items that were each due "at Phase-2
-  closeout" and would each have expired there separately** (consolidated at
+- [x] **PHASE-2 CLOSEOUT BATCH — DONE 2026-08-20 (P2.CLOSE, four commits,
+  one per sub-item).** All four sub-items closed; suite 470 → 471 passed / 2
+  skipped. Three findings were turned up by the premise checks and BACKLOGGED
+  rather than fixed inside the closeout (§3: the theorem test's seed-calibrated
+  tolerances; LITERATURE's missing evidence observer) — and two of Karl's own
+  premises did not survive verification (the README's actual text; the
+  SESSION_STATE path plus two markdown links that would have dangled).
+  Walkthrough: [P2-closeout.md](walkthroughs/P2-closeout.md).
+  *(original entry, for the record)* **four items that were each due "at
+  Phase-2 closeout" and would each have expired there separately** (consolidated at
   the E2.5 approval, 2026-08-19, by Karl's instruction: "so they stop
   expiring individually"). E2.5 IS the last Track-E task in Phase 2, so all
   four triggers have now FIRED; this entry is what they fired into.
@@ -1152,7 +1165,11 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
     shown to anyone, whichever comes first. Detail: this entry's citations;
     [E2.4.md](walkthroughs/E2.4.md) §0 finding C.
 
-  - **(b)** *(was §3 — Karl + E: the three options are a choice)* **Nothing observes the walkthrough's own comparison tables** (E2.4 audit
+  - **(b) DONE 2026-08-20 (commit 2).** Finding re-verified first — the
+    column was deleted and the suite stayed green at 470. Shape (a), a
+    doc-lint, chosen because (c)'s premise fails: THERE IS NO RENDERER to
+    assert on. Trade-off and what it does not catch are recorded at the test.
+    *(original)* **Nothing observes the walkthrough's own comparison tables** (E2.4 audit
     F-6 residue, recorded 2026-08-19 when the column half was fixed and this
     half was not). Obligation 7's uncertainty-semantics column is now a real
     column in both §3 tables that print sd-derived numbers, and the MANIFEST
@@ -1168,7 +1185,12 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
     Detail: [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
     F-6.
 
-  - **(c)** *(was §3 — the ONLY sub-item that is a CODE change)* **The known-answer leakage test's MAGNITUDE pins are not seed-robust —
+  - **(c) DONE 2026-08-20 (commit 1).** The 8-seed measurement reproduced
+    exactly; a 40-seed sweep then showed the AUDIT'S OWN REMEDY would have
+    left the suite red (base − RF ≥ 0.15 fails seed 4) and that the baseline
+    floor it never flagged holds at only 29/40. Only the DIRECTION survives
+    (40/40) and is asserted, at five fields rather than one.
+    *(original)* **The known-answer leakage test's MAGNITUDE pins are not seed-robust —
     the test is green at ONE of eight sampled seeds** (E2.4 audit row L,
     2026-08-19; entry written when Karl approved the deferral, the finding
     itself having been recorded in the audit at `dc0290a`).
@@ -1209,7 +1231,11 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
     [2026-08-19-e2.4-implementation-audit.md](audits/2026-08-19-e2.4-implementation-audit.md)
     row L / F-7 (the eight-seed ratio table).
 
-  - **(d)** *(was §3 — this trigger had ALREADY expired once, at "after E2.0")* **Sole-observer hygiene pass** (recorded at E2.0-2; convention
+  - **(d) DONE 2026-08-20 (commit 4).** List re-derived by measurement, not
+    from the survey: three confirmed sole observers (1 of 471 each) now carry
+    their warnings; the two ambiguous P2.0c candidates DISSOLVED (6 and 8
+    observers) and are recorded so the next pass does not re-investigate them.
+    *(original)* **Sole-observer hygiene pass** (recorded at E2.0-2; convention
     established in E2.0-1b: a SOLE OBSERVER warning in the test's own
     docstring, with its mutation evidence — the person tempted to weaken a
     test is reading the test, not a module header). Candidates already

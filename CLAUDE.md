@@ -386,9 +386,10 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** the **Phase-2 closeout batch** (`docs/BACKLOG.md` §3 — four items
-  consolidated so they stop expiring individually), then **Checkpoint 2** (Karl +
-  Isaac). E2.4 (spatial CV + the comparison report, audited and approved), E2.5
+- **Next task:** **Phase 3 planning**, which needs the **AOI decision** (`docs/BACKLOG.md`
+  §1) — the point where Track G becomes load-bearing again; and **Checkpoint 2** (Karl +
+  Isaac). The Phase-2 closeout batch is DONE (P2.CLOSE, 2026-08-20, four commits;
+  `docs/walkthroughs/P2-closeout.md`). E2.4 (spatial CV + the comparison report, audited and approved), E2.5
   (the refuse-to-validate guard) and C8.1 (Contract 8's `acceptance_thresholds`
   slot, `model_config_version` 2) are done, and the guard's honest verdict on
   today's data is a REFUSAL for three correct reasons (`docs/walkthroughs/E2.5.md`
@@ -403,7 +404,8 @@ ccz-prospectivity-engine/
   deferred.
 - Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`
   … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.5.md`, whose second
-  half is the PHASE-2 TRACK-E CLOSEOUT, and `C8.1.md`). Read the relevant
+  half is the PHASE-2 TRACK-E CLOSEOUT, `C8.1.md`, and `P2-closeout.md`).
+  Read the relevant
   one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;
