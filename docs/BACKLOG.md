@@ -83,7 +83,7 @@ task's instruction.
 SYNTHETIC's evidence rule (its own commit, before E3.3, with the `.tif`
 classification gap riding along), and the two engine-side date labels that
 commit's docs-only fence could not reach.
-2 ADDED at the TAX.1 approval (2026-08-21), both CONSEQUENCES of Karl's TS-6
+2 ADDED at the TAX.1 approval (2026-08-22), both CONSEQUENCES of Karl's TS-6
 origin decision (Contract 6 v3, `raster_data_origin: DERIVED`) rather than
 defects: E3.3 must carry the digitization error, and `digitization_method` is
 now DERIVED's evidence and cannot be answered in one word.
@@ -92,7 +92,7 @@ now DERIVED's evidence and cannot be answered in one word.
 zero-observer gap is deliberately UNTOUCHED** — separate rule, separate
 observer, its own live trigger (before Track G supplies any cited value);
 folding it in would have meant changing a rule and its observer in one commit.
-2 CLOSED + 1 ADDED at E3.3 (2026-08-21): the r-with-N_eff decision and the
+2 CLOSED + 1 ADDED at E3.3 (2026-08-22): the r-with-N_eff decision and the
 digitization-error propagation are built (`1c159f3`, `1febedc`); the addition
 is Contract 6's `digitization_uncertainty` SLOT, found ABSENT where the
 prompt said null — a structural change that is Karl's, with its consumer
@@ -986,7 +986,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   approval block; E3.1+2 commit 1).
 
 - [x] **E3.3 REPORTS r WITH N_eff AND NO p-VALUE — DONE at E3.3 commit 2
-  (2026-08-21, `1febedc`).** The reasoning IS in the output: `INFLATION_NOTE`
+  (2026-08-22, `1febedc`).** The reasoning IS in the output: `INFLATION_NOTE`
   travels in every agreement and a test asserts it verbatim; the
   interpretation string carries the "NOT distinguishable from zero" reading,
   which today's kriging-vs-fixture comparison emits (r = +0.026 inside the
@@ -1169,18 +1169,25 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   **What E3.1+2 did instead:** left `compare_to_ts6` untouched (still
   `NotImplementedError`) and had the builder return a MAPPING, which expresses
   "all of them" without deciding which.
-  **E3.3's HALF IS DONE (2026-08-21, `1febedc`):** `compare_all_to_ts6`
+  **E3.3's HALF IS DONE (2026-08-22, `1febedc`):** `compare_all_to_ts6`
   returns one agreement PER ESTIMATOR, each self-identifying via the new
   `TS6Agreement.estimator_name` — so both manifest answers stay expressible —
   and `reference.py`'s stub now names THIS entry instead of claiming E3.3
-  would implement the wiring. **What remains is exactly the arity**:
-  `RunManifest.ts6_agreement` is singular, the comparison produces many.
-  Owner: Karl (the arity) + E. **Trigger: E3.4, before its manifest
-  extension.** Detail: [E3.3.md](walkthroughs/E3.3.md);
+  would implement the wiring.
+  **THE ARITY IS DECIDED — Karl, E3.3 approval (2026-08-22):
+  `ts6_agreement` BECOMES A MAPPING** (one agreement per estimator, keyed by
+  name). The reasoning, recorded against the tempting alternative: collapsing
+  to a single agreement would force a "which estimator IS the comparison"
+  answer nobody has argued for, and the three genuinely differ — kriging's
+  surface is near-constant, RF's is blocky and ceiling-bound, the baseline's
+  is flat by construction; one number would silently privilege one of them.
+  **E3.4 BUILDS IT under the 2B Phase-0 revision protocol** — before/after
+  shapes and the stale-reference sweep, the CVScore precedent. Owner: E.
+  **Trigger: E3.4's manifest extension.** Detail: [E3.3.md](walkthroughs/E3.3.md);
   [E3.1-2.md](walkthroughs/E3.1-2.md) §4.
 
 - [x] **E3.3 CARRIES THE DIGITIZATION ERROR — Track E's half DONE at E3.3
-  commit 2 (2026-08-21, `1febedc`).** The comparison reads the value through a
+  commit 2 (2026-08-22, `1febedc`).** The comparison reads the value through a
   three-state accessor, REFUSES the real (non-SYNTHETIC) path by name when it
   is missing — which is the OBSERVER for the requirement — reports "not
   applicable — synthetic fixture" on the fixture path rather than assuming
@@ -1204,7 +1211,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   `raster_data_origin` comment; [E3.1-2.md](walkthroughs/E3.1-2.md).
 
 - [ ] **ADD Contract 6's `digitization_uncertainty` SLOT — a structural
-  contract change, Karl's call** (found at E3.3 commit 2, 2026-08-21, by a
+  contract change, Karl's call** (found at E3.3 commit 2, 2026-08-22, by a
   premise check: the task prompt said the field "is null today" and it does
   not EXIST — absent, not null, and this project treats those as different
   states with different remedies).
@@ -1222,7 +1229,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   [E3.3.md](walkthroughs/E3.3.md) §2.
 
 - [ ] **`digitization_method` is now DERIVED's EVIDENCE, and a one-word answer
-  will not satisfy it** (TAX.1 approval, 2026-08-21).
+  will not satisfy it** (TAX.1 approval, 2026-08-22 — committed `9a7ecac`).
   DERIVED's evidence requirement is a derivation formula or the artifact
   recording it. For the TS-6 raster that is `digitization_method`, whose
   current state is **null** with a three-option comment

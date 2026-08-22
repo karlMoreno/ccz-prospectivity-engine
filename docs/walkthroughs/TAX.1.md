@@ -170,7 +170,9 @@ zero-observer gap remains its own BACKLOG item with its own live trigger**
 is an evidence rule, not an admissibility rule, and the production guard's
 declaration-plus-proof check is untouched.
 
-## §5 — The TS-6 origin class, decided at the approval (2026-08-21)
+## §5 — The TS-6 origin class, decided at the approval (2026-08-22;
+this heading originally said 08-21 — the approval COMMITTED `9a7ecac` on
+08-22, the fourth stated-vs-landed instance, corrected at the E3.3 approval)
 
 Recorded here because E3.0 §6 made it a **prerequisite** for E3.3, and TAX.1's
 approval is where it was answered.
