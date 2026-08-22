@@ -170,7 +170,46 @@ zero-observer gap remains its own BACKLOG item with its own live trigger**
 is an evidence rule, not an admissibility rule, and the production guard's
 declaration-plus-proof check is untouched.
 
+## §5 — The TS-6 origin class, decided at the approval (2026-08-21)
+
+Recorded here because E3.0 §6 made it a **prerequisite** for E3.3, and TAX.1's
+approval is where it was answered.
+
+**Karl's decision: `ts6_abundance.tif` is DERIVED**, declared in Contract 6
+(`raster_data_origin`, `reference_version` 2 → 3, additive).
+
+**WHAT THE ARTIFACT IS decides its class, not what it DEPICTS.** The file is
+not TS-6's surface; it is a raster computed by us from a published figure by a
+recorded procedure, so its values are a function of that figure and that
+procedure — DERIVED's definition. The TS-6 publication is DERIVED's *input*,
+cited as such, the same relation the corpus has to its sources.
+
+| class | verdict |
+|---|---|
+| MEASURED | **refused** — we did not measure it, and hashing this file would hash OUR OWN OUTPUT, not a published one |
+| LITERATURE | **refused** — the numbers are our *reading* of a printed surface, carrying digitization error we introduce |
+| DERIVED | **the artifact's actual relation to its input** |
+
+**The consequence is not the motive, and the record says so.** DERIVED has an
+audit observer; LITERATURE does not. That is a **relief, not a reason** — had
+the correct answer been LITERATURE, the answer would still be LITERATURE and
+the observer gap would have become urgent instead. A classification chosen for
+the convenience of its check is the failure the taxonomy exists to prevent.
+
+**Two consequences carried to the BACKLOG rather than built here:** E3.3 must
+propagate the digitization error (a comparison treating the benchmark as exact
+overstates its own precision), and `digitization_method` is now DERIVED's
+evidence — which a one-word answer cannot satisfy, exactly as a bare
+"deterministic" cannot satisfy SYNTHETIC's basis.
+
+**Two things unchanged, verified against the file rather than assumed:**
+`role_note` remains `null` and `[GEOLOGY — ISAAC]`, with `benchmark_only`
+marked *(PREFERRED)* in its comment — it is **not** a declared default, and
+origin class and circularity are different axes. And **LITERATURE's
+zero-observer gap stays OPEN** with its trigger live: this decision removes
+one arrival from that class, but the AOI is still potentially LITERATURE and
+the gap is unresolved either way.
+
 ## What the next task adds
 
-E3.3 — which still needs **TS-6's origin class decided first**, per E3.0 §6.
-That is a prerequisite, not a discovery during the task.
+E3.3 — its prerequisite is now answered.

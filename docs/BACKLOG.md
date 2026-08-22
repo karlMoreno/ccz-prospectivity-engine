@@ -83,13 +83,17 @@ task's instruction.
 SYNTHETIC's evidence rule (its own commit, before E3.3, with the `.tif`
 classification gap riding along), and the two engine-side date labels that
 commit's docs-only fence could not reach.
+2 ADDED at the TAX.1 approval (2026-08-21), both CONSEQUENCES of Karl's TS-6
+origin decision (Contract 6 v3, `raster_data_origin: DERIVED`) rather than
+defects: E3.3 must carry the digitization error, and `digitization_method` is
+now DERIVED's evidence and cannot be answered in one word.
 2 CLOSED at TAX.1 (2026-08-21): SYNTHETIC's evidence rule widened
 (`5d97735`) and the written rasters classified (`c6938a0`). **LITERATURE's
 zero-observer gap is deliberately UNTOUCHED** — separate rule, separate
 observer, its own live trigger (before Track G supplies any cited value);
 folding it in would have meant changing a rule and its observer in one commit.
-**48 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 28, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+**50 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 30, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -1153,6 +1157,41 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   "all of them" without deciding which. Owner: Karl (the arity) + E.
   **Trigger: E3.3, before it runs** — the same gate as TS-6's origin class.
   Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §4.
+
+- [ ] **E3.3 MUST CARRY THE DIGITIZATION ERROR — the consequence of the TS-6
+  origin decision** (Karl, TAX.1 approval, 2026-08-21; the decision itself is
+  DONE and lives in Contract 6 v3, `raster_data_origin: DERIVED`).
+  E3.3 compares our surface to a raster **we produced by eye from a printed
+  map**. A comparison that treats the benchmark as EXACT overstates its own
+  precision — and it would do so in the same breath as reporting an r whose
+  N_eff is ~2 (the other E3.3 decision). The digitization error is a value the
+  comparison should carry, not a caveat in prose.
+  **This is not buildable today** and that is the point of recording it now:
+  the raster does not exist (`data/ts6/` holds only the contract), and the
+  error is a property of the digitization Track G has not yet performed.
+  **What E3.3 must do:** read the error where Track G records it, propagate it
+  into the agreement report, and — if it is absent — say so rather than
+  assuming zero. Owner: E (the propagation) + G (the value). **Trigger: E3.3
+  commit 2**, with the correlation posture. Detail: Contract 6's
+  `raster_data_origin` comment; [E3.1-2.md](walkthroughs/E3.1-2.md).
+
+- [ ] **`digitization_method` is now DERIVED's EVIDENCE, and a one-word answer
+  will not satisfy it** (TAX.1 approval, 2026-08-21).
+  DERIVED's evidence requirement is a derivation formula or the artifact
+  recording it. For the TS-6 raster that is `digitization_method`, whose
+  current state is **null** with a three-option comment
+  ("georeferenced raster scan" | "table interpolation" | "contour
+  vectorization"). **Those are a vocabulary, not an answer.** To evidence a
+  DERIVED claim the field must be specific enough to RE-RUN: which figure,
+  which edition, what georeferencing, what value-extraction procedure, what
+  contour or colour mapping was assumed.
+  **The parallel is exact and worth stating**: TAX.1 refused a bare
+  "deterministic" as a SYNTHETIC determinism basis for the same reason — a
+  field that names the CATEGORY rather than the MECHANISM evidences nothing.
+  Whether the audit should enforce a minimum specificity here, as it now does
+  for SYNTHETIC, is an open question this entry carries. Owner: G (the value)
+  + E + Karl (whether to enforce). **Trigger: when Track G delivers the
+  raster** — which is Checkpoint 3. Detail: `data/ts6/ts6_reference.yaml`.
 
 - [ ] **LITERATURE's evidence requirement has NO OBSERVER — the one evidence
   check of five that nothing tests** (found at P2.CLOSE commit 4, 2026-08-20,

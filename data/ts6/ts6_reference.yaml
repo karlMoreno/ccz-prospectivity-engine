@@ -41,6 +41,13 @@
 #     an explicit "reproduction check" and label it as such. Record which case
 #     applies in `role_note` below.
 
+# reference_version 2 -> 3 (TAX.1 approval, 2026-08-21): ADDS
+# raster_data_origin: DERIVED — Karl's decision on the TS-6 raster's ORIGIN
+# CLASS, which E3.0 §6 established is a PREREQUISITE for E3.3 rather than a
+# discovery during it. ADDITIVE: no existing field's value or semantics
+# changed, so Track G's re-sync is a READ, not a review. Reasoning is in the
+# field's own comment, not only in the walkthrough.
+#
 # reference_version 1 -> 2 (P2.0c, 2026-08-08): METADATA-ONLY. Added the
 # file-level origin declaration below (engine/prospectivity/provenance/
 # origin.py). This is a single-entry file, so one declaration covers it:
@@ -49,7 +56,7 @@
 # level because the combined origin is AUTHORED either way (combine_origins
 # returns the least-real input). The [GEOLOGY — ISAAC] null fields are
 # untouched. No value changed; re-sync is a read, not a review.
-reference_version: 2
+reference_version: 3
 
 data_origin: AUTHORED
 author: unrecorded
@@ -65,9 +72,48 @@ ts6_reference:
   #   Fig 37/38 — Abundance interpolated contours (Appendix 8.1.1)
   #   or interpolate the 0.1-degree grid tables (Section 3.2).
   source_figure: null                    # e.g. "Figure 5" or "Appendix 8.1.1 Fig 38"
+  # [GEOLOGY — ISAAC] THIS FIELD IS NOW DERIVED'S EVIDENCE (TAX.1 approval):
+  # the shape below is a starting vocabulary, not a sufficient answer. Record
+  # the procedure in enough detail to re-run it.
   digitization_method: null              # "georeferenced raster scan" | "table interpolation" | "contour vectorization"
 
   raster: data/ts6/ts6_abundance.tif     # the digitized surface Track G produces
+
+  # ── THE RASTER'S ORIGIN CLASS — DERIVED (Karl, TAX.1 approval, 2026-08-21).
+  # Decided BEFORE E3.3 rather than during it (E3.0 §6). This file previously
+  # offered fields matching three evidence shapes at once — content_hash for
+  # MEASURED, digitization_method for DERIVED, published values for LITERATURE
+  # — and decided between none of them.
+  #
+  # WHAT THE ARTIFACT IS decides its class, not what it DEPICTS. The file is
+  # not TS-6's surface; it is a raster COMPUTED BY US from a published figure
+  # by a recorded procedure. Its values are a function of that figure and that
+  # procedure, which is DERIVED's definition.
+  #
+  #   * The TS-6 PUBLICATION is DERIVED's INPUT, cited as such — the same
+  #     relation the corpus has to its sources. A DERIVED artifact's inputs
+  #     carry their own origins; that is what combine_origins is for.
+  #   * MEASURED is REFUSED for the reason the production guard already
+  #     enforces: we did not measure it, and hashing this file would be
+  #     hashing OUR OWN OUTPUT, not a published one.
+  #   * LITERATURE is REFUSED because the numbers we use are not the
+  #     publication's numbers — they are our READING of a printed surface,
+  #     carrying digitization error we introduce.
+  #
+  # CONSEQUENCE, stated so it is not mistaken for the MOTIVE: DERIVED has an
+  # observer in the audit and LITERATURE does not (docs/BACKLOG.md §3). That
+  # is a RELIEF, NOT A REASON. Had the correct answer been LITERATURE, the
+  # answer would still be LITERATURE and the observer gap would have become
+  # urgent instead. A classification chosen for the convenience of its check
+  # is precisely the failure this taxonomy exists to prevent.
+  #
+  # WHAT THIS REQUIRES OF TRACK G: DERIVED's evidence is a derivation formula
+  # or the artifact recording it, so `digitization_method` below must be
+  # specific enough to RE-RUN — which figure, which edition, what
+  # georeferencing, what value-extraction procedure, what contour or colour
+  # mapping was assumed. A one-word method does not evidence a DERIVED claim.
+  raster_data_origin: DERIVED
+
   unit: kg_m2
   crs: EPSG:4326                         # reproject to canonical CRS on ingest
   grid_note: "TS-6 modeled on a 0.1-degree grid; record native resolution + your resample."
