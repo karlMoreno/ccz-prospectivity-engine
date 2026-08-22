@@ -138,12 +138,43 @@ class TS6Agreement(BaseModel):
 
 
 class EconomicScenarioResult(BaseModel):
+    """One scenario's footprints, as the manifest records them (E4.1 2B
+    REVISION). BEFORE: `scenario_name`, a COPIED `illustrative_only` boolean,
+    one `minable_footprint_path`, one `minable_area_m2`. AFTER: the cutoff
+    WITH its origin, the confidence levels and the note that z is a stated
+    reading, one footprint summary per ESTIMATOR per LEVEL (with the raster
+    file E4.2 fills), each estimator's uncertainty semantics (they travel,
+    or Decision 2 loses its advantage), the filters applied, the COMPUTED
+    origin, and the per-reason WATERMARK VERDICT — nothing copies the flag;
+    the verdict's cause CITES it."""
+
     model_config = ConfigDict(extra="forbid")
 
     scenario_name: str
-    illustrative_only: bool
-    minable_footprint_path: str | None = None
-    minable_area_m2: float | None = None
+    description: str | None = None
+    grade_metric: str | None = None
+    cutoff: dict | None = None  # value, units, data_origin, author
+    confidence_levels: list[float] = Field(default_factory=list)
+    confidence_note: str | None = None
+    footprints: dict[str, dict[str, dict]] = Field(default_factory=dict)  # estimator -> z -> summary
+    uncertainty_semantics: dict[str, str] = Field(default_factory=dict)
+    filters: dict = Field(default_factory=dict)
+    caveats: list[str] = Field(default_factory=list)
+    data_origin: str | None = None  # COMPUTED
+    watermark: dict | None = None  # the WatermarkVerdict record, DERIVED
+    provenance: dict = Field(default_factory=dict)
+
+
+class EconomicDifferenceResult(BaseModel):
+    """Contract 4's headline output: minable under b and NOT under a (E4.1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    pair: list[str]
+    meaning: str
+    footprints: dict[str, dict[str, dict]] = Field(default_factory=dict)
+    data_origin: str | None = None
+    watermark: dict | None = None
 
 
 SCORES_FIRST_VISIBLE_DESCRIPTION = (
@@ -242,7 +273,7 @@ class RunManifest(ProvenanceArtifact):
     # HASH.1: the field set frozen at 2026-08-22 — what data/runs/e2.4/
     # run_manifest.json (LEGACY, re-stamped at E3.4 with its five nulls IN the
     # substance) is hashed over. A SNAPSHOT; never regenerate from model_fields.
-    SCHEMA_VERSION: ClassVar[int] = 1
+    SCHEMA_VERSION: ClassVar[int] = 2  # E4.1: + economic_differences
     LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
         "claim", "claim_eligible_designs", "contract_versions", "cross_validation", "cv_scores",
         "data_origin", "derivation", "economic_results", "estimator_declarations", "generator",
@@ -258,6 +289,9 @@ class RunManifest(ProvenanceArtifact):
     # docstring's revision note). None = the comparison step did not run.
     ts6_agreement: dict[str, TS6Agreement] | None = None
     economic_results: list[EconomicScenarioResult] = Field(default_factory=list)
+    # E4.1 (schema_version 2): Contract 4's difference pairs. None = the
+    # economics step did not run (the legacy artifacts).
+    economic_differences: list[EconomicDifferenceResult] | None = None
     # E3.4: filled by provenance/emitter.py — {basename: sha256 of the bytes}.
     output_hashes: dict[str, str] = Field(default_factory=dict)
     # ---- E3.4 additions (provenance/emitter.py: extend_run_manifest)

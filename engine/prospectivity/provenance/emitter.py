@@ -66,6 +66,7 @@ import numpy as np
 import rasterio
 
 from engine.prospectivity.domain.results import (
+    EconomicDifferenceResult,
     EconomicScenarioResult,
     RunManifest,
     TS6Agreement,
@@ -209,6 +210,7 @@ def extend_run_manifest(
     verdicts: Mapping[str, ClaimVerdict],
     claim_design: str,
     economic_results: Sequence[EconomicScenarioResult] = (),
+    economic_differences: Sequence[EconomicDifferenceResult] | None = None,
 ) -> RunManifest:
     """Extend the CV-stage RunManifest with Phase 3's outputs, asserting every
     link of the provenance chain by recomputation. Returns a NEW finalized
@@ -508,6 +510,9 @@ def extend_run_manifest(
         update={
             "ts6_agreement": {name: agreements[name] for name in sorted(agreements)},
             "economic_results": list(economic_results),
+            "economic_differences": (
+                list(economic_differences) if economic_differences is not None else None
+            ),
             "output_hashes": dict(sorted(output_hashes.items())),
             "prediction_grid": grid.identity(),
             "surfaces": surfaces_block,

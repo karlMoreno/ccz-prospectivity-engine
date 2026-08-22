@@ -71,12 +71,13 @@ was finalized with ONE `ts6_agreement`. AFTER:
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.domain.results import (
+    EconomicDifferenceResult,
     EconomicScenarioResult,
     RunManifest,
     TS6Agreement,
@@ -84,7 +85,8 @@ from engine.prospectivity.domain.results import (
 from engine.prospectivity.domain.study_area import StudyArea
 from engine.prospectivity.domain.terrain import TerrainLayer
 from engine.prospectivity.domain.ts6 import TS6Surface
-from engine.prospectivity.economics.model import EconomicModel
+from engine.prospectivity.economics.contract import ScenarioConfig
+from engine.prospectivity.economics.model import EconomicInputs, EconomicModel, ScenarioFootprints
 from engine.prospectivity.estimators.registry import EstimatorRegistry
 from engine.prospectivity.features.bundle import FeatureBundle
 from engine.prospectivity.provenance.emitter import extend_run_manifest
@@ -135,10 +137,11 @@ class ProspectivityEngine:
         estimators: EstimatorRegistry,
         ts6_reference: TS6Reference,
         economic_model: EconomicModel,
-        scenario_configs: list[dict[str, Any]],
+        scenario_configs: Sequence[ScenarioConfig],
         *,
         output_dir: Path | str,
         claim_design: str,
+        difference_pairs: Sequence[tuple[str, str]] = (),
         seed: int = 0,
         run_id: str | None = None,
         compare_to_ts6_fn: TS6Comparer = _default_compare,
@@ -174,7 +177,8 @@ class ProspectivityEngine:
         self._estimators = estimators
         self._ts6_reference = ts6_reference
         self._economic_model = economic_model
-        self._scenario_configs = scenario_configs
+        self._scenario_configs = tuple(scenario_configs)
+        self._difference_pairs = tuple(difference_pairs)
         self._output_dir = Path(output_dir)
         self._claim_design = claim_design
         self._seed = seed
@@ -195,9 +199,10 @@ class ProspectivityEngine:
         surfaces = self._fit_predict(bundle)
         written = self._write_surfaces(surfaces, bundle, verdicts)
         ts6_surface, agreements = self._compare_to_ts6(surfaces, bundle)
-        economic_results = self._apply_economics(surfaces)
+        economic_results, economic_differences = self._apply_economics(surfaces, bundle)
         return self._extend_manifest(
-            base, bundle, surfaces, written, ts6_surface, agreements, verdicts, economic_results
+            base, bundle, surfaces, written, ts6_surface, agreements, verdicts,
+            economic_results, economic_differences,
         )
 
     def _ingest(self) -> tuple[TerrainLayer, list[Observation]]:
@@ -276,11 +281,32 @@ class ProspectivityEngine:
         )
         return ts6_surface, agreements
 
-    def _apply_economics(self, surfaces: Mapping[str, SurfaceResult]) -> list[EconomicScenarioResult]:
-        return [
-            self._economic_model.apply(surfaces, scenario_config)
-            for scenario_config in self._scenario_configs
-        ]
+    def _apply_economics(
+        self, surfaces: Mapping[str, SurfaceResult], bundle: FeatureBundle
+    ) -> tuple[list[EconomicScenarioResult], list[EconomicDifferenceResult]]:
+        """E4.1: every scenario over every estimator's surface, then every
+        Contract 4 difference pair — iterate, never pick. The two declared
+        facts the watermark derives from travel in the inputs: the stack's
+        DEM origin and (per scenario) the illustrative flag."""
+        inputs = EconomicInputs(
+            surfaces=surfaces,
+            grid=bundle.grid,
+            cell_area_m2=bundle.cell_area_m2,
+            dem_data_origin=bundle.stack_manifest.get("dem_data_origin"),
+            surface_data_origin=self._surface_origin(bundle).value,
+        )
+        footprints: dict[str, ScenarioFootprints] = {}
+        for scenario in self._scenario_configs:
+            footprints[scenario.name] = self._economic_model.apply(inputs, scenario)
+        differences = []
+        for a, b in self._difference_pairs:
+            if a not in footprints or b not in footprints:
+                raise ValueError(
+                    f"difference pair ({a!r}, {b!r}) names a scenario this run did not apply "
+                    f"({sorted(footprints)})"
+                )
+            differences.append(self._economic_model.difference(footprints[a], footprints[b]))
+        return [fp.record() for fp in footprints.values()], [d.record() for d in differences]
 
     def _extend_manifest(
         self,
@@ -292,6 +318,7 @@ class ProspectivityEngine:
         agreements: Mapping[str, TS6Agreement],
         verdicts: Mapping[str, ClaimVerdict],
         economic_results: list[EconomicScenarioResult],
+        economic_differences: list[EconomicDifferenceResult],
     ) -> RunManifest:
         manifest = self._manifest_extender(
             base,
@@ -307,6 +334,7 @@ class ProspectivityEngine:
             verdicts=verdicts,
             claim_design=self._claim_design,
             economic_results=economic_results,
+            economic_differences=economic_differences,
         )
         self._output_dir.mkdir(parents=True, exist_ok=True)
         (self._output_dir / MANIFEST_NAME).write_text(manifest.to_json())

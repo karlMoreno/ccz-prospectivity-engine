@@ -482,6 +482,15 @@ algorithm. Unless Phase 4 reveals genuinely different economic *math*, one
 class per scenario would be ceremony of exactly the §3.1 kind. Recommend
 deciding at Phase 4 against the real `scenarios.yaml`, not now.
 
+**Decided at E4.1 (2026-08-22), against the real file:** one
+`EconomicModel` parameterized by a `ScenarioConfig` — the scenarios differ
+by a cutoff number and a flag, nothing else. The ABC's `apply` was REVISED
+under 2B (per-estimator surfaces in, `ScenarioFootprints` out; `difference`
+concrete on the ABC because the set logic is the same for every model), and
+the Phase-0 `EconomicScenarioResult` lost its copied `illustrative_only`
+boolean for a DERIVED per-reason watermark verdict (`economics/watermark.py`)
+— not a new pattern; E2.5's `ClaimVerdict` shape reused.
+
 ### 4.4 Suggested by the code, not on the original list
 
 - **`CorpusCsvSampleSource`** (§3.2) — the missing production `SampleSource`.

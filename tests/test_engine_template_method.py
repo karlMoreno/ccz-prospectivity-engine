@@ -50,6 +50,17 @@ EXPECTED_ORDER = [
 ]
 
 
+def _scenario(name: str, index: int):
+    from engine.prospectivity.economics.contract import ScenarioConfig
+    from engine.prospectivity.model_config import DeclaredField
+
+    return ScenarioConfig(
+        name=name, index=index, description="stub", illustrative_only=True,
+        cutoff=DeclaredField(value="1.0", data_origin="AUTHORED", author="unrecorded"),
+        cost_model={}, caveats=(),
+    )
+
+
 def _study_area() -> StudyArea:
     return StudyArea(
         area_id="test_area",
@@ -114,7 +125,8 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
         matrix, manifest = _tiny_matrix()
         return FeatureBundle(
             matrix=matrix, matrix_manifest=manifest, grid=object(),  # type: ignore[arg-type]
-            stack_manifest={"layers_by_data_origin": {"SYNTHETIC": 1}}, corpus_manifest={},
+            stack_manifest={"layers_by_data_origin": {"SYNTHETIC": 1}, "dem_data_origin": "SYNTHETIC"},
+            corpus_manifest={}, cell_area_m2=np.ones((1, 1)),
         )
 
     class StubRunner:
@@ -151,10 +163,17 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
         # E3.4 (2B): one agreement PER ESTIMATOR, keyed by name.
         return {MEAN_BASELINE_NAME: TS6Agreement(estimator_name=MEAN_BASELINE_NAME, spatial_correlation=0.5)}
 
+    class _StubFootprints:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        def record(self) -> EconomicScenarioResult:
+            return EconomicScenarioResult(scenario_name=self._name)
+
     class StubEconomicModel(EconomicModel):
-        def apply(self, surfaces, scenario_config) -> EconomicScenarioResult:
-            call_order.append(f"economics:{scenario_config['scenario_name']}")
-            return EconomicScenarioResult(scenario_name=scenario_config["scenario_name"], illustrative_only=True)
+        def apply(self, inputs, scenario):
+            call_order.append(f"economics:{scenario.name}")
+            return _StubFootprints(scenario.name)
 
     def stub_extender(base, **kwargs):
         call_order.append("manifest:extend")
@@ -168,7 +187,7 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
         study_area=_study_area(), terrain_source=StubTerrainSource(), sample_source=StubSampleSource(),
         feature_builder=stub_feature_builder, cv_runner=StubRunner(), estimators=registry,
         ts6_reference=StubTS6Reference(), economic_model=StubEconomicModel(),
-        scenario_configs=[{"scenario_name": "MARKET_STANDARD"}, {"scenario_name": "STRATEGIC_SUBSIDIZED"}],
+        scenario_configs=[_scenario("MARKET_STANDARD", 0), _scenario("STRATEGIC_SUBSIDIZED", 1)],
         output_dir=tmp_path, claim_design="leave_one_site_out", seed=42,
         compare_to_ts6_fn=stub_compare, manifest_emitter=stub_emitter, manifest_extender=stub_extender,
         claim_evaluator=stub_claim, surface_builder=stub_builder, surface_writer=stub_writer,

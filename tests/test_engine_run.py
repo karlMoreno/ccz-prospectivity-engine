@@ -53,14 +53,21 @@ ESTIMATORS = {"mean_baseline", "ordinary_kriging", "random_forest"}
 
 
 class _Phase4Stub(EconomicModel):
-    """Phase 4 has no EconomicModel; this one records only what the contract
-    requires every implementation to propagate — `illustrative_only`."""
+    """E4.1 commit 1: the seam is revised, the computation (commit 2) is
+    not yet here; this stub records the scenario name and the DERIVED
+    watermark verdict, copying no flag."""
 
-    def apply(self, surfaces, scenario_config) -> EconomicScenarioResult:
-        return EconomicScenarioResult(
-            scenario_name=scenario_config["scenario_name"],
-            illustrative_only=bool(scenario_config["illustrative_only"]),
-        )
+    def apply(self, inputs, scenario):
+        from engine.prospectivity.economics.watermark import economic_watermark_verdict
+
+        class _Footprints:
+            def record(_self) -> EconomicScenarioResult:
+                return EconomicScenarioResult(
+                    scenario_name=scenario.name,
+                    watermark=economic_watermark_verdict(inputs.dem_data_origin, scenario).to_record(),
+                )
+
+        return _Footprints()
 
 
 def _study_area() -> StudyArea:
@@ -73,11 +80,10 @@ def _study_area() -> StudyArea:
     )
 
 
-def _scenarios() -> list[dict]:
-    import yaml
+def _scenarios():
+    from engine.prospectivity.economics.contract import scenarios
 
-    loaded = yaml.safe_load((REPO_ROOT / "data" / "economics" / "scenarios.yaml").read_text())
-    return [dict(s) for s in loaded["scenarios"]]
+    return scenarios()
 
 
 def _engine(
@@ -136,9 +142,10 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     # every written file, hashed by basename, recomputed here from the bytes
     files = {p.name: file_sha256(p) for p in out.iterdir() if p.name != "run_manifest.json"}
     assert manifest.output_hashes == files and len(files) == 10
-    # Phase 4's seam ran over Contract 4's two scenarios, both still illustrative
+    # Phase 4's seam ran over Contract 4's two scenarios; the verdict is DERIVED, both reasons unlifted today
     assert [r.scenario_name for r in manifest.economic_results] == ["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"]
-    assert all(r.illustrative_only for r in manifest.economic_results)
+    assert all(r.watermark["watermarked"] and len(r.watermark["reasons"]) == 2 for r in manifest.economic_results)
+    assert manifest.economic_differences == [] and manifest.schema_version == 2
 
 
 def test_the_run_is_watermarked_refused_and_says_so_as_data(run: dict) -> None:

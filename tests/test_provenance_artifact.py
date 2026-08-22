@@ -130,7 +130,7 @@ def test_adding_a_field_to_a_subclass_does_not_change_an_existing_artifacts_hash
     base = RunManifest(run_id="r", seed=7, data_origin="SYNTHETIC").finalize()
     Wider = _wider(RunManifest)
     reloaded = Wider(**json.loads(base.to_json()))
-    assert reloaded.schema_version == 1 and reloaded.later_field is None
+    assert reloaded.schema_version == RunManifest.SCHEMA_VERSION and reloaded.later_field is None
     assert reloaded.compute_content_hash() == base.content_hash, "versioned regime: a None-default field entered the substance"
     raw = json.loads((REPO_ROOT / "data/runs/e2.4/run_manifest.json").read_text())
     legacy = Wider(**raw)
@@ -156,7 +156,7 @@ def test_the_schema_version_is_inside_the_hashed_substance_not_beside_it() -> No
     predates the field), which is exactly the limitation stated in the
     module docstring."""
     fresh = RunManifest(run_id="r", seed=7).finalize()
-    assert fresh.substance()["schema_version"] == RunManifest.SCHEMA_VERSION == 1
+    assert fresh.substance()["schema_version"] == RunManifest.SCHEMA_VERSION == 2  # 2 since E4.1
     legacy = RunManifest(**json.loads((REPO_ROOT / "data/runs/e2.4/run_manifest.json").read_text()))
     assert "schema_version" not in legacy.substance() and legacy.schema_version is None
 
@@ -175,13 +175,13 @@ def test_the_two_committed_artifacts_are_legacy_and_their_hashes_are_unchanged_b
 
 def test_legacy_is_detected_by_a_content_hash_without_a_schema_version_and_nothing_else() -> None:
     fresh = RunManifest(run_id="r", seed=7)
-    assert fresh.schema_version == 1 and not fresh.is_legacy  # stamped at construction
+    assert fresh.schema_version == RunManifest.SCHEMA_VERSION and not fresh.is_legacy  # stamped at construction
     reloaded_versioned = RunManifest(run_id="r", seed=7, content_hash="sha256:x", schema_version=3)
     assert reloaded_versioned.schema_version == 3
     reloaded_legacy = RunManifest(run_id="r", seed=7, content_hash="sha256:x")
     assert reloaded_legacy.is_legacy
     # model_copy (the emitter's path) preserves the version rather than re-stamping
-    assert fresh.model_copy(update={"seed": 8}).schema_version == 1
+    assert fresh.model_copy(update={"seed": 8}).schema_version == RunManifest.SCHEMA_VERSION
 
 
 def test_every_real_artifact_declares_a_frozen_legacy_set_that_is_a_subset_of_its_live_fields() -> None:
@@ -192,17 +192,25 @@ def test_every_real_artifact_declares_a_frozen_legacy_set_that_is_a_subset_of_it
     exclusions — equal TODAY (no field has been added since HASH.1), and the
     assertion is written so that inequality reads as 'a field was added:
     bump SCHEMA_VERSION', not as a failure to silence."""
+    base_excluded = {"content_hash", "generated_at"}
     for cls in ALL_ARTIFACTS:
         assert "LEGACY_HASHED_FIELDS" in cls.__dict__, cls.__name__
-        live = set(cls.model_fields) - cls.hash_excluded_fields() - {"schema_version"}
-        assert cls.LEGACY_HASHED_FIELDS <= live, cls.__name__
-        added = live - cls.LEGACY_HASHED_FIELDS
-        assert added == set(), f"{cls.__name__} gained {sorted(added)} since HASH.1 — bump SCHEMA_VERSION ({cls.SCHEMA_VERSION}) and record it"
-    # the versions as declared: the stack is at 2 since HASH.1 commit 2 gained
-    # `dem_path` (hash-excluded, so it is not in `live` above — the bump is
-    # for the SHAPE, which the version identifies)
+        assert cls.LEGACY_HASHED_FIELDS <= set(cls.model_fields) - cls.hash_excluded_fields(), cls.__name__
+        # every field INTRODUCED since HASH.1 (hash-excluded ones count: the
+        # version identifies the SHAPE) must default to None — enforced at
+        # class definition too — and its class's version must have moved.
+        added = set(cls.model_fields) - cls.LEGACY_HASHED_FIELDS - base_excluded - {"schema_version"} - (
+            set(cls.model_fields) & {"scores_first_visible", "run_id"}  # RunManifest's own pre-HASH.1 exclusions
+        )
+        assert all(cls.model_fields[f].default is None for f in added), f"{cls.__name__}: {sorted(added)}"
+        assert (added == set()) == (cls.SCHEMA_VERSION == 1), (
+            f"{cls.__name__} added {sorted(added)} at SCHEMA_VERSION {cls.SCHEMA_VERSION} — a field "
+            "added since HASH.1 bumps the version, and a bumped version names its field"
+        )
+    # the versions as declared: the stack gained `dem_path` at HASH.1 commit 2,
+    # the run manifest `economic_differences` at E4.1
     assert {cls.__name__: cls.SCHEMA_VERSION for cls in ALL_ARTIFACTS} == {
-        "CorpusManifest": 1, "FeatureStackManifest": 2, "TrainingMatrixManifest": 1, "RunManifest": 1
+        "CorpusManifest": 1, "FeatureStackManifest": 2, "TrainingMatrixManifest": 1, "RunManifest": 2
     }
 
 

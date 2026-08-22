@@ -33,6 +33,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 from engine.prospectivity.domain.observation import Observation
 from engine.prospectivity.domain.terrain import TerrainLayer
 from engine.prospectivity.features.dem_grid import DemGrid
@@ -54,13 +56,21 @@ DEFAULT_CORPUS_MANIFEST = (
 
 @dataclass(frozen=True)
 class FeatureBundle:
-    """Everything the feature step produces from ONE stack, carried together."""
+    """Everything the feature step produces from ONE stack, carried together.
+
+    `cell_area_m2` (E4.1): the per-cell area in m², (H, W), computed from
+    `DemGrid` — the ONE home of the CRS decision (per-row E-W scaling,
+    strategy A) — and carried here DELIBERATELY rather than reconstructed
+    from the transform at an economics call site. E4.0 §4 found nothing on
+    `PredictionGrid` could give `minable_area_m2`; this is the one seam
+    addition that fixes it."""
 
     matrix: TrainingMatrix
     matrix_manifest: TrainingMatrixManifest
     grid: PredictionGrid
     stack_manifest: dict
     corpus_manifest: dict
+    cell_area_m2: np.ndarray
 
 
 class _ObservationsSampleSource(SampleSource):
@@ -113,10 +123,26 @@ class StackFeatureBuilder:
             _ObservationsSampleSource(samples), dem_grid, layers, corpus_manifest, stack_manifest
         )
         grid = PredictionGrid.from_stack(written["provenance"].parent)
+        cell_area_m2 = cell_areas_m2(dem_grid)
+        if cell_area_m2.shape != (grid.height, grid.width):
+            raise ValueError(
+                f"cell areas {cell_area_m2.shape} do not match the prediction grid "
+                f"{(grid.height, grid.width)} — the stack and the DEM disagree"
+            )
         return FeatureBundle(
             matrix=matrix,
             matrix_manifest=matrix_manifest,
             grid=grid,
             stack_manifest=stack_manifest,
             corpus_manifest=corpus_manifest,
+            cell_area_m2=cell_area_m2,
         )
+
+
+def cell_areas_m2(dem_grid: DemGrid) -> np.ndarray:
+    """(H, W) cell areas from DemGrid's metre geometry: the E-W size varies
+    by row (cos latitude), the N-S size is constant. Read-only."""
+    areas = np.outer(dem_grid.dx_m_per_row, np.ones(dem_grid.values.shape[1])) * dem_grid.dy_m
+    areas = np.ascontiguousarray(areas, dtype=np.float64)
+    areas.flags.writeable = False
+    return areas
