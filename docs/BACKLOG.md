@@ -67,20 +67,24 @@ closeout — the theorem test's seed-calibrated tolerances, and LITERATURE's
 missing evidence observer (§3). Net 41 − 1 + 2 = 42.
 1 ADDED at the P2.CLOSE approval (2026-08-20): the two C8.1 date labels left
 in `model_config.yaml` by that commit's docs-only fence.
-2 ADDED at the E3.0 approval (2026-08-20), both DECISIONS rather than defects:
+2 ADDED at the E3.0 approval (2026-08-21), both DECISIONS rather than defects:
 revisit COG at Checkpoint 1 (the format is inert at 3,400 cells and nothing
 installed can validate it), and E3.3's descriptive-r-with-N_eff posture. The
 AOI entry was REWRITTEN in the same commit — its trigger had expired ("before
 Phase-2 prediction surfaces", a phase that ended producing none) and its
 gating claim is disproved by E3.0 §2.
-3 ADDED at E3.1+2 (2026-08-20), all found by the task's own probes rather
+3 ADDED at E3.1+2 (2026-08-21), all found by the task's own probes rather
 than by review: surface outputs cannot be committed under `data/` as they
 stand (the origin audit sees them and refuses); E2.5's guard cannot produce a
 per-estimator verdict; and `compare_to_ts6`'s type is undecided because the
 manifest's TS-6 arity is singular — reported rather than picked, per the
 task's instruction.
-**48 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 28, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+2 ADDED at the E3.1+2 approval (2026-08-21): Karl's DECISION to widen
+SYNTHETIC's evidence rule (its own commit, before E3.3, with the `.tif`
+classification gap riding along), and the two engine-side date labels that
+commit's docs-only fence could not reach.
+**50 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 30, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -129,7 +133,7 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   this file was created.*
 
   **THE AOI DOES NOT GATE PREDICTION SURFACES — the covariates' DOMAIN OF
-  DEFINITION does** (rewritten at the E3.0 approval, 2026-08-20; E3.0 §2
+  DEFINITION does** (rewritten at the E3.0 approval, 2026-08-21; E3.0 §2
   verified every clause below against the repo). The old wording implied the
   AOI blocked Phase 3, and its trigger read "before Phase-2 prediction
   surfaces" — a trigger that EXPIRED when Phase 2 ended without producing
@@ -968,7 +972,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   approval block; E3.1+2 commit 1).
 
 - [ ] **E3.3 REPORTS r WITH N_eff AND NO p-VALUE — record the reasoning in the
-  OUTPUT, not only here** (decided by Karl at the E3.0 approval, 2026-08-20).
+  OUTPUT, not only here** (decided by Karl at the E3.0 approval, 2026-08-21).
   A correlation between two spatially autocorrelated surfaces is inflated
   because the effective number of independent observations is far below the
   cell count. On the common grid that is **3,400 cells carrying df ≈ 3,398**,
@@ -994,9 +998,58 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   only if a test is ever demanded). Detail:
   [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) E3.3.
 
+- [ ] **Two E3.1+2 date labels in `engine/prospectivity/surfaces/` still read
+  2026-08-20; the commits landed 2026-08-21** (`abd7516`…`8d81986`).
+  `grid.py:23` (the extent correction) and `writer.py:29` (the per-surface
+  limit note). Comment/docstring only, no behaviour. **Deferred rather than
+  fixed at the E3.1+2 approval only because that commit was fenced to
+  CLAUDE.md and docs/** — the 13 doc-side labels were corrected there.
+  **This is the same residue the P2.CLOSE approval left in
+  `model_config.yaml`, and the THIRD occurrence of the stated-vs-landed gap
+  overall.** Owner: E. **Trigger: the next commit that touches either file** —
+  which is the taxonomy commit above, since it edits the sidecar's evidence.
+  Detail: [E3.1-2.md](walkthroughs/E3.1-2.md).
+
+- [ ] **WIDEN SYNTHETIC'S EVIDENCE RULE — Karl's DECISION at the E3.1+2
+  approval (2026-08-21). ITS OWN COMMIT (a taxonomy change), and the `.tif`
+  classification gap rides with it.**
+  **The new rule:** SYNTHETIC requires *a generator import path, AND a seed OR
+  a recorded determinism basis*, where "deterministic, no seed" is an
+  admissible basis **when the generator is genuinely seedless**.
+
+  **WHY THIS IS NOT A LOOSENING, recorded because it looks like one:** it
+  replaces an UNSATISFIABLE requirement with a satisfiable one carrying the
+  same information — what produced this artifact, and what makes it
+  reproducible. **The current state is the proof.** A SYNTHETIC-by-inheritance
+  surface has no seed when its estimator has none (ordinary kriging is
+  deterministic and records none); the artifact exists; it does not satisfy
+  the rule. **A rule that cannot be honestly satisfied is not a strict rule,
+  it is an unenforceable one.** E3.1+2's writer returning `None` rather than
+  fabricating a `0` was correct — a fabricated seed satisfies the check by
+  LYING to it, which is the exact failure the taxonomy exists to prevent.
+
+  **THE LOOPHOLE TO CLOSE IN THAT TASK:** a determinism basis with no content
+  — a bare `"deterministic"` string — would be the new unenforceable rule.
+  **The basis must name WHAT makes it deterministic** (e.g. "closed-form
+  solve over a fixed variogram fit; no RNG in the path"), and the audit test
+  is what must observe that.
+
+  **SCOPE, all in the one commit:** `CLAUDE.md`'s evidence table (the
+  data-origin section's SYNTHETIC bullet); `origin.py`'s requirement if it is
+  encoded there; the resolver's SYNTHETIC check in
+  `tests/test_data_origin_audit.py`; **and the audit test as the OBSERVER of
+  the widened rule** — probe both directions, as C8.1 did.
+  **RIDING WITH IT: the `.tif` classification gap.** The written rasters are
+  UNCLASSIFIED (binary, no in-file marker; the audit does not treat an
+  adjacent sidecar as one). Same commit, same trigger — the options are in
+  the entry below.
+  Owner: E + Karl (the taxonomy). **Trigger: BEFORE E3.3**, since E3.3 writes
+  artifacts too and would otherwise inherit an unsatisfiable rule. Detail:
+  [E3.1-2.md](walkthroughs/E3.1-2.md) §3.
+
 - [ ] **Surface OUTPUTS cannot be committed under `data/` as they stand — the
   rasters are UNCLASSIFIED and a SYNTHETIC-BY-INHERITANCE surface cannot
-  satisfy SYNTHETIC's seed rule** (found at E3.1+2 commit 3, 2026-08-20, by
+  satisfy SYNTHETIC's seed rule** (found at E3.1+2 commit 3, 2026-08-21, by
   probing `test_data_origin_audit.py` against a staged output directory —
   the probe the task required, and it found a real defect plus two open
   questions).
@@ -1031,7 +1084,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   [E3.1-2.md](walkthroughs/E3.1-2.md) §3.
 
 - [ ] **E2.5's guard cannot produce a PER-ESTIMATOR verdict, and E3.1+2 asked
-  it to** (found at E3.1+2 commit 3, 2026-08-20; the writer's signature was
+  it to** (found at E3.1+2 commit 3, 2026-08-21; the writer's signature was
   built to express it, so nothing is blocked today).
   `evaluate_claim` is keyed on `(RunManifest, design)`. **Four of its six
   preconditions** — paired-uncertainty, single-DEM, provenance-chain,
@@ -1044,14 +1097,26 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   `write_surface` takes ONE VERDICT PER SURFACE so the shape is expressible
   the day the guard gains that granularity; a caller passing the same verdict
   to every surface is reporting the truth as the guard currently computes it.
-  **Deciding whether the guard's unit should become (run, design, estimator)
-  is an E2.5 structural change and Karl's call.** Owner: E + Karl. **Trigger:
-  E3.4**, which is the first consumer that records per-surface verdicts.
+  **THE QUESTION IS WHICH DIRECTION TO RESOLVE IT, and it is genuinely open
+  both ways** (framing added at the E3.1+2 approval, 2026-08-21): either the
+  guard's unit becomes `(run, design, estimator)` — an E2.5 structural change
+  — **or the run-level verdict is CORRECT and the writer's signature is the
+  thing that should narrow.** There is a real argument for the second: claim
+  eligibility as E2.5 defines it is a property of the EVIDENCE BEHIND A RUN
+  (was CV spatially blocked, does a threshold predate the scores), and none of
+  those becomes true for kriging and false for RF. What genuinely differs
+  between estimators is the WATERMARK — RF's synthetic-covariate dependence
+  vs kriging's coordinate-only — and the watermark is already computed per
+  surface, separately from eligibility. **So the honest default is that the
+  guard is right and the writer is over-general**; the entry stays open
+  because that is an argument, not a measurement. Karl's call. Owner: E +
+  Karl. **Trigger: with the E3.3 type decision**, since they are the same
+  shape of question.
   Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §3;
   `engine/prospectivity/surfaces/writer.py` module docstring.
 
 - [ ] **`compare_to_ts6`'s type is UNDECIDED, and the two candidate answers
-  pull apart** (E3.1+2 commit 1, 2026-08-20 — **reported rather than picked,
+  pull apart** (E3.1+2 commit 1, 2026-08-21 — **reported rather than picked,
   per the task's own instruction**).
   The prompt offered two reconciliations: `PredictionSurface` gains a
   constructor from the per-estimator `(mu, sd)` dict, or `_compare_to_ts6`'s
@@ -1101,7 +1166,7 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   would fire today. What is missing is any evidence that it still will after
   the next edit to the resolver.
 
-  **QUALIFIED AT THE E3.0 APPROVAL (2026-08-20): NEITHER PHASE-3 DELIVERABLE'S
+  **QUALIFIED AT THE E3.0 APPROVAL (2026-08-21): NEITHER PHASE-3 DELIVERABLE'S
   ORIGIN CLASS IS SETTLED BY THE REPO**, so "both arrive as LITERATURE" is a
   premise this entry must not rest on.
 
