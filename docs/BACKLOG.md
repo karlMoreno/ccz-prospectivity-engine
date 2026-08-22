@@ -92,8 +92,13 @@ now DERIVED's evidence and cannot be answered in one word.
 zero-observer gap is deliberately UNTOUCHED** — separate rule, separate
 observer, its own live trigger (before Track G supplies any cited value);
 folding it in would have meant changing a rule and its observer in one commit.
-**50 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 30, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+2 CLOSED + 1 ADDED at E3.3 (2026-08-21): the r-with-N_eff decision and the
+digitization-error propagation are built (`1c159f3`, `1febedc`); the addition
+is Contract 6's `digitization_uncertainty` SLOT, found ABSENT where the
+prompt said null — a structural change that is Karl's, with its consumer
+already built (the C8.1 sequence, one contract over).
+**49 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 29, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -980,8 +985,17 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) (E3.0
   approval block; E3.1+2 commit 1).
 
-- [ ] **E3.3 REPORTS r WITH N_eff AND NO p-VALUE — record the reasoning in the
-  OUTPUT, not only here** (decided by Karl at the E3.0 approval, 2026-08-21).
+- [x] **E3.3 REPORTS r WITH N_eff AND NO p-VALUE — DONE at E3.3 commit 2
+  (2026-08-21, `1febedc`).** The reasoning IS in the output: `INFLATION_NOTE`
+  travels in every agreement and a test asserts it verbatim; the
+  interpretation string carries the "NOT distinguishable from zero" reading,
+  which today's kriging-vs-fixture comparison emits (r = +0.026 inside the
+  noise scale). N_eff is Clifford–Richardson-style over binned empirical
+  correlograms, with the two-sided known-answer (smooth pair < N/10,
+  white-noise pair > N/2). **One nuance the entry's N_eff ≈ 2 expectation did
+  not carry:** against today's WHITE-NOISE fixture the formula honestly
+  reports n_eff ≈ N — the collapse needs BOTH surfaces smooth, which is the
+  real-TS-6 case ([E3.3.md](walkthroughs/E3.3.md) §2). *(original entry)*
   A correlation between two spatially autocorrelated surfaces is inflated
   because the effective number of independent observations is far below the
   cell count. On the common grid that is **3,400 cells carrying df ≈ 3,398**,
@@ -1154,13 +1168,27 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   (the 2B revision protocol), and a single agreement forces the choice.
   **What E3.1+2 did instead:** left `compare_to_ts6` untouched (still
   `NotImplementedError`) and had the builder return a MAPPING, which expresses
-  "all of them" without deciding which. Owner: Karl (the arity) + E.
-  **Trigger: E3.3, before it runs** — the same gate as TS-6's origin class.
-  Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §4.
+  "all of them" without deciding which.
+  **E3.3's HALF IS DONE (2026-08-21, `1febedc`):** `compare_all_to_ts6`
+  returns one agreement PER ESTIMATOR, each self-identifying via the new
+  `TS6Agreement.estimator_name` — so both manifest answers stay expressible —
+  and `reference.py`'s stub now names THIS entry instead of claiming E3.3
+  would implement the wiring. **What remains is exactly the arity**:
+  `RunManifest.ts6_agreement` is singular, the comparison produces many.
+  Owner: Karl (the arity) + E. **Trigger: E3.4, before its manifest
+  extension.** Detail: [E3.3.md](walkthroughs/E3.3.md);
+  [E3.1-2.md](walkthroughs/E3.1-2.md) §4.
 
-- [ ] **E3.3 MUST CARRY THE DIGITIZATION ERROR — the consequence of the TS-6
-  origin decision** (Karl, TAX.1 approval, 2026-08-21; the decision itself is
-  DONE and lives in Contract 6 v3, `raster_data_origin: DERIVED`).
+- [x] **E3.3 CARRIES THE DIGITIZATION ERROR — Track E's half DONE at E3.3
+  commit 2 (2026-08-21, `1febedc`).** The comparison reads the value through a
+  three-state accessor, REFUSES the real (non-SYNTHETIC) path by name when it
+  is missing — which is the OBSERVER for the requirement — reports "not
+  applicable — synthetic fixture" on the fixture path rather than assuming
+  zero, and carries the value into `benchmark_uncertainty(_note)` when
+  supplied. **The residue is not E's:** the value is Track G's (G3.1), and the
+  SLOT does not exist in Contract 6 yet — see the new §2 entry below, because
+  a premise check found ABSENT where the prompt said null. *(original
+  entry)*
   E3.3 compares our surface to a raster **we produced by eye from a printed
   map**. A comparison that treats the benchmark as EXACT overstates its own
   precision — and it would do so in the same breath as reporting an r whose
@@ -1175,6 +1203,24 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   commit 2**, with the correlation posture. Detail: Contract 6's
   `raster_data_origin` comment; [E3.1-2.md](walkthroughs/E3.1-2.md).
 
+- [ ] **ADD Contract 6's `digitization_uncertainty` SLOT — a structural
+  contract change, Karl's call** (found at E3.3 commit 2, 2026-08-21, by a
+  premise check: the task prompt said the field "is null today" and it does
+  not EXIST — absent, not null, and this project treats those as different
+  states with different remedies).
+  **The consumer already exists** (`ts6.comparison.ts6_digitization_uncertainty`,
+  the C8.1 loader posture: absent raises naming the STRUCTURAL gap, null
+  raises naming the unfilled VALUE, present returns), so P2.A's
+  "a field with no consumer is a field nobody has tested the meaning of"
+  condition is met — the same sequence as `acceptance_thresholds`:
+  E2.5 built the consumer, C8.1 added the slot.
+  **Shape when added:** `digitization_uncertainty: null` (kg/m²; no value
+  until something is digitized), `[GEOLOGY — ISAAC]`, `reference_version`
+  3 → 4 with the contracts-README note; additive, so Track G's re-sync is a
+  read. Owner: E + Karl (the bump). **Trigger: with E3.4, or before Track G
+  digitizes — whichever comes first.** Detail:
+  [E3.3.md](walkthroughs/E3.3.md) §2.
+
 - [ ] **`digitization_method` is now DERIVED's EVIDENCE, and a one-word answer
   will not satisfy it** (TAX.1 approval, 2026-08-21).
   DERIVED's evidence requirement is a derivation formula or the artifact
@@ -1188,8 +1234,11 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   **The parallel is exact and worth stating**: TAX.1 refused a bare
   "deterministic" as a SYNTHETIC determinism basis for the same reason — a
   field that names the CATEGORY rather than the MECHANISM evidences nothing.
-  Whether the audit should enforce a minimum specificity here, as it now does
-  for SYNTHETIC, is an open question this entry carries. Owner: G (the value)
+  **PARTIALLY ANSWERED at E3.3 commit 2:** the COMPARISON now enforces the
+  floor at run time (`MIN_DIGITIZATION_METHOD_CHARS = 40`, refusing Contract
+  6's own three vocabulary options as category words). Whether the AUDIT
+  should also enforce it — so an unspecific method fails the suite, not just
+  the run — is the half still open. Owner: G (the value)
   + E + Karl (whether to enforce). **Trigger: when Track G delivers the
   raster** — which is Checkpoint 3. Detail: `data/ts6/ts6_reference.yaml`.
 
