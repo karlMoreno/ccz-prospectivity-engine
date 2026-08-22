@@ -135,9 +135,11 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     # E4.2: the economics rasters in their own directory — 12 footprints and the
     # two sidecars — recorded by basename in the results; hashed by E4.3
     economics = sorted(p.name for p in (out / "economics").iterdir())
-    assert len([n for n in economics if n.endswith(".tif")]) == 12 and {"economics.footprints.json", "data_origin.yaml"} <= set(economics)
+    rasters = {n for n in economics if n.endswith(".tif")}
+    assert len(rasters) == 18 == 12 + 6 and {"economics.footprints.json", "data_origin.yaml"} <= set(economics)
     recorded = {v["raster_file"] for r in manifest.economic_results for by_z in r.footprints.values() for v in by_z.values()}
-    assert recorded == {n for n in economics if n.endswith(".tif")}
+    recorded |= {v["raster_file"] for d in manifest.economic_differences for by_z in d.footprints.values() for v in by_z.values()}
+    assert recorded == rasters
     # Phase 4's model ran over Contract 4's two scenarios and its one difference
     # pair; the verdict is DERIVED, both reasons unlifted today; the computed
     # origin is AUTHORED (the lattice's lossy answer, beside the verdict)

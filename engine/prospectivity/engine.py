@@ -92,7 +92,7 @@ from engine.prospectivity.economics.model import (
     FootprintDifference,
     ScenarioFootprints,
 )
-from engine.prospectivity.economics.writer import write_footprints
+from engine.prospectivity.economics.writer import write_difference, write_footprints
 from engine.prospectivity.estimators.registry import EstimatorRegistry
 from engine.prospectivity.features.bundle import FeatureBundle
 from engine.prospectivity.provenance.emitter import extend_run_manifest
@@ -122,6 +122,7 @@ ClaimEvaluator = Callable[..., ClaimVerdict]  # evaluate_claim's signature
 SurfaceBuilder = Callable[..., Mapping[str, SurfaceResult]]  # build_surfaces' signature
 SurfaceWriter = Callable[..., Mapping[str, Path]]  # write_surface's signature
 FootprintWriter = Callable[..., Mapping[tuple[str, float], Path]]  # write_footprints' signature
+DifferenceWriter = Callable[..., Mapping[tuple[str, float], Path]]  # write_difference's signature
 # (surfaces, grid, ts6_surface, surface_data_origin) -> one agreement per estimator
 TS6Comparer = Callable[[Mapping[str, SurfaceResult], PredictionGrid, TS6Surface, DataOrigin], Mapping[str, TS6Agreement]]
 
@@ -159,6 +160,7 @@ class ProspectivityEngine:
         surface_builder: SurfaceBuilder = build_surfaces,
         surface_writer: SurfaceWriter = write_surface,
         footprint_writer: FootprintWriter = write_footprints,
+        difference_writer: DifferenceWriter = write_difference,
     ) -> None:
         runner_registry = getattr(cv_runner, "registry", None)
         if runner_registry is not None and runner_registry is not estimators:
@@ -199,6 +201,7 @@ class ProspectivityEngine:
         self._surface_builder = surface_builder
         self._surface_writer = surface_writer
         self._footprint_writer = footprint_writer
+        self._difference_writer = difference_writer
 
     def run(self) -> RunManifest:
         terrain, samples = self._ingest()
@@ -344,8 +347,15 @@ class ProspectivityEngine:
                 footprints[name], bundle.grid, surfaces, economics_dir, claim_verdict=verdict
             )
             results.append(footprints[name].record({key: path.name for key, path in written.items()}))
-        # the difference maps are E4.2 commit 2's; recorded without files until then
-        return results, [difference.record() for difference in differences]
+        recorded_differences = []
+        for difference in differences:
+            a, b = difference.pair
+            written = self._difference_writer(
+                difference, footprints[a], footprints[b], bundle.grid, surfaces, economics_dir,
+                claim_verdict=verdict,
+            )
+            recorded_differences.append(difference.record({key: path.name for key, path in written.items()}))
+        return results, recorded_differences
 
     def _extend_manifest(
         self,

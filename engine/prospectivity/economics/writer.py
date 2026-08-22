@@ -57,7 +57,7 @@ from pathlib import Path
 
 import numpy as np
 
-from engine.prospectivity.economics.model import ScenarioFootprints
+from engine.prospectivity.economics.model import FootprintDifference, ScenarioFootprints
 from engine.prospectivity.economics.watermark import WatermarkVerdict
 from engine.prospectivity.provenance.contract_versions import file_sha256
 from engine.prospectivity.surfaces.builder import SurfaceResult
@@ -75,10 +75,25 @@ FOOTPRINT_ENCODING = (
     "1.0 = minable; 0.0 = NOT minable (covariates present: below the cutoff at this z, "
     "or filtered); nodata (NaN) = UNDEFINED (no covariates) — the mask, not a verdict"
 )
+DIFFERENCE_ENCODING = (
+    "0.0 = minable under NEITHER scenario; 1.0 = minable under BOTH; 2.0 = minable under "
+    "the second (b) ONLY — the difference; 3.0 = minable under the first (a) ONLY; "
+    "nodata (NaN) = UNDEFINED (no covariates)"
+)
+DIFFERENCE_MEANING = (
+    "a SENSITIVITY map, not a resource map: the area whose minability depends on WHICH "
+    "PLACEHOLDER CUTOFF IS ASSUMED. Every cell coded 2 or 3 would change status if the "
+    "other scenario's cutoff were the truth; a cell coded 0 or 1 does not care which"
+)
+DIFFERENCE_CODES = {"neither": 0.0, "both": 1.0, "only_b": 2.0, "only_a": 3.0}
 
 
 def footprint_name(scenario: str, estimator: str, z: float) -> str:
     return f"footprint__{scenario}__{estimator}__z{z:g}.tif"
+
+
+def difference_name(a: str, b: str, estimator: str, z: float) -> str:
+    return f"difference__{a}__{b}__{estimator}__z{z:g}.tif"
 
 
 def _reason_tags(verdict: WatermarkVerdict) -> dict[str, str]:
@@ -137,6 +152,8 @@ def _merge_association(path: Path, entries: dict) -> None:
                     "inferred from a filename"
                 ),
                 "footprint_encoding": FOOTPRINT_ENCODING,
+                "difference_encoding": DIFFERENCE_ENCODING,
+                "difference_meaning": DIFFERENCE_MEANING,
                 "files": dict(sorted(existing.items())),
             },
             indent=2,
@@ -228,6 +245,100 @@ def write_footprints(
                 "watermark": footprints.watermark.to_record(),
             }
             origin_entries[path.name] = _origin_entry(footprints.data_origin, footprints)
+    _merge_association(output_dir / ASSOCIATION_NAME, association)
+    merge_origin_sidecar(output_dir / SIDECAR_NAME, origin_entries)
+    return written
+
+
+def encode_difference(a_minable: np.ndarray, b_minable: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """The three-state (plus undefined) code per cell, from the two footprints."""
+    code = np.where(a_minable & b_minable, DIFFERENCE_CODES["both"], DIFFERENCE_CODES["neither"]).astype(np.float32)
+    code = np.where(b_minable & ~a_minable, DIFFERENCE_CODES["only_b"], code)
+    code = np.where(a_minable & ~b_minable, DIFFERENCE_CODES["only_a"], code)
+    code[mask] = np.nan
+    return code
+
+
+def write_difference(
+    difference: FootprintDifference,
+    a: ScenarioFootprints,
+    b: ScenarioFootprints,
+    grid: PredictionGrid,
+    surfaces: Mapping[str, SurfaceResult],
+    output_dir: Path | str,
+    *,
+    claim_verdict: ClaimVerdict,
+) -> dict[tuple[str, float], Path]:
+    """The (a, b) difference as a coded raster per (estimator, z), with the
+    meaning in the tags. The code is recomputed from the two footprints and
+    checked against the difference's own `only_b` masks — a difference that
+    disagreed with its inputs would be refused, not written."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if difference.pair != (a.scenario.name, b.scenario.name):
+        raise ValueError(f"the difference is {difference.pair}, the footprints handed in are {(a.scenario.name, b.scenario.name)}")
+    _require_same_grid(a.grid_identity, grid, f"{a.scenario.name}'s footprints")
+    _require_same_grid(b.grid_identity, grid, f"{b.scenario.name}'s footprints")
+    failing = sorted(item.precondition.value for item in claim_verdict.failures)
+    reason_tags = _reason_tags(difference.watermark)
+    written: dict[tuple[str, float], Path] = {}
+    association: dict[str, dict] = {}
+    origin_entries: dict[str, dict] = {}
+    for estimator in sorted(difference.levels):
+        for z, level in difference.levels[estimator].items():
+            la, lb = a.levels[estimator][z], b.levels[estimator][z]
+            mask = _require_mask(lb.minable, surfaces[estimator], estimator, f"{b.scenario.name} z={z:g}")
+            code = encode_difference(la.minable, lb.minable, mask)
+            if not np.array_equal(code == DIFFERENCE_CODES["only_b"], level.minable):
+                raise ValueError(
+                    f"the difference's own footprint for {estimator!r} z={z:g} disagrees with the "
+                    "code recomputed from its two inputs — refusing to write a map that does not "
+                    "describe the footprints it claims to difference"
+                )
+            counts = {
+                name: int(np.sum(code == value)) for name, value in DIFFERENCE_CODES.items()
+            }
+            counts["undefined"] = int(np.isnan(code).sum())
+            path = output_dir / difference_name(a.scenario.name, b.scenario.name, estimator, z)
+            tags = {
+                "kind": "difference",
+                "scenario_a": a.scenario.name,
+                "scenario_b": b.scenario.name,
+                "estimator": estimator,
+                "z": f"{z:g}",
+                "meaning": DIFFERENCE_MEANING,
+                "encoding": DIFFERENCE_ENCODING,
+                "cutoff_a_kg_m2": f"{a.scenario.cutoff_value:g}",
+                "cutoff_b_kg_m2": f"{b.scenario.cutoff_value:g}",
+                "data_origin": difference.data_origin,
+                **reason_tags,
+                "publishable": "false" if (failing or difference.watermark.watermarked) else "true",
+                "claim_failing_preconditions": ",".join(failing) if failing else NO_REFUSALS,
+                "uncertainty_semantics": a.uncertainty_semantics[estimator],
+                **{f"n_{name}": str(n) for name, n in counts.items()},
+                "difference_fraction_of_predictable": f"{level.fraction_of_predictable:.6f}",
+                "grid_stack_content_hash": grid.stack_content_hash,
+                "grid_dem_content_hash": grid.dem_content_hash,
+            }
+            digest = _write_one(path, code, mask, grid, tags)
+            written[(estimator, z)] = path
+            association[path.name] = {
+                "kind": "difference",
+                "scenario_a": a.scenario.name,
+                "scenario_b": b.scenario.name,
+                "estimator": estimator,
+                "z": z,
+                "sha256": digest,
+                "counts": counts,
+                "difference_fraction_of_predictable": level.fraction_of_predictable,
+                "area_m2": level.area_m2,
+                "data_origin": difference.data_origin,
+                "watermark": difference.watermark.to_record(),
+            }
+            origin_entries[path.name] = {
+                **_origin_entry(difference.data_origin, a),
+                "derivation": f"set difference of {b.scenario.name} and {a.scenario.name} footprints, per estimator per z",
+            }
     _merge_association(output_dir / ASSOCIATION_NAME, association)
     merge_origin_sidecar(output_dir / SIDECAR_NAME, origin_entries)
     return written

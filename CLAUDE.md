@@ -443,7 +443,12 @@ ccz-prospectivity-engine/
   to the boundary the two-track design allows:** the proposal's Phase 4
   Track-E lane (E4.1–E4.3, the EconomicModel over Contract 4's PLACEHOLDER
   scenarios, "illustrative only") needs no Track-G input, and BACKLOG §3
-  items remain E's alone. **E4.1 (2026-08-22) is done:** Contract 4's loader,
+  items remain E's alone. **E4.2 (2026-08-22) is done:** the 12 footprint
+  rasters and the 6 difference maps, on the surfaces' grid through the one
+  COG writer, the two-reason verdict per reason on every file, the mask kept
+  apart from the footprint, the difference's meaning ("a sensitivity map,
+  not a resource map") in its tags — uniformly true and uniformly empty on
+  today's surfaces, as stated in advance. **E4.1 (2026-08-22) is done:** Contract 4's loader,
   the per-reason watermark verdict (terrain ↔ Checkpoint 1; parameters ↔
   Checkpoint 4), and `CutoffEconomicModel` on confidence-level footprints —
   the measured output on today's surfaces is the whole domain under both
