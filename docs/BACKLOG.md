@@ -409,8 +409,11 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §4; [docs/contracts/README.md:24](../docs/contracts/README.md#L24)–37.
 
-- [ ] **`RunManifest.content_hash` COVERS THE SHAPE: adding a field re-hashes
-  every committed run manifest — decide the policy** (found at E3.4 commit 1,
+- [x] **`RunManifest.content_hash` COVERS THE SHAPE: adding a field re-hashes
+  every committed run manifest — decide the policy** — **DECIDED at the E3.4
+  approval (Karl, 2026-08-22): SHAPE-TOLERANT. The task is in §3 ("the hash
+  scheme becomes shape-tolerant"), with the reasoning, the losing argument,
+  what it does not fix, and the trigger.** *(original entry)* (found at E3.4 commit 1,
   2026-08-22, the moment the four new fields turned
   `test_the_committed_artifact_hash_verifies_against_its_own_contents` red).
   `substance()` is `model_dump()` minus the excluded names, defaults
@@ -1201,8 +1204,24 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   design, records all of them as data (`claim.verdicts`), and hands the
   writer the declared design's verdict for every surface — the run-level
   reading in practice, with the writer's per-surface signature left as
-  built. The arity question this entry was tied to is closed (below); this
-  one still wants Karl's word on which direction the SIGNATURE goes.
+  built. The arity question this entry was tied to is closed (below).
+  **DECIDED at the E3.4 approval (Karl, 2026-08-22): THE GUARD IS RIGHT;
+  NARROW THE WRITER'S SIGNATURE.** The argument is the session's own from
+  E3.1+2, recorded in those terms: eligibility as E2.5 defines it is a
+  property of the EVIDENCE BEHIND A RUN, and none of its six preconditions
+  becomes true for kriging and false for RF; what genuinely differs per
+  estimator is the WATERMARK, already computed per surface. A per-surface
+  verdict parameter invites a distinction the guard cannot produce.
+  **The task:** `write_surface` takes the RUN's verdict (one per run, not
+  one per surface) — and the narrowing MUST PRESERVE the engine's property
+  that it never picks: `ProspectivityEngine` keeps `claim_design` as a
+  REQUIRED argument and hands the writer `verdicts[claim_design]`; a
+  narrowing that defaulted the design or let the writer choose would
+  quietly return the choice to the caller, which is the thing the argument
+  refuses (`tests/test_engine_run.py::…declared_claim_designs_verdict…` is
+  the separating test and must stay green). Owner: E. **Trigger: the next
+  edit to `surfaces/writer.py`, or with the shape-tolerant hash task — the
+  same commit series.** Not built at the approval (docs-only).
   Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §3;
   `engine/prospectivity/surfaces/writer.py` module docstring.
 
@@ -1386,6 +1405,47 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   wording, "with the next Track G delivery", made the trigger contingent on a
   delivery rather than preceding it). Detail:
   [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4.
+- [ ] **THE HASH SCHEME BECOMES SHAPE-TOLERANT** (DECIDED by Karl at the E3.4
+  approval, 2026-08-22; **not built there — docs-only commit**).
+  **The question:** `ProvenanceArtifact.substance()` is `model_dump()` minus
+  the excluded names, defaults included, so any new field re-hashes every
+  committed instance of that artifact class. Re-stamp history on every
+  addition, or make the hash shape-tolerant?
+  **DECISION: shape-tolerant.** Hash over PRESENT fields (a field at its
+  default is absent from the substance); record the schema version
+  alongside, explicitly; leave historical manifests with their original
+  hashes.
+  **The reasoning, with the losing argument because it is real:**
+  * Re-stamping means committed provenance CHANGES AFTER THE FACT — directly
+    against what the chain exists to do — and it scales badly: every future
+    field touches every historical artifact. E3.4 paid that cost once
+    (`31dc10b`, six lines); the path-hash fix would charge it again.
+  * The counterargument — two manifests with different SHAPES could hash
+    identically, so the hash stops identifying the schema — is real but
+    weaker: the shape is already recorded elsewhere in the artifact, and
+    this hash's job is identifying SUBSTANCE, not schema. Recording the
+    schema version alongside restores what is lost, explicitly rather than
+    as a side effect of the hash.
+  **What the decision does NOT fix, bounded and counted** (`git ls-files
+  data`, verified at the approval rather than restated): artifacts written
+  before a schema version exists cannot be distinguished from a
+  differently-shaped one by hash alone. That set is **2 committed
+  artifacts** — `data/runs/e2.4/run_manifest.json` and
+  `data/corpus/manifest.json` — because `substance()` lives on the shared
+  base, so the decision reaches all four artifact types, not only
+  `RunManifest`. No feature-stack or training-matrix manifest is committed.
+  **The E3.4 re-stamp of `data/runs/e2.4/run_manifest.json` STAYS as it is:**
+  retroactively un-stamping would be the same after-the-fact edit this
+  decision exists to stop.
+  **What changes when it lands:** `tests/test_provenance_artifact.py`'s
+  hash tests gain the "a defaulted field does not enter the substance" case
+  and the "two shapes, same substance, same hash, DIFFERENT schema version"
+  case; the E2.4 artifact test keeps its self-hash assertion (the file is
+  unchanged; only future emissions differ). Owner: E. **Trigger: BEFORE the
+  path-hash fix (§3 below), so that choice is not forced under time pressure
+  by a fix that would otherwise re-stamp everything again.**
+  Detail: [E3.4.md](walkthroughs/E3.4.md) §1 and §A; `domain/results.py`
+  docstring ("the hash covers the shape").
 - [ ] **`claim.py`'s runner-vs-record disagreement branch raises `NameError`,
   not `ClaimRefused`** (found at E3.4 while reading the guard before wiring
   it, 2026-08-22; **deferred, not fixed: E2.5's module, its own test**).
