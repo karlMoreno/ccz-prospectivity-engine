@@ -1687,6 +1687,40 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   row M (a, b, c); [E2.4.md](walkthroughs/E2.4.md) §3 "what does and does not
   reproduce"; `features/stack.py` manifest assembly;
   [PROVENANCE.md](contracts/PROVENANCE.md) "CONTENT HASH SCHEME".
+- [ ] **AUTHORED's EVIDENCE RULE CANNOT BE HONESTLY SATISFIED BY AN ARTIFACT
+  DERIVED FROM AN AUTHORED VALUE — `author_inherited_from` is refused by
+  the audit** (found at the E4.2 approval, 2026-08-22, by probing the
+  resolver both directions on the writer's actual sidecar; **the taxonomy
+  is NOT widened here — Karl's call, the TAX.1 precedent**).
+  E4.2's economics rasters carry the COMPUTED origin AUTHORED
+  (`combine_origins(SYNTHETIC surface, AUTHORED cutoff)`) and no author of
+  their own: the model derived a footprint from a value someone else
+  authored. The sidecar therefore records `author_inherited_from:
+  data/economics/scenarios.yaml (author: unrecorded)` and no `author:`.
+  **Measured against `tests/test_data_origin_audit.py` on a staged copy:**
+  as written → invalid, `"AUTHORED with author None"` on every raster (the
+  resolver never reads `author_inherited_from`); `author: unrecorded` →
+  `audit()` accepts but the frozen-set test flags a new file (P2.0: not
+  available to new work); `author: model` → accepted and FALSE. So the form
+  passes today only because run outputs are OUTSIDE the walk, and the
+  first economics raster committed under `data/` meets a rule it cannot
+  honestly satisfy — TAX.1's shape (SYNTHETIC's seed rule was unsatisfiable
+  for a synthetic-by-inheritance surface and was WIDENED to admit a
+  determinism basis rather than left as an unenforceable strictness).
+  **Options, for Karl:** (a) widen AUTHORED's evidence to admit
+  `author_inherited_from: <path>` where the cited path's OWN declaration
+  resolves (checkable: the audit follows the reference); (b) a derived-
+  from-AUTHORED artifact records the derivation as DERIVED's evidence does
+  and the lattice keeps saying AUTHORED — i.e. AUTHORED-by-inheritance
+  carries DERIVED's evidence, mirroring SYNTHETIC-by-inheritance; (c) leave
+  it and never commit an economics raster. Not (c) silently. This is the
+  first artifact to inherit authorship; the next will find a rule here
+  rather than re-derive one. Owner: E + Karl. **Trigger: before the first
+  economics raster is committed under `data/` — and no later than the
+  E3.1+2 entry above ("the first commit that writes a surface into
+  `data/`"), which fires at the same moment.** Detail:
+  [E4.2.md](walkthroughs/E4.2.md) closing; `economics/writer.py:
+  _origin_entry`; the approval ledger row.
 - [ ] **THE SLOPE FILTER IS PHYSICALLY MEANINGLESS AT 0.1° AND IS APPLIED
   ANYWAY — resolve at Checkpoint 1** (E4.1 commit 2, 2026-08-22).
   Contract 4's `spatial_filters.max_slope_degrees: 6` is a COLLECTOR limit;
