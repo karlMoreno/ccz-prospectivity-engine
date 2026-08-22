@@ -411,3 +411,51 @@ def test_the_benchmark_hash_is_recomputed_from_the_raster_bytes_not_trusted(run:
     }
     with pytest.raises(ValueError, match=r"TS-6 raster hash is recorded inconsistently: recomputed_from_bytes="):
         _extend(run, ts6=forged_ts6, agreements=forged_agreements)
+
+
+# ──────────────────── commit 3: two BACKLOG triggers fired by the emitter
+
+
+def test_the_environment_sits_beside_the_contract_versions_and_is_recomputable(run: dict) -> None:
+    """BACKLOG §3 "Dependency versions into the provenance manifest" —
+    trigger "the Phase-3 manifest emitter", fired here. The lockfile hash is
+    recomputed from the committed file; the versions are read from the
+    running interpreter — compared in full against an independent read."""
+    import importlib.metadata
+    import platform
+
+    from engine.prospectivity.provenance.environment import RECORDED_PACKAGES, REQUIREMENTS_LOCK
+
+    env = run["manifest"].inputs["environment"]
+    assert env["requirements_lock_sha256"] == file_sha256(REQUIREMENTS_LOCK) == file_sha256(REPO_ROOT / "requirements.lock")
+    assert env["python"] == platform.python_version()
+    assert env["packages"] == {name: importlib.metadata.version(name) for name in RECORDED_PACKAGES}
+    assert len(env["packages"]) == 9 and all(env["packages"].values())
+    assert "environment" in run["manifest"].substance()["inputs"]  # INSIDE the hash
+    # the CV-only E2.4 artifact predates the block, and its inputs say so by absence
+    committed = json.loads((REPO_ROOT / "data" / "runs" / "e2.4" / "run_manifest.json").read_text())
+    assert "environment" not in committed["inputs"]
+
+
+def test_the_corpus_bytes_are_pinned_by_the_run_and_recomputed_from_the_csv(
+    run: dict, tmp_path: Path, monkeypatch
+) -> None:
+    """The other fired trigger (BACKLOG §3, "Corpus CSV bytes are not
+    hash-pinned"): the run records the sha256 of the CSV it was trained
+    from, recomputed from the file the corpus manifest names — and the link
+    says it agrees with nothing upstream yet, which is the honest state.
+
+    The missing-file refusal cannot be reached by editing `corpus_path`:
+    that is IN the corpus manifest's substance, so the substance check
+    fires first (measured — the first draft of this test tried it). It is
+    reached when the manifest is intact and the file is gone, which is
+    staged by pointing the emitter's repo root at a tree without the CSV."""
+    corpus_link = run["manifest"].provenance_chain["links"]["corpus"]
+    assert corpus_link["csv_file"] == "master_observations.csv"
+    assert corpus_link["csv_sha256"] == file_sha256(REPO_ROOT / "data" / "corpus" / "master_observations.csv")
+    assert "agrees with nothing" in corpus_link["csv_note"]
+    import engine.prospectivity.provenance.emitter as emitter
+
+    monkeypatch.setattr(emitter, "_REPO_ROOT", tmp_path)  # an intact manifest, no CSV beneath it
+    with pytest.raises(ValueError, match=r"corpus_path 'data/corpus/master_observations.csv', which is not a file"):
+        _extend(run)

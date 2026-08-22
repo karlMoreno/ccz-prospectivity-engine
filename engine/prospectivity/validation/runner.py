@@ -85,6 +85,7 @@ from typing import Any
 import numpy as np
 
 from engine.prospectivity.domain.results import CVScore, RunManifest
+from engine.prospectivity.provenance.environment import run_environment
 from engine.prospectivity.estimators.base import INPUT_KINDS, Estimator
 from engine.prospectivity.estimators.registry import (
     MEAN_BASELINE_NAME,
@@ -672,6 +673,9 @@ def emit_run_manifest(
             "metric_names": list(METRIC_NAMES) + ["r2_pooled (pooled only)", "rmse_uplift", "rmse_ratio"],
             "sd_zero_policy": SD_ZERO_POLICY,
             "zero_tolerance_rel": ZERO_TOL_REL,
+            # E3.4 commit 3 (BACKLOG §3, trigger fired): the software
+            # environment is an INPUT and sits inside the substance hash.
+            "environment": run_environment(),
         },
         cv_scores=flat_scores(report),
         scores_first_visible=scores_first_visible or datetime.now(UTC),

@@ -81,6 +81,7 @@ from engine.prospectivity.validation.claim import ClaimVerdict
 from engine.prospectivity.validation.runner import matrix_sha256
 
 SURFACE_KINDS = ("prediction", "uncertainty")
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # THE LIMIT, stated where a manifest reader meets it.
 CHAIN_LIMIT_NOTE = (
@@ -247,6 +248,20 @@ def extend_run_manifest(
         run_manifest_upstream=base.upstream_hashes.get("corpus"),
     )
 
+    # E3.4 commit 3 — THE CORPUS BYTES. The corpus manifest describes the
+    # corpus; nothing hashes master_observations.csv itself (BACKLOG §3, the
+    # own-task entry that changes CorpusManifest's shape). Until that lands
+    # the RUN pins the bytes it was trained from, recomputed here from the
+    # file the corpus manifest names, so a hand-edit to the CSV changes this
+    # record even though it changes no upstream hash.
+    corpus_csv = _REPO_ROOT / str(corpus_manifest.get("corpus_path") or "")
+    if not corpus_manifest.get("corpus_path") or not corpus_csv.is_file():
+        raise _refuse(
+            f"the corpus manifest names corpus_path {corpus_manifest.get('corpus_path')!r}, "
+            "which is not a file — the run cannot pin the corpus bytes it was trained from"
+        )
+    corpus_csv_hash = file_sha256(corpus_csv)
+
     # ---- 3. the feature stack: substance recomputed; the grid is ITS grid
     stack_hash = _require_equal(
         "feature-stack hash",
@@ -378,6 +393,13 @@ def extend_run_manifest(
                 "agrees_with": ["training_matrix.upstream_hashes.corpus", "run.upstream_hashes.corpus"],
                 "verifiable_off_machine": True,
                 "why": "the corpus manifest is committed and its substance embeds no path",
+                "csv_file": corpus_csv.name,
+                "csv_sha256": corpus_csv_hash,
+                "csv_note": (
+                    "the corpus BYTES, recomputed from the file corpus_path names; no upstream "
+                    "artifact records this hash yet (BACKLOG §3), so it agrees with nothing "
+                    "and pins the run to the bytes it was trained from"
+                ),
             },
             "feature_stack": {
                 "content_hash": stack_hash,

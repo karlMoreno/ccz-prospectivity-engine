@@ -711,10 +711,20 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   sources (`[05]` now visible), `training_eligible_count` (35) separate from
   admitted (108), AOI containment (108/108 outside), and the pairwise-distance
   structure (2 clusters, 974 km support gap).
-- [ ] **Dependency versions into the provenance manifest.** The manifest
+- [x] **Dependency versions into the provenance manifest.** The manifest
   claims to pin everything about a run; the dependency lock hash should sit
   alongside contract versions. Owner: E. Trigger: Phase-3 manifest emitter.
   Detail: review discussion 2026-07-29; `engine.py` `RunManifest`.
+  **DONE at E3.4 commit 3 (2026-08-22) — the trigger fired when E3.4 built
+  the emitter and was found by reading this file AFTER commit 2, not
+  before: `provenance/environment.py: run_environment()` records the
+  lockfile's sha256 (recomputed from the committed file), the interpreter,
+  the approved stack's INSTALLED versions (read from `importlib.metadata`,
+  never from the lock) and GDAL's, under `inputs.environment` in EVERY run
+  manifest (`emit_run_manifest`), INSIDE the content hash because they are
+  inputs. Consequence, stated: two machines with different installed
+  versions now hash differently — which is right, and which means CI (Linux)
+  and this laptop (the lock is macOS-arm64 only) will not share run hashes.**
 - [ ] **Corpus CSV bytes are not hash-pinned by any manifest field.** The
   corpus manifest records `corpus_path`, row counts, and its own
   substance-hash, but nothing hashes `master_observations.csv`'s bytes — so
@@ -726,6 +736,13 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   different reason than origin does. Owner: E. Trigger: own task; before a
   published run (natural fit: the Phase-3 manifest work above). Detail:
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
+  **E3.4 commit 3 (2026-08-22) took the RUN-LEVEL half:** the extended
+  manifest's `provenance_chain.links.corpus.csv_sha256` is the CSV's bytes,
+  recomputed from the file `corpus_path` names, so a hand-edit to the corpus
+  changes the run record — and the link SAYS it agrees with nothing upstream
+  yet. **Still open, as the own task it was declared to be:** the
+  CorpusManifest-level pin (the shape change), so the chain traces to the
+  bytes at the corpus stage rather than only at the run that consumed them.
   §6; [docs/contracts/PROVENANCE.md](contracts/PROVENANCE.md).
 - [ ] **Admission path for proven LITERATURE sources ([18]/[19]).** The
   P2.0d-2 guard admits only proven MEASURED, so `[18]` (correctly declared
