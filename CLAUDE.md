@@ -454,8 +454,8 @@ ccz-prospectivity-engine/
   deferred.
 - Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`
   … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.5.md`, whose second
-  half is the PHASE-2 TRACK-E CLOSEOUT, `C8.1.md`, `P2-closeout.md`, and
-  `E3.1-2.md`). Read the relevant
+  half is the PHASE-2 TRACK-E CLOSEOUT, `C8.1.md`, `P2-closeout.md`,
+  `E3.1-2.md`, and `TAX.1.md`). Read the relevant
   one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;

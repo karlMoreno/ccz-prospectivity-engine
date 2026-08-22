@@ -83,8 +83,13 @@ task's instruction.
 SYNTHETIC's evidence rule (its own commit, before E3.3, with the `.tif`
 classification gap riding along), and the two engine-side date labels that
 commit's docs-only fence could not reach.
-**50 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 30, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+2 CLOSED at TAX.1 (2026-08-21): SYNTHETIC's evidence rule widened
+(`5d97735`) and the written rasters classified (`c6938a0`). **LITERATURE's
+zero-observer gap is deliberately UNTOUCHED** — separate rule, separate
+observer, its own live trigger (before Track G supplies any cited value);
+folding it in would have meant changing a rule and its observer in one commit.
+**48 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 28, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -1010,9 +1015,16 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   which is the taxonomy commit above, since it edits the sidecar's evidence.
   Detail: [E3.1-2.md](walkthroughs/E3.1-2.md).
 
-- [ ] **WIDEN SYNTHETIC'S EVIDENCE RULE — Karl's DECISION at the E3.1+2
-  approval (2026-08-21). ITS OWN COMMIT (a taxonomy change), and the `.tif`
-  classification gap rides with it.**
+- [x] **WIDEN SYNTHETIC'S EVIDENCE RULE — DONE at TAX.1 (2026-08-21,
+  `5d97735`), and the `.tif` gap closed with it (`c6938a0`).** Two commits,
+  split because a taxonomy rule reviewed alongside its first consumer is not
+  reviewable; commit 1 left the suite at 502, proving every existing SYNTHETIC
+  declaration still passes and none that failed now passes. The loophole is
+  closed at `MIN_DETERMINISM_BASIS_CHARS = 40` with its trade-off and its
+  blind spot stated at the constant, and the bare-basis refusal is probed end
+  to end against a staged output directory, not only in a unit test. 4/4 and
+  5/5 mutations, each by name. Detail: [TAX.1.md](walkthroughs/TAX.1.md).
+  *(original entry, for the record)*
   **The new rule:** SYNTHETIC requires *a generator import path, AND a seed OR
   a recorded determinism basis*, where "deterministic, no seed" is an
   admissible basis **when the generator is genuinely seedless**.
@@ -1047,9 +1059,17 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   artifacts too and would otherwise inherit an unsatisfiable rule. Detail:
   [E3.1-2.md](walkthroughs/E3.1-2.md) §3.
 
-- [ ] **Surface OUTPUTS cannot be committed under `data/` as they stand — the
-  rasters are UNCLASSIFIED and a SYNTHETIC-BY-INHERITANCE surface cannot
-  satisfy SYNTHETIC's seed rule** (found at E3.1+2 commit 3, 2026-08-21, by
+- [x] **Surface OUTPUTS can now be committed under `data/` — DONE at TAX.1
+  (2026-08-21, `c6938a0`).** Both halves closed: the rasters are classified by
+  the audit's own `data_origin.yaml` `files:` mapping (an association the
+  AUDIT resolves, not a naming convention), and the seed rule is widened so a
+  SYNTHETIC-by-inheritance surface can evidence itself. **Two further gaps the
+  end-to-end probe found and fixed:** the `.json` sidecar declared itself
+  SYNTHETIC without carrying its own evidence, and `data_origin.yaml` was
+  itself unclassified because sidecar exclusion was a per-path list — made
+  generic. Probed both directions: zero unclassified / zero invalid with
+  declarations, both rasters refused by name with a bare basis.
+  *(original entry, for the record)* (found at E3.1+2 commit 3, 2026-08-21, by
   probing `test_data_origin_audit.py` against a staged output directory —
   the probe the task required, and it found a real defect plus two open
   questions).
