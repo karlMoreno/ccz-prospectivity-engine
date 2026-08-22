@@ -325,10 +325,24 @@ Corollaries worth keeping in mind:
   same defect as the code it examines — E2.4's audit proved its strongest claim on
   a fold order where the failure it was testing for could not occur, and its
   mutation harness silently made no backups. Run the rule against the instrument.
-  *Harness findings are now ×3 (E2.2's reviewer restore; E2.4's session harness
+  *Harness findings are now ×5 (E2.2's reviewer restore; E2.4's session harness
   with no backups; HASH.1's H-M2, an import error the harness's line filter
-  counted as 0 failed) — every one the harness, none the code. A mutation that
-  "passes" for an unexamined reason is a survivor until the reason is read.*
+  counted as 0 failed; E4.1's B-M5, reported caught by the wrong test and by
+  three including its own when re-applied by hand; the E4.2-approval
+  background suite run whose output file was EMPTY with exit 0) — every one
+  the harness, none the code. A mutation that "passes" for an unexamined
+  reason is a survivor until the reason is read; a mutation that FAILS for an
+  unexamined reason is too; and a background run with an empty output file is
+  indistinguishable from a run with nothing to say — confirm in the
+  foreground. FIXTURE findings are a separate column (the single-source
+  tamper row): do not conflate them.*
+- **A check scoped by what is actually there observes what nobody predicted.**
+  The counterpart to coverage-that-isn't: `output_hashes` is recomputed over
+  the DIRECTORY LISTING and the emitter refuses two files under one key, so
+  two output-location mistakes in two tasks were caught instantly — E4.2's
+  rasters written beside the surfaces (the listing), E4.3's economics
+  `data_origin.yaml` colliding by basename (the key refusal). A check against
+  a list the writer declares would have passed both times.
 - **Assert a property END TO END, not at the site where its cause was removed.**
   Removing a defect's cause and verifying there cannot see the same defect
   reintroduced downstream by the removal itself. *Evidence:* HASH.1 commit 2
@@ -353,6 +367,7 @@ below, not asserted; each instance is citable.
 | **Fixture degeneracy** — the fixture cannot separate the claim from its neighbours or its negation | **×5** | `[2, 4, 6]`, where SD = MAD = half-range = 2.0 (E2.1 MB9); `shared_cell_count == len(stations)`, true on the real corpus (E2.0-2); the rank-4 RF fixture, blind to `aggregate_leaves_first` (E2.3 review); the metrics fixture where mean\|e\| = median\|e\| = 2.0, blind to a mean→median swap in MAE (E2.4 §1 review); **K3-A** — the audit's own stale-refit probe, run on a fold order where no stale state could exist (E2.4 audit) |
 | **Deferral without a landing spot** — a disposition that survives only in a transcript | **×4** (the prompt proposing this table said ×3; the fourth is named here) | three of 22 review findings at the E2.X disposition audit; **and P2.C + the `SESSION_STATE.md` question at E2.4 §0 finding C**, which existed only in a planning transcript AFTER the deferral rule was written — the rule's first post-adoption instance |
 | **Correction drift** — a fix, a remedy, or a PREMISE asserts something the primary source does not support | **×14** (of the first 6, 3 caught PRE-COMMIT; of the five E3.4 instances, 4 refuted at the premise check and 1 — the session's own — caught post-commit by a measurement; the two HASH.1 instances both refuted at the premise check, one of them deciding a design; E4.1's one is the session's own, caught post-commit by `git status`) | (a) the four false claims in the E2.4 doc fixes (rule 5 above), caught pre-commit by a verification pass over the corrections; (b) **the E2.5 prompt's tripwire inventory** asserted that Contract 8's loader "already refuses an AUTHORED acceptance threshold" — there is no `acceptance_thresholds` slot at all, and the loader has no origin-based refusal. The deferral was DESIGNED in P2.A ("`acceptance_thresholds` arrives with E2.5 … a field with no consumer is a field nobody has tested the meaning of") and recorded in the contract header, then asserted two tasks later as already built. **The site is new: a task PROMPT's premises, not a correction's text** — and it was caught only because the session applied rule 5 to the prompt rather than only to its own edits; (c) **this very commit** — the sentence recording (b) claimed P2.C carries "two `[KARL — DECIDE]` points"; the block carries ONE. Caught by grepping the block rather than re-reading the sentence. Karl's approval specified ×2; the third is counted here because the row's counts are DERIVED and a tally that omits the drift produced while writing the tally is the defect it names; (d) **C8.1's walkthrough** claimed the false premise "was written into the BACKLOG five days earlier", conflating the day the tripwire was STATED (2026-08-14) with the day it was COMMITTED (2026-08-18, `009835e`) — caught pre-commit by `git log -S`, inside the table that is itself about mis-dated premises; **(e) the TAX.1 prompt's §2** said the origin audit's walk "may sit outside" the outputs directory — it does not, and **E3.1+2 had already measured that**. The cause is the sharpest yet: **a qualifier TRUE IN ONE CONTEXT** (the coverage-boundary entry, where the boundary genuinely was uncertain) **was reused in another without re-checking**, while the measurement refuting it sat in the repo. It is the laundering shape one scale down — a recorded claim read back as corroboration — and it made the task look harder than it was; **(f) the E3.3 prompt** said Contract 6's digitization-uncertainty field "is null today" — NO SUCH FIELD EXISTS, and absent vs null is this project's own distinction with different remedies. With (b), this makes a RECURRENCE with two instances: **a deferral designed in one task, remembered as built (or existing) in a later one by the same author** — `acceptance_thresholds` (P2.A design → E2.5 premise), `digitization_uncertainty` (TAX.1-approval decision → E3.3 premise). The remedy that keeps working is verifying the field's state before writing against it, which is why both consumers are THREE-STATE accessors instead of null checks; **(g)–(k), all at E3.4 (2026-08-22), count DERIVED from the record:** (g) the spec's closing list said the LITERATURE observer gap "now has two Phase-3 arrivals riding on it" — TRUE WHEN WRITTEN (E3.0 approval), stale by use: TAX.1 had settled TS-6 as DERIVED, so one arrival remains; (h) the same list said "the AOI's trigger moved to Checkpoint 1" as work to do — the E3.0 approval that produced the list had already done it; (i) the E3.4 prompt named PROVENANCE.md's "shape fixed when the emitter is built" line as a sweep target — **E2.4's own sweep had already rewritten it**, and the sentence was reused verbatim from E2.4's sequencing prompt: instance (e)'s shape again, a qualifier true in one context carried into another; (j) the prompt asked the manifest to carry a "refusal state" for a null `digitization_uncertainty` — **no such state can exist downstream of E3.3's refusal**, which RAISES there: a requested output the primary source forbids; (k) **the session's own:** commit 1's chain block said the path-hash limit reaches "every output file" — measuring it gave 11 values, not 12, because `data_origin.yaml` quotes no hash; a remedy's SCOPE stated beyond its measurement, caught post-commit by the count the prompt's §4 suggested. Of the five, four were prompt premises refuted at the premise check before any code acted on them; (k) reached a commit (`31dc10b`) and was corrected at `e257542`; **(l) the HASH.1 prompt** assumed a plain present-fields rule would leave both committed hashes alone and made that a STOP condition — measured false (the E3.4 re-stamp hashed five nulls; `exclude_defaults` moves the corpus too), and it DECIDED the design (the legacy mode); **(m) the HASH.1 approval** named E3.1+2's mask-union check as the first instance of "asserted at the cause site, not end to end" — the test recomputes the union from the rasters on disk, and its note was a fixture degeneracy; the nearest prior is E3.4's "every output file". Both refuted at the premise check; **(n) the E4.1 walkthrough's own §0** recorded the Phase-4 prompts file as "tracked, committed with E4.0's report" — it exists on disk and is UNTRACKED; the session verified EXISTENCE (`ls`) and not TRACKING (`git ls-files`), the E3.0 situation recurring one phase later, caught by the commit's own `git status` and corrected the same day |
+| **Single-source tamper** — a recomputation guard whose fixtures forge ONE witness: it proves the emitter does not read THAT witness, and a multi-source copier passes it. **The rule: a recomputation guard is only as strong as the most CONSISTENT forgery its fixtures produce. Forge every derived witness consistently, and leave only the ground truth dissenting.** NOT coverage-that-isn't (the tests could observe a violation) and NOT fixture degeneracy (no symmetry makes claims coincide): three agreeing witnesses and one dissenting ground truth, and the ground truth the only thing nobody checked against | **×2** (1 caught by reading pre-commit, 1 by mutation) | **(a) E3.4 commit 1**: every refusal test made two RECORDS disagree — which a copying emitter also catches — found by reading and closed pre-commit with the separating fixtures (a tampered substance whose quoted hash still agrees everywhere; a forged benchmark hash quoted consistently); **(b) E4.3 E-M6**: `n_minable` read from the raster TAG instead of the pixels survived the first mutation run because the only count-tamper test forged the record alone; the separating fixture forges tag, record, result AND the record's sha256 to agree while the pixels dissent. **Its second layer:** that fixture's first draft ERRORED on the real code (`IGNORE_COG_LAYOUT_BREAK`), so its "catch" was not one until it passed there — a fixture that fails for the wrong reason is not an observer |
 | **Vacuous collection** — an idiom whose failure mode is SILENT EMPTINESS: the check is capable of observing the violation, but the collection it reports through can be emptied or shrunk without the assertion noticing | **×3** (all caught by mutation, none escaped) | **(a)** P2.CLOSE commit 1, M3 — `violations = [... if not r[name] < r[BASE]]` with `assert not violations`; breaking the CONDITION to `if False` left the direction assertion unable to fail, on the test whose whole purpose was that direction; **(b)** P2.CLOSE commit 2, M3 — the same shape in the F-6 doc-lint (`missing = [...]`), written independently an hour later, which is why this is an idiom and not an incident; **(c)** P2.CLOSE commit 1, M4 — the SILENT-SHRINKAGE variant: with the fix in place, cutting `LEAKAGE_SEEDS` to one seed still passed, because `expected` derives from the same list and both sides shrank together. **Distinct from its neighbours:** not coverage-that-isn't (the check CAN observe the violation — it is the reporting channel that empties), and not fixture degeneracy (no symmetry, no coinciding statistics; the fixture is fine) |
 
 The counts are the point: **coverage-that-isn't and fixture degeneracy are not
@@ -395,6 +410,13 @@ often the class is produced, not of how often it survives.
 - If you're unsure about a geology decision (sampled area, wet/dry basis, mean nodule
   mass, which covariates matter), **mark it `[GEOLOGY — ISAAC]` and leave a safe default +
   a TODO** rather than guessing silently.
+- **A phase-boundary status claim is DERIVED from the lane list and the open
+  items, never asserted from memory of the plan.** *Evidence, ×2:* at the
+  Phase-3 and Phase-4 boundaries the approval asserted "nothing substantial
+  remains for Track E without Track G" and the repo refuted it both times —
+  Phase 4's whole E-lane is placeholder-based by the proposal's own words,
+  and Phase 5's E5.1/E5.3/E5.4 need no G input. The answer changed what
+  happened next both times.
 - **A review finding whose disposition is deferred gets its BACKLOG entry AT THE MOMENT
   OF DEFERRAL, written by whoever defers it — and review disposition rows append to
   `docs/audits/` at review time, not reconstructed at a phase boundary.**
@@ -436,8 +458,8 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **4, Track E — COMPLETE pending Karl's E4.3 review (E4.3 landed
-  2026-08-22; E4.0 → E4.1 → E4.2 → E4.3)**; Phase 3 Track E complete and
+- Phase: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
+  E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
   the full status refresh is the P2.C item in `docs/BACKLOG.md` §2.)
   **Phase 4's design contribution:** an economic artifact carries TWO
@@ -449,9 +471,15 @@ ccz-prospectivity-engine/
   empty difference. **What it cannot:** an economic claim — no real Contract
   4 value, no GRADE, no recovery fraction, no recorded wet/dry basis; the
   claim verdict refuses on every design and the economics block says why a
-  second time. **Track E is complete to the Phase-4 boundary:** Phase 5's
-  E-lane (E5.1 API, E5.3 harness, E5.4 CI e2e) is the next G-free work; E5.2
-  needs a stack decision (Next.js is not approved) and E5.5 is Karl's.
+  second time. **Track E is complete to the Phase-4 boundary, and what
+  remains without Track G is DERIVED, not assumed:** G-FREE — E5.1 (the
+  read-only API), E5.3 (the one-command run harness), E5.4 (CI end-to-end on
+  fixtures — already mostly true: `ci.yml` runs the whole suite and
+  `test_engine_run.py` runs the real composition inside it; a named
+  artifact-producing job is what is missing); KARL'S DECISION — E5.2's
+  Next.js viewer is outside the approved stack; KARL'S — E5.5 deploy;
+  WAITING ON G — Checkpoints 1, 3, 4 and the AOI. Phase 5 planning opens
+  with the E5.2 stack decision.
   **E4.2 (2026-08-22) is done:** the 12 footprint
   rasters and the 6 difference maps, on the surfaces' grid through the one
   COG writer, the two-reason verdict per reason on every file, the mask kept
