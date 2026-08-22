@@ -129,9 +129,15 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     assert set(manifest.claim["verdicts"]) == {"leave_one_cluster_out", "leave_one_site_out", "random_k_fold"}
     assert manifest.claim["design"] == CLAIM_DESIGN
     assert manifest.prediction_grid["n_cells"] == 3400 and manifest.prediction_grid["n_masked"] == 520
-    # every written file, hashed by basename, recomputed here from the bytes
-    files = {p.name: file_sha256(p) for p in out.iterdir() if p.name != "run_manifest.json"}
+    # every written SURFACE file, hashed by basename, recomputed here from the bytes
+    files = {p.name: file_sha256(p) for p in out.iterdir() if p.is_file() and p.name != "run_manifest.json"}
     assert manifest.output_hashes == files and len(files) == 10
+    # E4.2: the economics rasters in their own directory — 12 footprints and the
+    # two sidecars — recorded by basename in the results; hashed by E4.3
+    economics = sorted(p.name for p in (out / "economics").iterdir())
+    assert len([n for n in economics if n.endswith(".tif")]) == 12 and {"economics.footprints.json", "data_origin.yaml"} <= set(economics)
+    recorded = {v["raster_file"] for r in manifest.economic_results for by_z in r.footprints.values() for v in by_z.values()}
+    assert recorded == {n for n in economics if n.endswith(".tif")}
     # Phase 4's model ran over Contract 4's two scenarios and its one difference
     # pair; the verdict is DERIVED, both reasons unlifted today; the computed
     # origin is AUTHORED (the lattice's lossy answer, beside the verdict)

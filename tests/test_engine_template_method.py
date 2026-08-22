@@ -46,6 +46,8 @@ EXPECTED_ORDER = [
     "ts6:compare",
     "economics:MARKET_STANDARD",
     "economics:STRATEGIC_SUBSIDIZED",
+    "economics:write:MARKET_STANDARD",
+    "economics:write:STRATEGIC_SUBSIDIZED",
     "manifest:extend",
 ]
 
@@ -167,8 +169,12 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
         def __init__(self, name: str) -> None:
             self._name = name
 
-        def record(self) -> EconomicScenarioResult:
-            return EconomicScenarioResult(scenario_name=self._name)
+        def record(self, raster_files=None) -> EconomicScenarioResult:
+            return EconomicScenarioResult(scenario_name=self._name, footprints={"stub": {"0": {"raster_file": (raster_files or {}).get(("stub", 0.0))}}})
+
+    def stub_footprint_writer(footprints, grid, surfaces, output_dir, *, claim_verdict):
+        call_order.append(f"economics:write:{footprints._name}")
+        return {("stub", 0.0): Path(f"footprint__{footprints._name}.tif")}
 
     class StubEconomicModel(EconomicModel):
         def apply(self, inputs, scenario):
@@ -191,6 +197,7 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
         output_dir=tmp_path, claim_design="leave_one_site_out", seed=42,
         compare_to_ts6_fn=stub_compare, manifest_emitter=stub_emitter, manifest_extender=stub_extender,
         claim_evaluator=stub_claim, surface_builder=stub_builder, surface_writer=stub_writer,
+        footprint_writer=stub_footprint_writer,
     )
     return ProspectivityEngine(**{**kwargs, **overrides})  # type: ignore[arg-type]
 
@@ -203,6 +210,7 @@ def test_run_calls_steps_in_the_documented_order(tmp_path: Path) -> None:
     assert manifest.ts6_agreement is not None
     assert manifest.ts6_agreement[MEAN_BASELINE_NAME].spatial_correlation == 0.5
     assert len(manifest.economic_results) == 2
+    assert manifest.economic_results[0].footprints["stub"]["0"]["raster_file"] == "footprint__MARKET_STANDARD.tif"
     assert (tmp_path / "run_manifest.json").is_file()
 
 

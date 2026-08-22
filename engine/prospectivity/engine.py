@@ -86,7 +86,13 @@ from engine.prospectivity.domain.study_area import StudyArea
 from engine.prospectivity.domain.terrain import TerrainLayer
 from engine.prospectivity.domain.ts6 import TS6Surface
 from engine.prospectivity.economics.contract import ScenarioConfig
-from engine.prospectivity.economics.model import EconomicInputs, EconomicModel, ScenarioFootprints
+from engine.prospectivity.economics.model import (
+    EconomicInputs,
+    EconomicModel,
+    FootprintDifference,
+    ScenarioFootprints,
+)
+from engine.prospectivity.economics.writer import write_footprints
 from engine.prospectivity.estimators.registry import EstimatorRegistry
 from engine.prospectivity.features.bundle import FeatureBundle
 from engine.prospectivity.provenance.emitter import extend_run_manifest
@@ -106,6 +112,7 @@ from engine.prospectivity.validation.runner import (
 )
 
 MANIFEST_NAME = "run_manifest.json"
+ECONOMICS_DIR = "economics"  # E4.2: the economics rasters' own directory under output_dir
 GENERATOR = "engine.prospectivity.engine.ProspectivityEngine.run"
 
 FeatureBuilder = Callable[[TerrainLayer, list[Observation]], FeatureBundle]
@@ -114,6 +121,7 @@ ManifestExtender = Callable[..., RunManifest]  # extend_run_manifest's signature
 ClaimEvaluator = Callable[..., ClaimVerdict]  # evaluate_claim's signature
 SurfaceBuilder = Callable[..., Mapping[str, SurfaceResult]]  # build_surfaces' signature
 SurfaceWriter = Callable[..., Mapping[str, Path]]  # write_surface's signature
+FootprintWriter = Callable[..., Mapping[tuple[str, float], Path]]  # write_footprints' signature
 # (surfaces, grid, ts6_surface, surface_data_origin) -> one agreement per estimator
 TS6Comparer = Callable[[Mapping[str, SurfaceResult], PredictionGrid, TS6Surface, DataOrigin], Mapping[str, TS6Agreement]]
 
@@ -150,6 +158,7 @@ class ProspectivityEngine:
         claim_evaluator: ClaimEvaluator = evaluate_claim,
         surface_builder: SurfaceBuilder = build_surfaces,
         surface_writer: SurfaceWriter = write_surface,
+        footprint_writer: FootprintWriter = write_footprints,
     ) -> None:
         runner_registry = getattr(cv_runner, "registry", None)
         if runner_registry is not None and runner_registry is not estimators:
@@ -189,6 +198,7 @@ class ProspectivityEngine:
         self._claim_evaluator = claim_evaluator
         self._surface_builder = surface_builder
         self._surface_writer = surface_writer
+        self._footprint_writer = footprint_writer
 
     def run(self) -> RunManifest:
         terrain, samples = self._ingest()
@@ -199,7 +209,10 @@ class ProspectivityEngine:
         surfaces = self._fit_predict(bundle)
         written = self._write_surfaces(surfaces, bundle, verdicts)
         ts6_surface, agreements = self._compare_to_ts6(surfaces, bundle)
-        economic_results, economic_differences = self._apply_economics(surfaces, bundle)
+        footprints, differences = self._apply_economics(surfaces, bundle)
+        economic_results, economic_differences = self._write_economics(
+            footprints, differences, surfaces, bundle, verdicts
+        )
         return self._extend_manifest(
             base, bundle, surfaces, written, ts6_surface, agreements, verdicts,
             economic_results, economic_differences,
@@ -283,7 +296,7 @@ class ProspectivityEngine:
 
     def _apply_economics(
         self, surfaces: Mapping[str, SurfaceResult], bundle: FeatureBundle
-    ) -> tuple[list[EconomicScenarioResult], list[EconomicDifferenceResult]]:
+    ) -> tuple[dict[str, ScenarioFootprints], list[FootprintDifference]]:
         """E4.1: every scenario over every estimator's surface, then every
         Contract 4 difference pair — iterate, never pick. The two declared
         facts the watermark derives from travel in the inputs: the stack's
@@ -306,7 +319,33 @@ class ProspectivityEngine:
                     f"({sorted(footprints)})"
                 )
             differences.append(self._economic_model.difference(footprints[a], footprints[b]))
-        return [fp.record() for fp in footprints.values()], [d.record() for d in differences]
+        return footprints, differences
+
+    def _write_economics(
+        self,
+        footprints: Mapping[str, ScenarioFootprints],
+        differences: list[FootprintDifference],
+        surfaces: Mapping[str, SurfaceResult],
+        bundle: FeatureBundle,
+        verdicts: Mapping[str, ClaimVerdict],
+    ) -> tuple[list[EconomicScenarioResult], list[EconomicDifferenceResult]]:
+        """E4.2: the footprint and difference rasters, through E3.1+2's
+        writer, marked by the DECLARED claim design's verdict like the
+        surfaces; the records then carry each raster's basename. They land
+        in `<output_dir>/economics/` — their own directory with their own
+        sidecars — so the surfaces' directory listing (which the manifest's
+        `output_hashes` is checked against in full) is untouched until E4.3
+        records the economics block."""
+        verdict = verdicts[self._claim_design]
+        economics_dir = self._output_dir / ECONOMICS_DIR
+        results = []
+        for name in footprints:
+            written = self._footprint_writer(
+                footprints[name], bundle.grid, surfaces, economics_dir, claim_verdict=verdict
+            )
+            results.append(footprints[name].record({key: path.name for key, path in written.items()}))
+        # the difference maps are E4.2 commit 2's; recorded without files until then
+        return results, [difference.record() for difference in differences]
 
     def _extend_manifest(
         self,

@@ -198,6 +198,7 @@ class CutoffEconomicModel(EconomicModel):
             data_origin=origin.value,
             watermark=economic_watermark_verdict(inputs.dem_data_origin, scenario),
             cell_area_m2=inputs.cell_area_m2,
+            grid_identity=grid.identity(),
             provenance={
                 "generator": "engine.prospectivity.economics.cutoff.CutoffEconomicModel.apply",
                 "rule": "minable iff predictable AND (mu - z*sd) >= cutoff AND slope <= max_slope AND not excluded",

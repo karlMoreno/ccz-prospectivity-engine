@@ -133,9 +133,13 @@ class ScenarioFootprints:
     data_origin: str  # COMPUTED
     watermark: WatermarkVerdict  # DERIVED from declared facts
     cell_area_m2: np.ndarray  # (H, W) — the areas the footprints were built on; E4.2 and difference() reuse it
+    grid_identity: dict  # PredictionGrid.identity() at computation — E4.2's writer asserts against it
     provenance: dict = field(default_factory=dict)  # JSON-able facts only; never an array
 
-    def record(self) -> EconomicScenarioResult:
+    def record(self, raster_files: Mapping[tuple[str, float], str] | None = None) -> EconomicScenarioResult:
+        """The manifest record. `raster_files` maps (estimator, z) -> basename
+        once E4.2's writer has written them; absent, `raster_file` stays None."""
+        files = dict(raster_files or {})
         return EconomicScenarioResult(
             scenario_name=self.scenario.name,
             description=self.scenario.description,
@@ -153,7 +157,10 @@ class ScenarioFootprints:
                 "reject the reading; a probability surface was declined for that reason"
             ),
             footprints={
-                estimator: {str(z): level.summary() for z, level in by_z.items()}
+                estimator: {
+                    str(z): {**level.summary(), "raster_file": files.get((estimator, z))}
+                    for z, level in by_z.items()
+                }
                 for estimator, by_z in self.levels.items()
             },
             uncertainty_semantics=dict(self.uncertainty_semantics),
@@ -172,12 +179,16 @@ class FootprintDifference:
     data_origin: str
     watermark: WatermarkVerdict
 
-    def record(self) -> EconomicDifferenceResult:
+    def record(self, raster_files: Mapping[tuple[str, float], str] | None = None) -> EconomicDifferenceResult:
+        files = dict(raster_files or {})
         return EconomicDifferenceResult(
             pair=list(self.pair),
             meaning=f"cells minable under {self.pair[1]} and NOT under {self.pair[0]}",
             footprints={
-                estimator: {str(z): level.summary() for z, level in by_z.items()}
+                estimator: {
+                    str(z): {**level.summary(), "raster_file": files.get((estimator, z))}
+                    for z, level in by_z.items()
+                }
                 for estimator, by_z in self.levels.items()
             },
             data_origin=self.data_origin,

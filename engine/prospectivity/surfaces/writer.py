@@ -120,6 +120,14 @@ def _tags(
     }
 
 
+def write_cog(path: Path, values: np.ndarray, grid: PredictionGrid, tags: dict) -> None:
+    """THE ONE COG WRITER (E4.2 made it public for the economics rasters —
+    a second writer would be a second place for the E3.0 §3 decision to
+    drift). float32, nodata NaN, the grid's transform and CRS, tags as
+    given. Claims no COG-ness: see COG_DRIVER's comment."""
+    _write_raster(path, values, grid, tags)
+
+
 def _write_raster(path: Path, values: np.ndarray, grid: PredictionGrid, tags: dict) -> None:
     with rasterio.open(
         path,
@@ -170,6 +178,12 @@ def _synthetic_evidence(result) -> dict:
         )
     evidence["determinism_basis"] = str(basis)
     return evidence
+
+
+def merge_origin_sidecar(path: Path, entries: dict) -> None:
+    """Public name for the directory's `data_origin.yaml` merge (E4.2 reuses
+    it for the economics rasters, which land in the same directory)."""
+    _merge_origin_sidecar(path, entries)
 
 
 def _merge_origin_sidecar(path: Path, entries: dict) -> None:
