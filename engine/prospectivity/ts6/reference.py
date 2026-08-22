@@ -37,10 +37,22 @@ class TS6Reference(ABC):
 
 
 def compare_to_ts6(prediction: PredictionSurface, ts6_surface: TS6Surface) -> TS6Agreement:
-    """Resample both surfaces to a common grid and score agreement (AR-P07).
+    """Phase-0 seam, SUPERSEDED at E3.3: the real comparison lives in
+    `engine.prospectivity.ts6.comparison` (`compare_surface_to_ts6` /
+    `compare_all_to_ts6`), which consumes E3.1+2's in-memory surfaces rather
+    than this signature's file record.
 
-    Phase 3 (E3.3) implements the resample + spatial-correlation/mean-difference
-    /RMSE computation. Left unimplemented in Phase 0 on purpose — no estimator
-    exists yet to produce a `prediction` to compare.
+    THIS STUB STILL RAISES, deliberately: `ProspectivityEngine.run()` passes a
+    `dict[str, (mu, sd)]` predicted at the 35 TRAINING locations — not grid
+    surfaces — so wiring run() to the real comparison is E3.4's assembly, and
+    it carries the OPEN ARITY QUESTION (`RunManifest.ts6_agreement` is
+    singular; the comparison returns one agreement PER ESTIMATOR — Karl's
+    call, docs/BACKLOG.md §3). A silent adapter here would decide that by
+    accident.
     """
-    raise NotImplementedError("compare_to_ts6 is implemented in Phase 3 (E3.3)")
+    raise NotImplementedError(
+        "compare_to_ts6's engine wiring is E3.4's: the real comparison is "
+        "engine.prospectivity.ts6.comparison.compare_all_to_ts6, which needs "
+        "E3.1+2 grid surfaces, and the manifest's ts6 arity is undecided "
+        "(docs/BACKLOG.md §3)"
+    )

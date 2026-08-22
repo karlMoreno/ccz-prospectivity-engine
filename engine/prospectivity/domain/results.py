@@ -87,12 +87,47 @@ class CVScore(BaseModel):
 
 
 class TS6Agreement(BaseModel):
+    """One surface's agreement with the TS-6 benchmark (E3.3).
+
+    EXTENDED at E3.3 from the Phase-0 stub (the E2.4 §2B revision protocol:
+    every original field survives; the additions are what the implementation
+    needed and the stub could not know). The load-bearing additions:
+
+    * `n_eff` beside `spatial_correlation` — Karl's decision (E3.0 §5): a
+      naive r over N smooth cells carries a fictional df, so the effective
+      sample size is printed BESIDE the number, and there is NO p-value.
+    * `inflation_note` — THE LIMIT, required in the output next to the
+      number, not only in a doc.
+    * `benchmark_uncertainty(_note)` — the benchmark is a raster produced by
+      eye from a printed map; a comparison that treats it as exact overstates
+      its own precision.
+    * `data_origin` / `watermark` — COMPUTED from the inputs, never declared.
+    * `estimator_name` — the agreement self-identifies which surface it
+      describes. This does NOT decide the manifest's arity (one agreement or
+      many is E3.4's open question, docs/BACKLOG.md §3); it makes both
+      answers expressible.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
     spatial_correlation: float | None = None
     mean_difference: float | None = None
     rmse: float | None = None
     role_note: str | None = None  # copied from TS6Surface.role_note
+    # ---- E3.3 additions
+    estimator_name: str | None = None
+    n_cells: int | None = None
+    n_eff: float | None = None
+    n_eff_method: str | None = None
+    correlation_status: str | None = None  # "ok" | names the degenerate case
+    interpretation: str | None = None
+    inflation_note: str | None = None
+    mean_difference_note: str | None = None
+    benchmark_uncertainty: float | None = None
+    benchmark_uncertainty_note: str | None = None
+    data_origin: str | None = None
+    watermark: str | None = None
+    resampling: dict | None = None
 
 
 class EconomicScenarioResult(BaseModel):
