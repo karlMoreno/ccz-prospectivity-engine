@@ -428,9 +428,13 @@ ccz-prospectivity-engine/
   `docs/BACKLOG.md` §2.) **Track E is complete to the Phase-3 boundary, NOT
   to the boundary the two-track design allows:** the proposal's Phase 4
   Track-E lane (E4.1–E4.3, the EconomicModel over Contract 4's PLACEHOLDER
-  scenarios, "illustrative only") needs no Track-G input, and six BACKLOG §3
-  items are E's alone (the shape-tolerant hash and the path-hash fix first).
-  Starting E4.1 is Karl's call under the phase rule. **What Checkpoint 3 can review:** the
+  scenarios, "illustrative only") needs no Track-G input, and BACKLOG §3
+  items remain E's alone. **HASH.1 (2026-08-22) is done:** the hash scheme
+  is shape-tolerant (present fields + `schema_version`; two legacy
+  artifacts keep their hashes) and the path-hash defect is fixed (0
+  directory-dependent hash values, was 11) — Checkpoint 1 is unblocked on
+  Track E's side whenever Karl wants it. Starting E4.1 is Karl's call under
+  the phase rule. **What Checkpoint 3 can review:** the
   machinery end to end (`ProspectivityEngine.run()` composes ingestion,
   features, CV, the guard, paired surfaces, the writer, the TS-6 comparison
   and the extended manifest on the real corpus over a synthetic DEM) and two

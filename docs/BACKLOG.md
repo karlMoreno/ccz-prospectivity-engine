@@ -1525,9 +1525,29 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   **Trigger: before the theorem is cited outside the walkthrough, or the next
   time this file is edited.** Detail:
   [P2-closeout.md](walkthroughs/P2-closeout.md) commit 1.
-- [ ] **The provenance chain's identity is NOT portable: the feature-stack
+- [x] **The provenance chain's identity is NOT portable: the feature-stack
   manifest hashes the caller-supplied PATH STRING, so no downstream artifact
-  hash can be verified anywhere but the machine that wrote it** (found at
+  hash can be verified anywhere but the machine that wrote it** — **FIXED at
+  HASH.1 commit 2 (2026-08-22).** `DemGrid.provenance()` no longer carries
+  the path (it was a location, never an identity — `content_hash` is the
+  identity); `FeatureStackManifest.dem_path` records the string the caller
+  passed, OUTSIDE the hash (schema_version 2). MEASURED after the fix: the
+  same DEM bytes in another directory give the same stack hash, the same
+  raster bytes, the same run `content_hash`, and **0 moving hash values
+  (was 11)**; relative vs absolute in the same directory pinned too; two
+  different DEMs still differ. The determinism test was REBUILT to vary the
+  DEM PATH (the audit's row M(b) coverage-that-isn't is closed by the same
+  change). The emitter ASSERTS the stack substance is path-free and refuses
+  by name otherwise, records `path_dependent_hashes.count = 0` with
+  `was: 11`, and names what REMAINS: native byte order in `matrix_sha256`
+  (same-endianness hosts), raster bytes across GDAL versions unmeasured,
+  and `inputs.environment` inside the run hash BY DESIGN. The two E3.4
+  tests that were pinned to go red did, and were UPDATED (not deleted) to
+  pin the measured zero. One thing the first draft got wrong and the
+  measurement caught: echoing the stack's `dem_path` inside the run's
+  chain block put the path back into the run hash one artifact
+  downstream. Detail: [HASH.1.md](walkthroughs/HASH.1.md) §2.
+  *(original entry)* (found at
   E2.4 §3 by the run manifest's own chain assertion; **SCOPED at the E2.4
   audit, row M, 2026-08-19** — this entry is the audit's version, not the
   original assumption, which said "absolute paths" and "a different machine"
@@ -1619,6 +1639,17 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   row M (a, b, c); [E2.4.md](walkthroughs/E2.4.md) §3 "what does and does not
   reproduce"; `features/stack.py` manifest assembly;
   [PROVENANCE.md](contracts/PROVENANCE.md) "CONTENT HASH SCHEME".
+- [ ] **OTHER ENTRIES TRIGGERED "BEFORE CHECKPOINT 1", reported at HASH.1 so
+  none expires the way the sole-observer pass did** (2026-08-22; none of
+  them is HASH.1's to do). Three remain live with that trigger: (i) §1/§2
+  the bathymetry source's `data_origin: null` in `source_queue.yaml` — Karl
+  (+ G), "at download / before Checkpoint 1"; (ii) §2 GEBCO TID
+  classification and whether the matrix needs a TID mask — Karl + G,
+  "before Checkpoint 1"; (iii) §3 `DemGrid.load` accepting rotated /
+  south-up geotransforms it cannot handle — **E-only**, "before Checkpoint
+  1 (the next new DEM entering the system)", a one-line assertion and the
+  natural companion to this task that was NOT pulled in because the prompt
+  scoped two commits. Owner: E. Trigger: before Checkpoint 1, unchanged.
 - [ ] **Checkpoint 1: re-report the cell occupancy, the R² ceiling, and the
   border situation on real GEBCO** (recorded at E2.0-3). Three
   literal-pinned facts and one reading rule are true of the 0.1° synthetic

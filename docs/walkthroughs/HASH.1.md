@@ -11,7 +11,7 @@ path-hash entry's is "before Checkpoint 1". Reading order:
 | commit | what | suite |
 |---|---|---|
 | 1 | shape-tolerant hashing: present fields + `schema_version` in the substance; a LEGACY mode over frozen field sets; the new-field rule | 556 → **563** |
-| 2 | the path-hash fix: the DEM path leaves the stack substance; the chain block updated to what is now true | see §2 |
+| 2 | the path-hash fix: the DEM path leaves the stack substance; the chain block updated to what is now true | 563 → **566** |
 
 **Both E-only. Neither needs Track G.**
 
@@ -85,3 +85,90 @@ its own job.
 | H-M2′ | legacy substance reads the LIVE fields at the point of use | the legacy case of the adding-a-field test: "the frozen set did not hold" |
 | H-M3 | `schema_version` excluded from the substance | the distinguishability test and the inside-not-beside test |
 | H-M4 | the new-field refusal removed | the positive control: DID NOT RAISE |
+
+## §2 — Commit 2: the path-hash fix
+
+**What the manifest embedded, and why it was never identity.**
+`DemGrid.provenance()` returned the DEM's path string, and that dict was
+quoted once at `dem` and once per layer — nine occurrences in the stack
+substance. The path answered "where was the file" and nothing else: two
+DEMs with identical bytes are one DEM, and `content_hash` already says
+which. So the path is dropped from the dict and recorded ONCE, as
+`FeatureStackManifest.dem_path`, OUTSIDE the hash (`HASH_EXCLUDED_FIELDS`
+extended — the `generated_at` precedent; `SCHEMA_VERSION` 1 → 2 for the
+new field, which defaults to `None` as the commit-1 rule requires). Nothing
+in `engine/` read the path back; two E3.4 tests used it to locate the DEM
+file and now read `dem_path`.
+
+**Measured, before and after:**
+
+| | before (E3.4) | after |
+|---|---|---|
+| same bytes, another directory: stack hash | differs | **same** |
+| …: raster bytes for the same surface | differ (tags quote the stack hash) | **same** |
+| …: run manifest fields that differ | 6 (the stack-hash carriers) | **none**; `content_hash` equal |
+| …: distinct moving hash values | **11** | **0** |
+| relative vs absolute path, same directory | differs (audit row M) | same |
+| two different DEMs | differ | still differ (the negation) |
+
+**The first draft got it wrong, and the measurement caught it.** The chain
+block recorded the stack's `dem_path` "outside the hash" — but the block is
+inside the RUN's substance, so the path was back in the run hash one
+artifact downstream: the two-tree measurement showed `provenance_chain` as
+the one differing field. Removed; the comment at that spot says why.
+
+**The emitter asserts, not assumes.** Before recomputing the stack hash it
+checks that no `path` key sits under `dem` or any `layers[*].dem`, refusing
+by name otherwise — so a path creeping back cannot silently make every
+downstream hash directory-dependent again. (Its first placement was AFTER
+the stack-hash recomputation, so a planted path tripped the hash check
+first and the refusal was unreachable by test — the same ordering lesson as
+E3.4's missing-CSV test.) `path_dependent_hashes` now records `count: 0`,
+`was: 11`, the basis, the two tests that measure it, and the three
+REMAINING limits; `CHAIN_LIMIT_NOTE` says the same. A statement of a limit
+must not outlive the limit.
+
+**The two E3.4 tests pinned to go red went red, and were UPDATED, not
+deleted:** the extension-level limit test now asserts the same stack hash
+and the same raster bytes from another tree; the whole-run test asserts an
+EMPTY differing set and equal `content_hash`, with `count == 0 == measured`.
+
+**The determinism test was REBUILT** to vary the DEM PATH (same bytes
+copied to a second directory), closing the E2.4 audit's row M(b)
+coverage-that-isn't with the change that made it true rather than with a
+wider docstring. Two further tests pin relative-vs-absolute SEPARATELY and
+the negation (two different DEMs still differ).
+
+### Mutations 4/4 — the two positive properties tripped separately
+
+| # | mutation | caught by |
+|---|---|---|
+| P-M1 | the DEM's resolved PARENT directory back in the dem dict | the two-directory tests only — the stack-level one and the extension-level count test (both measure across directories); the rel-vs-abs test PASSES, since both paths share a parent |
+| P-M2 | `isabs(path)` in the dem dict | the rel-vs-abs test ONLY (both directories are absolute) |
+| P-M3 | stack hash forced constant | the negation test (two DEMs hash the same) — and the E3.4 extension tests, since the matrix manifest's quoted stack hash no longer recomputes |
+| P-M4 | the emitter's path-free assertion removed | the planted-path refusal test: DID NOT RAISE |
+
+## Closing
+
+**Suite: 556 → 563 → 566 passed, 2 skipped (+10; the rebuilt determinism test replaces one).** Mutations 4/4 (one
+re-run in realistic form), 4/4.
+
+**BACKLOG:** both entries closed. **Other entries triggered "before
+Checkpoint 1", reported rather than expired:** the bathymetry source's
+`data_origin: null` (Karl + G), the GEBCO TID classification (Karl + G),
+and `DemGrid.load`'s rotated / south-up assertion — **E-only, one line, the
+natural companion to this task**, left out only because the prompt scoped
+two commits; it keeps its trigger. Nothing is triggered on "before the
+path-hash fix" except the shape-tolerant decision itself, which is why the
+commits ran in this order.
+
+**PROVENANCE.md:** the content-hash section now states the scheme as built
+(commit 1) and how much of "on any machine" is delivered (commit 2):
+directory-independence in full; native byte order, GDAL version and the
+environment block named as what remains. **CLAUDE.md:** the status line
+records HASH.1 done and Checkpoint 1 unblocked on Track E's side.
+
+**What this does NOT do:** touch any committed artifact (both legacy hashes
+unchanged and pinned); commit a stack or run; add the south-up assertion.
+After this, Checkpoint 1 is unblocked whenever Karl wants it, and Phase 4
+can start on either side of it. STOP.

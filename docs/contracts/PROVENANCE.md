@@ -171,14 +171,24 @@ subclass introduces outside its frozen legacy set must default to `None`
 artifact's present-field substance and re-hash history by a side door.
 
 So `content_hash` is a hash of **substance**: same inputs and same decisions
-produce the same hash at any time. **"On any machine" — the remaining
-qualification, measured:** it does not yet hold for the feature stack and
-everything downstream of it — `FeatureStackManifest` embeds the
-caller-supplied DEM path (BACKLOG §3, trigger before Checkpoint 1; HASH.1
-commit 2 addresses it), and the run manifest's `provenance_chain` says so
-in every emission. Manifests are byte-identical across builds **apart from
-`generated_at`**, and their `content_hash` matches outright — asserted in
-the tests.
+produce the same hash at any time. **"On any machine" — how much of it the
+implementation delivers, measured (HASH.1 commit 2, 2026-08-22):** the
+feature stack's substance embeds no path any more (`DemGrid.provenance()`
+lost `path`; the location is recorded as `FeatureStackManifest.dem_path`,
+OUTSIDE the hash — the `generated_at` precedent), so the same DEM bytes
+built from any directory, by a relative or an absolute path, give the same
+stack hash, the same matrix hash, the same surface bytes and the same run
+`content_hash` — **0 directory-dependent hash values, down from the 11
+E3.4 measured**. What "any machine" still does NOT cover, stated in every
+run manifest's `provenance_chain.path_dependent_hashes.remaining_limits`:
+`matrix_sha256` and the coordinate fingerprints hash native byte order
+(same-endianness hosts); raster bytes across GDAL versions are not
+measured; and the run manifest's `inputs.environment` is inside its hash
+BY DESIGN, so two machines with different installed versions hash
+differently — which is right. Manifests are byte-identical across builds
+**apart from `generated_at`** (and, for the stack, `dem_path`), and their
+`content_hash` matches outright — asserted in the tests, now with the DEM
+PATH varied, which the pre-HASH.1 determinism test never did.
 
 **Corollary — order invariance.** `CorpusManifest` sorts its source lists by
 `source_id` rather than leaving them in adapter-run order, because the corpus

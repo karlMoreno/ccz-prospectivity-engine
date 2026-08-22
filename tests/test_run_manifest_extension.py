@@ -162,7 +162,7 @@ def test_every_recorded_hash_matches_its_artifact_by_recomputation(run: dict) ->
     stack = json.loads((stack_dir / "provenance.json").read_text())
     assert links["feature_stack"]["content_hash"] == FeatureStackManifest(**stack).compute_content_hash()
     assert manifest.upstream_hashes["feature_stack"] == links["feature_stack"]["content_hash"]
-    assert links["feature_stack"]["dem_content_hash"] == file_sha256(Path(stack["dem"]["path"]))
+    assert links["feature_stack"]["dem_content_hash"] == file_sha256(Path(stack["dem_path"]))
 
     assert links["training_matrix"]["matrix_sha256"] == matrix_sha256(run["matrix"])
     assert manifest.upstream_hashes["training_matrix"] == run["matrix_manifest"].compute_content_hash()
@@ -336,29 +336,30 @@ def test_surfaces_block_records_each_estimators_summary_origin_and_watermark(run
     assert manifest.data_origin == "SYNTHETIC"
 
 
-def test_the_chain_limit_is_in_the_output_and_matches_the_measured_blast_radius(
+def test_the_chain_block_states_the_remaining_limits_and_the_former_one_is_measured_gone(
     run: dict, tmp_path: Path
 ) -> None:
-    """THE LIMIT, stated where a reader meets it — and MEASURED, not asserted:
-    the same DEM bytes at a different path yield a different stack hash (the
-    E2.4 audit's row M, reproduced) AND a different raster for the SAME
-    surface, because the raster's tags carry the stack hash. So the chain
-    block must say only the corpus is verifiable off-machine.
-
-    This test pins a DEFECT'S PRESENCE on purpose: when the BACKLOG §3 path
-    fix lands, `differs` becomes False, this goes red, and the chain block's
-    claim must be updated in the same change — which is the point."""
+    """UPDATED at HASH.1 commit 2 — this test was written at E3.4 to pin the
+    path-hash DEFECT'S PRESENCE (a different stack hash AND a different
+    raster for the same surface from the same DEM bytes elsewhere) and to go
+    red when the fix landed. It did. Now it pins the fix: the same bytes
+    elsewhere give the SAME stack hash and the SAME raster bytes, and the
+    chain block says what is true — the corpus, the stack and (for
+    same-endianness hosts) the matrix are verifiable off-machine; the
+    remaining limits are named rather than waved at."""
     chain = run["manifest"].provenance_chain
-    assert chain["limit"] == CHAIN_LIMIT_NOTE and chain["verifiable_off_machine"] == ["corpus"]
+    assert chain["limit"] == CHAIN_LIMIT_NOTE
+    assert chain["verifiable_off_machine"] == ["corpus", "feature_stack", "training_matrix (same-endianness)"]
     assert {k: v["verifiable_off_machine"] for k, v in chain["links"].items()} == {
         "corpus": True,
-        "feature_stack": False,
-        "training_matrix": False,
+        "feature_stack": True,
+        "training_matrix": "same-endianness hosts",
         "ts6_benchmark": "not measured — a synthetic fixture today; G3.1 delivers the real raster",
-        "surfaces": False,
+        "surfaces": "directory-independent; cross-GDAL-version byte identity not measured",
     }
-    # the measurement
-    dem_path = Path(run["stack_manifest"]["dem"]["path"])
+    assert len(chain["path_dependent_hashes"]["remaining_limits"]) == 3
+    # the measurement: the former limit is gone
+    dem_path = Path(run["stack_manifest"]["dem_path"])
     other_dem = tmp_path / "elsewhere" / "dem.tif"
     other_dem.parent.mkdir()
     shutil.copyfile(dem_path, other_dem)
@@ -366,18 +367,22 @@ def test_the_chain_limit_is_in_the_output_and_matches_the_measured_blast_radius(
     other = build_covariate_stack(other_dem, tmp_path / "stack2", dem_data_origin=DataOrigin.SYNTHETIC)
     grid2 = PredictionGrid.from_stack(other["provenance"].parent)
     assert grid2.dem_content_hash == run["grid"].dem_content_hash
-    stack_differs = grid2.stack_content_hash != run["grid"].stack_content_hash
+    assert grid2.stack_content_hash == run["grid"].stack_content_hash  # was: differs
     result = run["surfaces"]["ordinary_kriging"]
     rewritten = write_surface(
         result, grid2, tmp_path / "out2", data_origin=run["origin"], verdict=run["verdicts"][CLAIM_DESIGN]
     )
-    raster_differs = file_sha256(rewritten["prediction"]) != run["manifest"].output_hashes["ordinary_kriging_prediction.tif"]
-    assert (stack_differs, raster_differs) == (True, True), (
-        "the path-hash limit no longer reproduces — update provenance_chain's claim (BACKLOG §3)"
-    )
-    assert np.array_equal(
-        rasterio.open(rewritten["prediction"]).read(1), rasterio.open(run["out"] / "ordinary_kriging_prediction.tif").read(1), equal_nan=True
-    )  # …while the VALUES are identical: only the identity moved
+    assert file_sha256(rewritten["prediction"]) == run["manifest"].output_hashes["ordinary_kriging_prediction.tif"]  # was: differs
+
+
+def test_a_stack_manifest_that_embeds_a_dem_path_is_refused_by_name(run: dict) -> None:
+    """The emitter ASSERTS the stack substance is path-free rather than
+    assuming it, so a path creeping back under `dem` cannot silently make
+    every downstream hash directory-dependent again."""
+    stack = json.loads(json.dumps(run["stack_manifest"]))
+    stack["layers"][3]["dem"]["path"] = "/somewhere/dem.tif"
+    with pytest.raises(ValueError, match=r"embeds a DEM path at \['layers\[3\]\.dem'\]"):
+        _extend(run, stack_manifest=stack)
 
 
 # ──────────────────── recomputed, never copied: the separating fixtures
@@ -497,14 +502,13 @@ def test_an_empty_agreement_mapping_and_a_null_field_are_distinguishable_and_the
 def test_the_path_dependent_hash_count_equals_the_measured_two_directory_difference(
     run: dict, tmp_path: Path
 ) -> None:
-    """Prompt §4: the limit's scope as a NUMBER, and the number MEASURED. A
-    second extension over a stack built from the same DEM bytes at another
-    path: the distinct sha256 VALUES present in one manifest and absent from
-    the other (content_hash excluded) must number exactly what the record
-    claims — today 11: the stack hash, the matrix hash, and 9 of 10 files
-    (data_origin.yaml quotes no hash). A fix that makes the stack hash
-    portable drives the measured number down and this test red, which is
-    the point of pinning it."""
+    """E3.4: the limit's scope as a NUMBER, MEASURED — then 11 (the stack
+    hash, the matrix hash, 9 of 10 files). HASH.1 commit 2 removed the path
+    from the stack substance and this test went red as designed; it now
+    pins the measured ZERO: a second extension over a stack built from the
+    same DEM bytes at another path has exactly the same hash VALUES and the
+    same content_hash. A path creeping back anywhere in the chain drives
+    the number up and this test red."""
     import re
 
     from engine.prospectivity.features.dem_grid import DemGrid
@@ -513,10 +517,9 @@ def test_the_path_dependent_hash_count_equals_the_measured_two_directory_differe
     from engine.prospectivity.training_matrix import assemble_training_matrix
 
     block = run["manifest"].provenance_chain["path_dependent_hashes"]
-    assert block["independent"] == ["data_origin.yaml"] and block["count"] == 11
-    assert set(block["values"]) == {"feature_stack", "training_matrix"} | (set(run["manifest"].output_hashes) - {"data_origin.yaml"})
+    assert (block["count"], block["was"]) == (0, 11)  # HASH.1 commit 2: measured below, not assumed
 
-    dem_path = Path(run["stack_manifest"]["dem"]["path"])
+    dem_path = Path(run["stack_manifest"]["dem_path"])
     other_dem = tmp_path / "elsewhere" / "dem.tif"
     other_dem.parent.mkdir()
     shutil.copyfile(dem_path, other_dem)
@@ -545,5 +548,6 @@ def test_the_path_dependent_hash_count_equals_the_measured_two_directory_differe
     def values(manifest):
         return set(pattern.findall(json.dumps({k: v for k, v in json.loads(manifest.to_json()).items() if k != "content_hash"})))
     differing = values(run["manifest"]) - values(second)
-    assert len(differing) == block["count"] == second.provenance_chain["path_dependent_hashes"]["count"]
-    assert values(run["manifest"]) & values(second) >= {run["manifest"].upstream_hashes["corpus"], run["ts6"].content_hash}
+    assert len(differing) == block["count"] == second.provenance_chain["path_dependent_hashes"]["count"] == 0
+    assert values(run["manifest"]) == values(second) and len(values(second)) >= 14
+    assert second.content_hash == run["manifest"].content_hash  # the whole extension, from another tree

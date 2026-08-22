@@ -198,7 +198,12 @@ def test_every_real_artifact_declares_a_frozen_legacy_set_that_is_a_subset_of_it
         assert cls.LEGACY_HASHED_FIELDS <= live, cls.__name__
         added = live - cls.LEGACY_HASHED_FIELDS
         assert added == set(), f"{cls.__name__} gained {sorted(added)} since HASH.1 — bump SCHEMA_VERSION ({cls.SCHEMA_VERSION}) and record it"
-        assert cls.SCHEMA_VERSION == 1
+    # the versions as declared: the stack is at 2 since HASH.1 commit 2 gained
+    # `dem_path` (hash-excluded, so it is not in `live` above — the bump is
+    # for the SHAPE, which the version identifies)
+    assert {cls.__name__: cls.SCHEMA_VERSION for cls in ALL_ARTIFACTS} == {
+        "CorpusManifest": 1, "FeatureStackManifest": 2, "TrainingMatrixManifest": 1, "RunManifest": 1
+    }
 
 
 def test_a_new_field_with_a_non_none_default_is_refused_at_class_definition() -> None:

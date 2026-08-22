@@ -27,19 +27,19 @@ bytes — and refused BY NAME when any two records of the same fact disagree.
 A literal copied from an upstream record would be quoted as fact by the
 artifact that quotes it; the E2.4 §2D posture, applied to every link.
 
-THE CHAIN'S KNOWN LIMIT IS IN THE OUTPUT. The E2.4 audit (row M) measured
-that `FeatureStackManifest`'s substance embeds the caller-supplied DEM path
-string nine times, so of the run's three upstream hashes only the CORPUS is
-verifiable off the machine that wrote it (BACKLOG §3, trigger before
-Checkpoint 1). That is not this task's to fix — but a chain that claims more
-than it delivers is exactly the defect that entry exists to prevent, so the
-limit is stated in `provenance_chain`, where a manifest reader meets it,
-and not only in a doc — and its SCOPE IS COUNTED at emission
-(`path_dependent_hashes`): every output file whose bytes quote the stack
-hash (each raster's tags, each provenance sidecar — 9 of 10 today; the
-origin sidecar carries none) plus the stack and matrix hashes themselves.
-The tests pin that count against a measured two-directory diff; when the
-BACKLOG fix lands they go red and this block's claim must change with them.
+THE CHAIN'S LIMITS ARE IN THE OUTPUT, AND ONE OF THEM IS GONE. Until HASH.1
+commit 2 (2026-08-22) `FeatureStackManifest`'s substance embedded the
+caller-supplied DEM path nine times, so only the CORPUS link was verifiable
+off the machine that wrote it; E3.4 measured ELEVEN hash values moving with
+the directory and recorded them in `provenance_chain.path_dependent_hashes`
+with two tests pinned to go red when the fix landed. They did, and the block
+now records what is true: the emitter ASSERTS at emission that no `path`
+key sits under the stack's `dem` or any `layers[*].dem` (refusing by name
+otherwise), records the count the two-directory tests MEASURE (zero), and
+states the limits that REMAIN — `matrix_sha256` is native-byte-order
+(same-endianness hosts), raster bytes across GDAL versions are unmeasured,
+and the run's `inputs.environment` makes its content_hash machine-specific
+BY DESIGN (E3.4 commit 3). A statement of a limit must not outlive it.
 
 E2.5's VERDICT IS DATA, NOT PROSE. `claim` carries every design's verdict —
 each precondition, pass AND fail, by name — plus the design the caller
@@ -85,19 +85,18 @@ from engine.prospectivity.validation.runner import matrix_sha256
 SURFACE_KINDS = ("prediction", "uncertainty")
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
-# THE LIMIT, stated where a manifest reader meets it.
+# THE LIMITS, stated where a manifest reader meets them (HASH.1 commit 2).
 CHAIN_LIMIT_NOTE = (
-    "Every hash in this chain was RECOMPUTED from its artifact at emission and "
-    "is checkable on the machine that wrote it. Off that machine, ONLY the corpus "
-    "link is verifiable: FeatureStackManifest's substance embeds the caller-"
-    "supplied DEM path string (nine times), so the feature_stack hash — and "
-    "everything that quotes it: the training_matrix hash, this run's "
-    "content_hash, and every output file whose bytes quote it (each raster's "
-    "tags, each provenance sidecar; NOT the origin sidecar, which carries no "
-    "hash) — changes with the directory the stack was built from, for reasons "
-    "unrelated to the terrain. `path_dependent_hashes` COUNTS them, measured at "
-    "emission. Recorded in docs/BACKLOG.md §3 (trigger: before Checkpoint 1). A "
-    "reader elsewhere can verify ORIGIN for the corpus and CONSISTENCY for the rest."
+    "Every hash in this chain was RECOMPUTED from its artifact at emission. Since "
+    "HASH.1 (2026-08-22) the feature-stack substance embeds NO path — the DEM's "
+    "location is recorded outside the hash (dem_path) — so the stack, matrix and "
+    "surface identities no longer move with the directory a run was built from; "
+    "`path_dependent_hashes.count` is what the two-directory tests measure (0). "
+    "WHAT REMAINS: matrix_sha256 and coords fingerprints hash native byte order "
+    "(portable across same-endianness hosts only); raster bytes across GDAL "
+    "versions are not measured; and this run's content_hash includes "
+    "inputs.environment BY DESIGN, so it identifies inputs AND environment — two "
+    "machines with different installed versions hash differently, which is right."
 )
 
 CLAIM_NOTE = (
@@ -266,6 +265,22 @@ def extend_run_manifest(
         )
     corpus_csv_hash = file_sha256(corpus_csv)
 
+    # HASH.1 commit 2: the stack substance must be PATH-FREE, asserted here
+    # rather than assumed — a path that crept back under `dem` would make
+    # every downstream hash directory-dependent again, silently.
+    dem_records = [("dem", stack_manifest.get("dem") or {})] + [
+        (f"layers[{i}].dem", (layer or {}).get("dem") or {})
+        for i, layer in enumerate(stack_manifest.get("layers") or [])
+    ]
+    path_bearing = [where for where, record in dem_records if "path" in record]
+    if path_bearing:
+        raise _refuse(
+            f"the feature-stack manifest embeds a DEM path at {path_bearing} — since "
+            "HASH.1 the stack substance is path-free (the location lives in dem_path, "
+            "outside the hash); a path inside it makes every downstream hash vary with "
+            "the directory the run was built from"
+        )
+
     # ---- 3. the feature stack: substance recomputed; the grid is ITS grid
     stack_hash = _require_equal(
         "feature-stack hash",
@@ -301,19 +316,11 @@ def extend_run_manifest(
     surfaces_block: dict[str, dict] = {}
     output_hashes: dict[str, str] = {}
     origin_sidecars: set[Path] = set()
-    # MEASURED, not asserted: which output files quote the stack hash in their
-    # bytes — those are the ones whose identity moves with the directory.
-    # (Rasters carry it in their tags, provenance sidecars in grid.identity();
-    # the origin sidecar carries no hash at all, which the first draft of the
-    # chain block got wrong by saying "every output file".)
-    path_dependent_files: list[str] = []
 
     def _record_output(path: Path, digest: str) -> None:
         if path.name in output_hashes and output_hashes[path.name] != digest:
             raise _refuse(f"two written files share the basename {path.name!r} with different bytes")
         output_hashes[path.name] = digest
-        if stack_hash.encode("utf-8") in path.read_bytes():
-            path_dependent_files.append(path.name)
 
     for name in sorted(surfaces):
         result = surfaces[name]
@@ -422,21 +429,27 @@ def extend_run_manifest(
                     "run.upstream_hashes.feature_stack",
                     "prediction_grid.stack_content_hash",
                 ],
-                "verifiable_off_machine": False,
+                "verifiable_off_machine": True,
                 "why": (
-                    "the substance embeds the caller-supplied DEM path string nine times "
-                    "(E2.4 audit row M; BACKLOG §3, trigger before Checkpoint 1)"
+                    "since HASH.1 the substance embeds no path (asserted at emission); "
+                    "it depends on the DEM bytes, the contract and registry versions, "
+                    "and the recipes — the same everywhere"
                 ),
+                # the DEM's LOCATION is deliberately NOT quoted here: this block is
+                # inside the run's substance, and a path in it would put the
+                # directory back into the run hash one artifact downstream (found
+                # by measuring the two-tree diff at HASH.1 commit 2: it did)
             },
             "training_matrix": {
                 "content_hash": matrix_manifest.content_hash,
                 "matrix_sha256": recomputed_matrix,
                 "recomputed_from": "the matrix arrays (matrix_sha256) and the manifest's substance",
                 "agrees_with": ["run.upstream_hashes.training_matrix", "run.inputs.training_matrix.matrix_sha256"],
-                "verifiable_off_machine": False,
+                "verifiable_off_machine": "same-endianness hosts",
                 "why": (
-                    "quotes the feature_stack hash; matrix_sha256 over the arrays itself "
-                    "reproduces (native byte order — same-endianness hosts)"
+                    "quotes the now-portable feature_stack hash; matrix_sha256 hashes the "
+                    "arrays in native byte order, so it reproduces across same-endianness "
+                    "hosts and is not measured beyond them"
                 ),
             },
             "ts6_benchmark": {
@@ -456,45 +469,37 @@ def extend_run_manifest(
                     "surfaces; sidecar summaries compared to the in-memory surfaces and grid"
                 ),
                 "agrees_with": ["output_hashes", "surfaces.*.rasters", "surfaces.*.sidecar"],
-                "verifiable_off_machine": False,
+                "verifiable_off_machine": "directory-independent; cross-GDAL-version byte identity not measured",
                 "why": (
-                    f"{len(path_dependent_files)} of {len(output_hashes)} written files quote "
-                    "the stack hash in their bytes (measured at emission: every raster's tags, "
-                    "every provenance sidecar), so the feature_stack limit reaches them; the "
-                    "files that do not are listed under path_dependent_hashes.independent"
+                    "every raster's tags and every provenance sidecar quote the stack hash, "
+                    "which no longer moves with the directory; whether the COG driver writes "
+                    "identical bytes under another GDAL version has not been measured"
                 ),
             },
         },
-        "verifiable_off_machine": ["corpus"],
-        # THE LIMIT'S SCOPE AS A NUMBER (E3.4 prompt §4): which recorded hash
-        # VALUES move with the stack's directory, counted and named by the JSON
-        # path they are recorded at. A fix that stops the stack hash varying
-        # must bring this to zero — and the test that pins it will say so.
+        "verifiable_off_machine": ["corpus", "feature_stack", "training_matrix (same-endianness)"],
+        # THE FORMER LIMIT'S SCOPE, still a number: E3.4 measured 11 hash values
+        # moving with the directory; HASH.1 commit 2 removed the path from the
+        # stack substance and the two-directory tests now measure 0. The emitter
+        # records the count it can stand behind — the assertion above is what
+        # lets it say 0 rather than assume it.
         "path_dependent_hashes": {
-            "count": 2 + len(path_dependent_files),
-            "values": {
-                "feature_stack": [
-                    "upstream_hashes.feature_stack",
-                    "prediction_grid.stack_content_hash",
-                    "provenance_chain.links.feature_stack.content_hash",
-                ],
-                "training_matrix": [
-                    "upstream_hashes.training_matrix",
-                    "provenance_chain.links.training_matrix.content_hash",
-                ],
-                **{
-                    name: [f"output_hashes.{name}", "surfaces.*.rasters|sidecar"]
-                    for name in sorted(path_dependent_files)
-                },
-            },
-            "independent": sorted(set(output_hashes) - set(path_dependent_files)),
-            "note": (
-                "count = distinct hash VALUES that change when the same inputs are run "
-                "from another directory (the stack hash, the matrix hash that quotes it, "
-                "and each output file whose bytes quote it); `values` maps each to every "
-                "JSON path it is recorded at; `independent` names the written files whose "
-                "bytes carry no stack hash"
+            "count": 0,
+            "was": 11,
+            "basis": (
+                "the feature-stack substance embeds no path (asserted at emission: no "
+                "'path' key under dem or layers[*].dem); every downstream hash quotes "
+                "the stack hash or the DEM bytes, neither of which depends on the directory"
             ),
+            "measured_by": [
+                "tests/test_run_manifest_extension.py::test_the_path_dependent_hash_count_equals_the_measured_two_directory_difference",
+                "tests/test_engine_run.py::test_the_same_bytes_in_a_different_tree_reproduce_the_science_and_nothing_that_quotes_the_stack_hash",
+            ],
+            "remaining_limits": [
+                "matrix_sha256 / coords fingerprints: native byte order (same-endianness hosts)",
+                "raster bytes across GDAL versions: not measured",
+                "inputs.environment is inside the run's content_hash by design (E3.4 commit 3)",
+            ],
         },
         "limit": CHAIN_LIMIT_NOTE,
     }

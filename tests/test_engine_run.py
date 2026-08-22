@@ -160,7 +160,7 @@ def test_the_run_is_watermarked_refused_and_says_so_as_data(run: dict) -> None:
         "random_k_fold": [gate, "spatially_blocked_cross_validation_ran"],
     }
     assert all(isinstance(a, TS6Agreement) and a.data_origin == "SYNTHETIC" for a in manifest.ts6_agreement.values())
-    assert manifest.provenance_chain["verifiable_off_machine"] == ["corpus"]
+    assert manifest.provenance_chain["verifiable_off_machine"] == ["corpus", "feature_stack", "training_matrix (same-endianness)"]  # HASH.1
     # the verdict in the record IS the guard's verdict on the final record
     for design, recorded in manifest.claim["verdicts"].items():
         stack = json.loads((run["tmp"] / "features" / "stack" / "provenance.json").read_text())
@@ -197,44 +197,36 @@ def test_same_inputs_and_seed_in_the_same_tree_give_the_same_manifest_hash_acros
     assert second.content_hash == run["manifest"].content_hash
 
 
-STACK_HASH_CARRIERS = {"upstream_hashes", "prediction_grid", "provenance_chain", "output_hashes", "surfaces", "content_hash"}
-
-
 def test_the_same_bytes_in_a_different_tree_reproduce_the_science_and_nothing_that_quotes_the_stack_hash(
     run: dict, tmp_path: Path
 ) -> None:
-    """THE PATH-HASH LIMIT AT WHOLE-RUN SCALE (BACKLOG §3; E2.4 audit row M
-    measured it on the CV record: 15 substance fields reproduce, neither
-    identity field does). The same DEM bytes written to a different directory
-    give a different feature_stack hash, and at E3.4 that hash is quoted by
-    the prediction grid, every raster's tags, every sidecar, the chain block
-    and output_hashes — so the set of top-level fields that differ is
-    EXACTLY the set that carries it, and everything else (the scores, the
-    fold record, the verdicts, the agreements, the surface summaries minus
-    their file hashes) is byte-identical.
-
-    Asserted as an EQUALITY on the differing set, not a subset: a new field
-    that silently picked up the hash would widen it and fail here; when the
-    BACKLOG fix lands the set collapses toward empty and this test must be
-    rewritten — which is the point of pinning a limit."""
+    """THE FORMER PATH-HASH LIMIT AT WHOLE-RUN SCALE. At E3.4 this test
+    pinned the defect: the same DEM bytes in another directory gave a
+    different feature_stack hash, quoted by six top-level fields, and the
+    differing set was asserted as an EQUALITY so the fix would turn it red.
+    HASH.1 commit 2 did. It now pins the fix at the same scale: the
+    differing set is EMPTY — every field outside the hash-excluded four
+    equal, content_hash equal, zero moving hash values, the record's count
+    equal to the measurement. A path creeping back anywhere in the chain
+    widens the set and fails here — the first draft of the fix did exactly
+    that, echoing the stack's `dem_path` inside the run's chain block."""
     elsewhere = _engine(tmp_path / "elsewhere").run()
     excluded = RunManifest.hash_excluded_fields()
     a, b = json.loads(run["manifest"].to_json()), json.loads(elsewhere.to_json())
-    differing = {k for k in a if k not in excluded and a[k] != b[k]} | {"content_hash"}
-    assert differing == STACK_HASH_CARRIERS
-    # …and the record's own COUNT of path-dependent hash values equals the measured one
+    differing = {k for k in a if k not in excluded and a[k] != b[k]}
+    assert differing == set()
+    assert elsewhere.content_hash == run["manifest"].content_hash
     import re
     pattern = re.compile(r"sha256:[0-9a-f]{64}")
     moved = set(pattern.findall(json.dumps({k: v for k, v in a.items() if k != "content_hash"}))) - set(
         pattern.findall(json.dumps({k: v for k, v in b.items() if k != "content_hash"}))
     )
-    assert len(moved) == a["provenance_chain"]["path_dependent_hashes"]["count"] == 11
-    assert a["provenance_chain"]["path_dependent_hashes"]["independent"] == ["data_origin.yaml"]
-    assert a["upstream_hashes"]["corpus"] == b["upstream_hashes"]["corpus"]  # the one portable link
-    # the surfaces themselves are the same surfaces: only their files' identities moved
-    strip = lambda block: {k: v for k, v in block.items() if k not in ("rasters", "sidecar")}
-    assert {n: strip(s) for n, s in a["surfaces"].items()} == {n: strip(s) for n, s in b["surfaces"].items()}
-    assert a["ts6_agreement"] == b["ts6_agreement"] and a["claim"] == b["claim"]
+    assert len(moved) == a["provenance_chain"]["path_dependent_hashes"]["count"] == 0
+    assert a["provenance_chain"]["path_dependent_hashes"]["was"] == 11
+    # the stack manifests still say WHERE each DEM was — outside their hashes
+    here = json.loads((run["tmp"] / "features" / "stack" / "provenance.json").read_text())
+    there = json.loads((tmp_path / "elsewhere" / "features" / "stack" / "provenance.json").read_text())
+    assert here["dem_path"] != there["dem_path"] and here["content_hash"] == there["content_hash"]
 
 
 def test_a_terrain_layer_without_a_declared_origin_is_refused_by_name_before_any_stack_is_built(tmp_path: Path) -> None:

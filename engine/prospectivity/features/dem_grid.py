@@ -151,9 +151,18 @@ class DemGrid:
         )
 
     def provenance(self) -> dict:
-        """The DEM facts every covariate layer's provenance must carry."""
+        """The DEM facts every covariate layer's provenance must carry.
+
+        HASH.1 commit 2 (2026-08-22): NO PATH. This dict is quoted nine
+        times in the feature-stack manifest's substance (once at `dem`, once
+        per layer), and the caller-supplied path string made the stack's
+        content_hash vary with the directory it was built from — and with
+        relative-vs-absolute in the SAME directory (E2.4 audit row M). The
+        path is a LOCATION, not an identity: two DEMs with identical bytes
+        are one DEM, and `content_hash` already says which. The location is
+        still recorded, once, OUTSIDE the hash
+        (`FeatureStackManifest.dem_path`, the `generated_at` precedent)."""
         return {
-            "path": self.path,
             "content_hash": self.content_hash,
             "crs": self.crs,
             "resolution_deg": [self.res_x_deg, self.res_y_deg],

@@ -5,6 +5,7 @@ file-level determinism (the E1.3 corpus-CSV bar, applied to E1.4's rasters).
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -131,35 +132,74 @@ def test_written_rasters_preserve_georeferencing_and_border_nans(tmp_path: Path)
         assert not np.isnan(values[rim:-rim, rim:-rim]).any(), name
 
 
-def test_two_independent_builds_produce_identical_rasters_and_substance(
+def test_the_same_dem_bytes_in_two_directories_produce_identical_rasters_and_the_same_stack_hash(
     tmp_path: Path,
 ) -> None:
-    """Renamed 2026-07-30: "byte_identical" stopped being true of the sidecar
-    when it moved onto ProvenanceArtifact and gained `generated_at`.
-
-    Rasters must be byte-identical. provenance.json is identical EXCEPT
-    `generated_at` (a wall-clock timestamp, added when the sidecar moved onto
-    ProvenanceArtifact) — so this asserts the stronger property instead:
-    `content_hash` is computed over the substance with the timestamp excluded,
-    so two independent builds must produce the SAME hash."""
-    dem_path = tmp_path / "synthetic.tif"
-    write_synthetic_bathymetry(dem_path)
-    first = build_covariate_stack(
-        dem_path, tmp_path / "stack_a", dem_data_origin=DataOrigin.SYNTHETIC
-    )
-    second = build_covariate_stack(
-        dem_path, tmp_path / "stack_b", dem_data_origin=DataOrigin.SYNTHETIC
-    )
+    """REBUILT at HASH.1 commit 2 (2026-08-22). The previous version built
+    both stacks from ONE dem_path and varied only the OUTPUT directory — the
+    axis the manifest never recorded — and so passed since E1.4 while the
+    DEM path sat nine times inside the substance (E2.4 audit row M(b):
+    coverage-that-isn't under PROVENANCE.md's most-cited invariant). This
+    one varies the DEM PATH: the same bytes copied into a second directory
+    must give byte-identical rasters and the SAME content_hash, with the
+    manifests identical apart from the two hash-excluded fields that are
+    allowed to differ — `generated_at` and `dem_path`."""
+    dem_a = tmp_path / "here" / "synthetic.tif"
+    dem_b = tmp_path / "elsewhere" / "synthetic.tif"
+    dem_a.parent.mkdir(); dem_b.parent.mkdir()
+    write_synthetic_bathymetry(dem_a)
+    shutil.copyfile(dem_a, dem_b)
+    assert dem_a.read_bytes() == dem_b.read_bytes() and dem_a.resolve().parent != dem_b.resolve().parent
+    first = build_covariate_stack(dem_a, tmp_path / "stack_a", dem_data_origin=DataOrigin.SYNTHETIC)
+    second = build_covariate_stack(dem_b, tmp_path / "stack_b", dem_data_origin=DataOrigin.SYNTHETIC)
 
     for name in EXPECTED_LAYERS:
         assert first[name].read_bytes() == second[name].read_bytes(), name
+    a = json.loads(first["provenance"].read_text())
+    b = json.loads(second["provenance"].read_text())
+    assert a["content_hash"] == b["content_hash"]
+    assert a["dem_path"] != b["dem_path"] and a["dem_path"].endswith("here/synthetic.tif")
+    differing = {k for k in a if a[k] != b[k]}
+    assert differing == {"generated_at", "dem_path"}
+    assert "path" not in a["dem"] and all("path" not in layer["dem"] for layer in a["layers"])
+    assert a["schema_version"] == 2
 
-    first_provenance = json.loads(first["provenance"].read_text())
-    second_provenance = json.loads(second["provenance"].read_text())
-    assert first_provenance["content_hash"] == second_provenance["content_hash"]
-    assert first_provenance.pop("generated_at") != ""  # present
-    second_provenance.pop("generated_at")
-    assert first_provenance == second_provenance
+
+def test_a_relative_and_an_absolute_path_to_the_same_dem_produce_the_same_stack_hash(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The audit found this broke TODAY in the SAME directory: the manifest
+    recorded whatever string the caller passed. Pinned separately from the
+    two-directory property — a mutation that keeps the resolved parent in
+    the substance passes this and fails the other; one that keeps
+    `isabs` fails this and passes the other."""
+    dem = tmp_path / "synthetic.tif"
+    write_synthetic_bathymetry(dem)
+    monkeypatch.chdir(tmp_path)
+    relative = build_covariate_stack(Path("synthetic.tif"), tmp_path / "stack_rel", dem_data_origin=DataOrigin.SYNTHETIC)
+    absolute = build_covariate_stack(dem.resolve(), tmp_path / "stack_abs", dem_data_origin=DataOrigin.SYNTHETIC)
+    a = json.loads(relative["provenance"].read_text())
+    b = json.loads(absolute["provenance"].read_text())
+    assert a["dem_path"] == "synthetic.tif" and Path(b["dem_path"]).is_absolute()
+    assert a["content_hash"] == b["content_hash"]
+
+
+def test_two_different_dems_still_produce_different_stack_hashes(tmp_path: Path) -> None:
+    """THE NEGATION: a fix that made every stack hash identically would pass
+    the two properties above. Same geometry, same names, different values."""
+    from tests.fixtures.rasters import GRID_HEIGHT, GRID_WIDTH, NORTH, PIXEL_SIZE_DEG, WEST, write_test_raster
+
+    dem_a = tmp_path / "a.tif"
+    write_synthetic_bathymetry(dem_a)
+    dem_b = tmp_path / "b.tif"
+    write_test_raster(
+        dem_b, (-4200.0 + np.arange(GRID_HEIGHT * GRID_WIDTH, dtype="float32").reshape(GRID_HEIGHT, GRID_WIDTH) * 0.01),
+        west=WEST, north=NORTH, pixel_size_deg=PIXEL_SIZE_DEG,
+    )
+    a = json.loads(build_covariate_stack(dem_a, tmp_path / "stack_a", dem_data_origin=DataOrigin.SYNTHETIC)["provenance"].read_text())
+    b = json.loads(build_covariate_stack(dem_b, tmp_path / "stack_b", dem_data_origin=DataOrigin.SYNTHETIC)["provenance"].read_text())
+    assert a["upstream_hashes"]["dem"] != b["upstream_hashes"]["dem"]
+    assert a["content_hash"] != b["content_hash"]
 
 
 def test_provenance_sidecar_carries_the_review_critical_keys(tmp_path: Path) -> None:

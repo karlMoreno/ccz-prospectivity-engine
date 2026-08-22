@@ -44,6 +44,16 @@ class FeatureStackManifest(ProvenanceArtifact):
     Upstream is the DEM: a raw input rather than an artifact, so its hash is
     quoted in `upstream_hashes` under "dem" and a model run downstream can
     prove which terrain its features came from.
+
+    HASH.1 commit 2 (2026-08-22, schema_version 2): `dem_path` — the path
+    string the caller passed, recorded for a reader and EXCLUDED from the
+    content hash (the `generated_at` precedent). Until this, the path sat
+    inside `dem` and every `layers[i].dem`, nine times in the substance, so
+    the same DEM bytes built from another directory — or by a relative
+    rather than an absolute path in the same one — produced a different
+    stack hash, and everything downstream quoted it (E2.4 audit row M; E3.4
+    measured eleven moving hash values). The DEM's identity is its
+    `content_hash`; the path never was one.
     """
 
     contract: str
@@ -59,10 +69,16 @@ class FeatureStackManifest(ProvenanceArtifact):
     # SYNTHETIC rather than laundering into DERIVED.
     dem_data_origin: str
     layers_by_data_origin: dict[str, int] = Field(default_factory=dict)
+    # HASH.1 commit 2: where the DEM was read from — OUTSIDE the hash.
+    dem_path: str | None = None
 
+    HASH_EXCLUDED_FIELDS: ClassVar[frozenset[str]] = frozenset(
+        {"content_hash", "generated_at", "dem_path"}
+    )
     # HASH.1: frozen field set (no stack manifest is committed; the set exists
     # so the rule is uniform and a future field cannot reach a legacy hash).
-    SCHEMA_VERSION: ClassVar[int] = 1
+    # SCHEMA_VERSION 2 at commit 2: the shape gained `dem_path`.
+    SCHEMA_VERSION: ClassVar[int] = 2
     LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
         "contract", "contract_versions", "dem", "dem_data_origin", "layers",
         "layers_by_data_origin", "registry_version", "upstream_hashes",
@@ -115,6 +131,7 @@ def build_covariate_stack(
         layers_by_data_origin={layer_origin.value: len(results)},
         contract_versions=contract_versions(),
         upstream_hashes={"dem": grid.content_hash},
+        dem_path=str(dem_path),  # as given; outside the hash
     ).finalize()
     provenance_path = output_dir / "provenance.json"
     provenance_path.write_text(manifest.to_json())
