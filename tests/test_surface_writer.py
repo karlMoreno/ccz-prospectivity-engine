@@ -223,3 +223,89 @@ def test_the_watermark_is_default_on_absence_of_proof_never_renders_clean() -> N
     for origin in (DataOrigin.SYNTHETIC, DataOrigin.AUTHORED, DataOrigin.LITERATURE, DataOrigin.DERIVED):
         assert surface_watermark(origin) is not None, origin
     assert surface_watermark(DataOrigin.MEASURED) is None
+
+
+# ──────────────────────────────────── TAX.1 commit 2: the rasters' own origin
+
+
+def test_the_rasters_are_classified_by_the_audits_own_sidecar_mechanism(
+    tmp_path: Path, built: dict, refusing_verdict: ClaimVerdict
+) -> None:
+    """THE .tif FILES WERE UNCLASSIFIED, and this closes it with the
+    ESTABLISHED mechanism rather than a new one.
+
+    A GeoTIFF cannot carry an in-file declaration without changing its bytes —
+    which would break the hash it is pinned by (the P2.0c marker-form rule) —
+    so the marker is `data_origin.yaml`, the same sidecar
+    `tests/fixtures/samples/` and `data/corpus/` already use. **The
+    association is one the AUDIT RESOLVES**: a `files:` mapping keyed by
+    filename, read by `_sidecar_declaration`, not an inference from adjacent
+    names.
+    """
+    import yaml
+
+    written, _, _ = _write(tmp_path, built, refusing_verdict)
+    sidecar = written["origin_sidecar"]
+    assert sidecar.name == "data_origin.yaml"
+    files = yaml.safe_load(sidecar.read_text())["files"]
+
+    for kind in ("prediction", "uncertainty"):
+        entry = files[written[kind].name]
+        assert entry["data_origin"] == "SYNTHETIC"
+        assert entry["generator"] == "engine.prospectivity.surfaces.builder.build_surfaces"
+        # kriging is SEEDLESS, so the evidence is the determinism basis —
+        # TAX.1's whole point
+        assert "seed" not in entry
+        assert len(entry["determinism_basis"]) >= 40
+
+
+def test_a_second_estimators_rasters_do_not_un_classify_the_first(
+    tmp_path: Path, built: dict, refusing_verdict: ClaimVerdict
+) -> None:
+    """Every estimator writes into the SAME directory, so the sidecar is
+    MERGED, not overwritten. A writer that replaced it would classify its own
+    rasters and silently un-classify the previous estimator's — and the
+    audit would then report the earlier files as unclassified, blaming the
+    wrong commit."""
+    import yaml
+
+    grid, surfaces = built["grid"], built["surfaces"]
+    origin = compute_surface_origin("SYNTHETIC", "SYNTHETIC")
+    for name in ("ordinary_kriging", "random_forest"):
+        write_surface(
+            surfaces[name], grid, tmp_path, data_origin=origin, verdict=refusing_verdict
+        )
+    files = yaml.safe_load((tmp_path / "data_origin.yaml").read_text())["files"]
+    assert set(files) == {
+        "ordinary_kriging_prediction.tif",
+        "ordinary_kriging_uncertainty.tif",
+        "random_forest_prediction.tif",
+        "random_forest_uncertainty.tif",
+    }
+    # AND the two estimators evidence themselves DIFFERENTLY, which is the
+    # seed-OR-basis rule doing real work rather than one branch serving both:
+    assert "determinism_basis" in files["ordinary_kriging_prediction.tif"]
+    assert files["random_forest_prediction.tif"]["seed"] == 0
+    assert "determinism_basis" not in files["random_forest_prediction.tif"], (
+        "a seed is the stronger evidence; recording both invites them to disagree"
+    )
+
+
+def test_a_surface_whose_estimator_can_evidence_neither_is_refused_by_name(
+    tmp_path: Path, built: dict, refusing_verdict: ClaimVerdict
+) -> None:
+    """An artifact whose reproducibility cannot be evidenced is not labelled
+    SYNTHETIC and waved through."""
+    import dataclasses
+
+    result = dataclasses.replace(
+        built["surfaces"]["ordinary_kriging"], determinism_basis=None
+    )
+    with pytest.raises(ValueError, match="neither a recorded seed nor a declared"):
+        write_surface(
+            result,
+            built["grid"],
+            tmp_path,
+            data_origin=compute_surface_origin("SYNTHETIC", "SYNTHETIC"),
+            verdict=refusing_verdict,
+        )

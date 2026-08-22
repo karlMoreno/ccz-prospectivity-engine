@@ -71,6 +71,10 @@ class SurfaceResult:
     input_kind: str
     uncertainty_method: str
     uncertainty_semantics: str
+    # TAX.1: the estimator's DECLARED determinism basis, or None when it has a
+    # seed instead. Read here with the other declarations so the writer never
+    # has to hold an estimator to evidence what it wrote.
+    determinism_basis: str | None
     mu: np.ndarray  # (H, W) float64, NaN outside the domain
     sd: np.ndarray  # (H, W) float64, NaN outside the domain
     n_predicted: int
@@ -166,6 +170,7 @@ def build_surfaces(
             input_kind=estimator.input_kind,
             uncertainty_method=estimator.uncertainty_method,
             uncertainty_semantics=estimator.uncertainty_semantics,
+            determinism_basis=getattr(estimator, "determinism_basis", None),
             mu=mu,
             sd=sd,
             n_predicted=int(predictable.sum()),

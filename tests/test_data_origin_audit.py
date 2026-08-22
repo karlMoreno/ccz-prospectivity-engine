@@ -87,15 +87,6 @@ EXCLUSIONS: dict[str, str] = {
         "documentation prose, no data values (audit §3); the directory is "
         "reserved for real GEBCO at Checkpoint 1"
     ),
-    "data/corpus/data_origin.yaml": (
-        "the sidecar declaration mechanism itself, not a subject"
-    ),
-    "data/fixtures/native/data_origin.yaml": (
-        "the sidecar declaration mechanism itself, not a subject"
-    ),
-    "tests/fixtures/samples/data_origin.yaml": (
-        "the sidecar declaration mechanism itself, not a subject"
-    ),
     "tests/fixtures/__init__.py": "empty package marker, no values",
     "tests/fixtures/samples/README.md": (
         "documentation prose; its false blanket claim is tracked in "
@@ -164,6 +155,20 @@ class Declaration:
     determinism_basis: str | None = None
 
 
+def _is_the_sidecar_mechanism(rel_path: str) -> bool:
+    """A `data_origin.yaml` is the DECLARATION MECHANISM, never a subject of
+    it — the resolver already encodes this (`_in_file_declaration` returns
+    None for it).
+
+    Generic since TAX.1 (2026-08-21). It was previously three per-path
+    EXCLUSIONS entries all giving the same reason, which meant every NEW
+    directory carrying a sidecar needed a hand-added entry or its sidecar
+    would surface as unclassified — a manual step that the first surface
+    output directory would have hit immediately.
+    """
+    return Path(rel_path).name == SIDECAR_NAME
+
+
 def tracked_subject_files() -> list[str]:
     """The subject list, from git — NOT from the resolver (see module
     docstring). CI checkouts and dev clones both have git."""
@@ -174,7 +179,9 @@ def tracked_subject_files() -> list[str]:
         check=True,
         text=True,
     ).stdout
-    return sorted(path for path in raw.split("\0") if path)
+    return sorted(
+        path for path in raw.split("\0") if path and not _is_the_sidecar_mechanism(path)
+    )
 
 
 def _load_yaml_top_level(path: Path) -> dict:

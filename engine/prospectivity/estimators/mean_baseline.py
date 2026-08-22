@@ -59,6 +59,12 @@ class MeanBaselineEstimator(Estimator):
     with no special case."""
 
     input_kind: ClassVar[str] = "covariates"
+    # TAX.1: seedless by construction — see kriging.py for the rule.
+    determinism_basis: ClassVar[str] = (
+        "the mean and sample SD (ddof=1) of the training y are closed-form "
+        "reductions over every training row; no sampling, no subsetting and "
+        "no RNG, so the output is a function of the inputs alone"
+    )
     uncertainty_method: ClassVar[str] = "sample_sd_ddof1"
     uncertainty_semantics: ClassVar[str] = UNCERTAINTY_SEMANTICS
 

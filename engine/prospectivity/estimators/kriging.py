@@ -131,6 +131,17 @@ class OrdinaryKrigingEstimator(Estimator):
     never by matching the registry name."""
 
     input_kind: ClassVar[str] = "coordinates"
+    # TAX.1 (2026-08-21): SYNTHETIC's evidence is a generator path AND (a seed
+    # OR a determinism basis). This estimator has NO seed because it needs
+    # none, so it declares the basis — and the basis must name the MECHANISM,
+    # not assert the property.
+    determinism_basis: ClassVar[str] = (
+        "ordinary kriging solves a closed-form linear system (the OK system "
+        "matrix plus a Lagrange multiplier) over a variogram fitted by "
+        "weighted least squares on a FIXED candidate range grid; there is no "
+        "sampling, no shuffling and no RNG at fit or predict time, so the "
+        "output is a function of the inputs alone"
+    )
     uncertainty_method: ClassVar[str] = "sqrt_ordinary_kriging_variance"
     uncertainty_semantics: ClassVar[str] = UNCERTAINTY_SEMANTICS
 

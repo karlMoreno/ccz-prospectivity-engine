@@ -137,6 +137,73 @@ def _write_raster(path: Path, values: np.ndarray, grid: PredictionGrid, tags: di
         dataset.update_tags(**tags)
 
 
+SIDECAR_NAME = "data_origin.yaml"  # the audit's established marker form
+
+
+def _synthetic_evidence(result) -> dict:
+    """SYNTHETIC's evidence for a written raster: the generator, AND a seed OR
+    a determinism basis (TAX.1's widened rule).
+
+    THE ESTIMATOR DECLARES WHICH, and this function never guesses: a seed is
+    read from the estimator's own provenance, and a determinism basis from its
+    `determinism_basis`, carried on the SurfaceResult. **A seed WINS when
+    present** — the two are
+    not recorded together, because a seed is the stronger evidence and keeping
+    both invites them to disagree.
+
+    Refuses BY NAME when neither exists. An artifact whose reproducibility
+    cannot be evidenced is not one this writer will label SYNTHETIC and move
+    on from.
+    """
+    evidence = {"generator": "engine.prospectivity.surfaces.builder.build_surfaces"}
+    seed = result.provenance.get("seed")
+    if seed is not None:
+        evidence["seed"] = int(seed)
+        return evidence
+    basis = result.determinism_basis
+    if not (basis and str(basis).strip()):
+        raise ValueError(
+            f"{result.estimator_name} has neither a recorded seed nor a declared "
+            "`determinism_basis`, so a SYNTHETIC raster written from it cannot "
+            "carry the evidence TAX.1 requires — declare one on the estimator "
+            "rather than writing an unevidenced artifact"
+        )
+    evidence["determinism_basis"] = str(basis)
+    return evidence
+
+
+def _merge_origin_sidecar(path: Path, entries: dict) -> None:
+    """Add `entries` to the directory's `data_origin.yaml`, PRESERVING what is
+    already there.
+
+    Merged rather than overwritten because every estimator writes into the SAME
+    directory: a writer that replaced the file would classify its own rasters
+    and silently un-classify the previous estimator's.
+    """
+    import yaml
+
+    existing = {}
+    if path.is_file():
+        loaded = yaml.safe_load(path.read_text())
+        if isinstance(loaded, dict):
+            existing = loaded.get("files") or {}
+    existing.update(entries)
+    path.write_text(
+        "# ORIGIN DECLARATIONS for the rasters in this directory, in the\n"
+        "# audit's established sidecar form (tests/test_data_origin_audit.py:\n"
+        "# SIDECAR_NAME, resolved by the `files:` mapping — an association the\n"
+        "# AUDIT resolves, never one a human infers from adjacent filenames).\n"
+        "#\n"
+        "# A GeoTIFF cannot carry an in-file declaration without changing its\n"
+        "# bytes, which would break the hash it is pinned by (the P2.0c\n"
+        "# marker-form rule), so the sidecar is the marker of record.\n"
+        "#\n"
+        "# Every origin below is COMPUTED by combine_origins over the training\n"
+        "# matrix and the feature stack — never declared by hand.\n"
+        + yaml.safe_dump({"files": existing}, sort_keys=True, default_flow_style=False)
+    )
+
+
 def write_surface(
     result,
     grid: PredictionGrid,
@@ -177,8 +244,11 @@ def write_surface(
                 # probing test_data_origin_audit.py against a staged sidecar
                 # — the first draft declared SYNTHETIC with neither and was
                 # refused BY NAME on both counts.
-                "generator": "engine.prospectivity.surfaces.builder.build_surfaces",
-                "seed": _seed_of(result),
+                # SYNTHETIC's evidence, TAX.1's widened rule: the generator
+                # AND (a seed OR a determinism basis). This file declares
+                # itself SYNTHETIC, so it must carry its own evidence — the
+                # audit refuses it otherwise, which is how the gap was found.
+                **_synthetic_evidence(result),
                 "data_origin_note": (
                     "COMPUTED by combine_origins from the feature stack's layer "
                     "origin and the training matrix's origin — never declared by "
@@ -201,18 +271,21 @@ def write_surface(
         + "\n"
     )
     written["provenance"] = sidecar
+
+    # CARRIER 2b — THE RASTERS' OWN CLASSIFICATION. Without this the .tif
+    # files are UNCLASSIFIED to the origin audit (measured at E3.1+2: the
+    # walk DOES reach data/ once they are tracked, and returned them as
+    # unclassified). The sidecar's `files:` mapping is the association the
+    # audit resolves.
+    evidence = _synthetic_evidence(result)
+    origin_sidecar = output_dir / SIDECAR_NAME
+    _merge_origin_sidecar(
+        origin_sidecar,
+        {path.name: {"data_origin": origin.value, **evidence} for path in written.values()
+         if path.suffix == ".tif"},
+    )
+    written["origin_sidecar"] = origin_sidecar
     return written
-
-
-def _seed_of(result) -> int | None:
-    """The estimator's recorded seed, or None where it has none.
-
-    Kriging is deterministic given its inputs and records no seed; the forest
-    records one. Reporting None is the honest answer for the former — a
-    fabricated 0 would satisfy the audit while naming a seed nothing used.
-    """
-    seed = result.provenance.get("seed")
-    return int(seed) if seed is not None else None
 
 
 def compute_surface_origin(layer_origin: str, matrix_origin: str) -> DataOrigin:
