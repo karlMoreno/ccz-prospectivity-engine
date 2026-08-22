@@ -67,8 +67,14 @@ closeout — the theorem test's seed-calibrated tolerances, and LITERATURE's
 missing evidence observer (§3). Net 41 − 1 + 2 = 42.
 1 ADDED at the P2.CLOSE approval (2026-08-20): the two C8.1 date labels left
 in `model_config.yaml` by that commit's docs-only fence.
-**43 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 23, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+2 ADDED at the E3.0 approval (2026-08-20), both DECISIONS rather than defects:
+revisit COG at Checkpoint 1 (the format is inert at 3,400 cells and nothing
+installed can validate it), and E3.3's descriptive-r-with-N_eff posture. The
+AOI entry was REWRITTEN in the same commit — its trigger had expired ("before
+Phase-2 prediction surfaces", a phase that ended producing none) and its
+gating claim is disproved by E3.0 §2.
+**45 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 25, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -114,12 +120,47 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   points on the placeholder AOI). *Corrected at P2.CLOSE, 2026-08-20: this
   read "108 of 114", a denominator that counted the 6 fabricated in-box
   `[06]`/`[18]` rows removed in P1/P1b — so it was already wrong the day
-  this file was created.* Options: AOI = sampled areas
-  only; AOI = full CCZ with distance-growing uncertainty; or defer.
-  Recommendation: defer, then define the AOI around where the data actually
-  sits. Owner: G + Karl. Trigger: before Phase-2 prediction surfaces.
-  Detail: [data/aoi/study_area.geojson](../data/aoi/study_area.geojson);
-  E1.4.md §1.
+  this file was created.*
+
+  **THE AOI DOES NOT GATE PREDICTION SURFACES — the covariates' DOMAIN OF
+  DEFINITION does** (rewritten at the E3.0 approval, 2026-08-20; E3.0 §2
+  verified every clause below against the repo). The old wording implied the
+  AOI blocked Phase 3, and its trigger read "before Phase-2 prediction
+  surfaces" — a trigger that EXPIRED when Phase 2 ended without producing
+  any. What is actually true:
+
+  * A prediction surface can exist only where its inputs exist. RF needs all
+    eight covariates at every predicted cell; outside the feature stack's
+    extent they are not extrapolated, they are UNDEFINED. So the alpha's
+    prediction domain IS the stack's extent — a domain-of-definition fact,
+    not a geology decision.
+  * **NOTHING FILTERS ON THE AOI TODAY.** `FixtureTerrainSource.load()`
+    ACCEPTS the `study_area` argument and DISCARDS it; the only read anywhere
+    is `corpus_manifest.py:381`'s containment count, whose own note says
+    "Descriptive only… nothing filters rows on it."
+  * **AND THERE IS NO PRODUCTION EXTENT CONFIGURATION EITHER.** The extent is
+    a property of whatever DEM the run is handed; today the only DEM is
+    `tests/fixtures/rasters.py` (100 x 34 @ 0.1°, lon [−126.5, −116.5], lat
+    [11.3, 14.7]). "corpus bbox + 0.5°" describes that FIXTURE, not a
+    configured domain.
+
+  **CONTRACT-SLOT FRAMING.** The AOI is Contract 2 (`study_area.geojson`),
+  and it is a SLOT Track E already reads through `StudyArea` — Track E does
+  not wait on it, it builds against the shape. What Track G fills is the
+  polygon; what changes when they do is which cells a surface is emitted for.
+
+  **THE DECISION BECOMES REAL AT CHECKPOINT 1**, and that is the trigger: a
+  global GEBCO DEM stops bounding anything, so the extent no longer supplies
+  a domain by accident and the AOI must supply it deliberately. Options
+  unchanged: AOI = sampled areas only; AOI = full CCZ with distance-growing
+  uncertainty; or defer again. Recommendation still: define it around where
+  the data actually sits. **Note before choosing: 99.00% of the CURRENT
+  domain already lies beyond one fitted variogram range of any station**
+  (E3.0 §4b) — an AOI larger than the data is a choice to publish mostly-mean
+  cells. Owner: **G + Karl. Trigger: Checkpoint 1** (or any earlier moment a
+  non-fixture DEM enters a run). Detail:
+  [data/aoi/study_area.geojson](../data/aoi/study_area.geojson); E1.4.md §1;
+  [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) §2.
 - [ ] **Real Dryad `[06]` data.** Removed from `REAL_ADAPTER_BUILDERS` in P1
   as fabricated; `_require_proven_measured()` blocks re-wiring until a real
   file exists under `data/`. Owner: G downloads, E re-wires. Trigger: real
@@ -890,6 +931,63 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   **Trigger: the next commit that touches `model_config.yaml` for any
   reason.** Detail: [C8.1.md](walkthroughs/C8.1.md) (its own §0 documents the
   stated-vs-committed distinction this violates).
+- [ ] **REVISIT COG AT CHECKPOINT 1 — the format is inert at today's grid, and
+  nothing installed can validate it** (decided by Karl at the E3.0 approval,
+  2026-08-20; **no dependency added, and none needed to WRITE**).
+  **What was measured, not assumed:** GDAL **3.9.2** / rasterio **1.4.1**, COG
+  driver **present**. Probed both ways — at 2048×2048 the driver produces
+  `tiled=True`, 512×512 blocks, overviews `[2, 4]`; **at the actual 100×34
+  grid it produces `tiled=True`, overviews `[]`, an 18.5 KiB file over a 13.3
+  KiB payload** — smaller than ONE 512×512 float32 block (1 MiB). Range
+  requests and overviews, the entire point of the format, are inert at that
+  size.
+  **And nothing installed can validate COG-ness:** `rio_cogeo`, `osgeo.gdal`
+  and `validate_cloud_optimized_geotiff` are all unimportable. rasterio can
+  observe driver, `tiled`, `block_shapes`, `overviews()`, CRS, transform,
+  dtype and nodata — it CANNOT observe the IFD/byte-layout ordering that
+  actually makes a GeoTIFF cloud-optimized. **A native test would verify the
+  STRUCTURE without verifying the PROPERTY, so claiming COG-ness would be a
+  claim with a partial observer** — which is why E3.1+2 writes with the COG
+  driver, asserts only the observable fields, and **claims no COG-ness in the
+  manifest or the tags.**
+  **What is deferred, and why it needs Checkpoint 1 specifically:** a global
+  GEBCO grid makes the format mean something (overviews generate, tiles get
+  fetched), and `rio-cogeo`'s evidence — maintenance state, transitive deps,
+  license, lockfile delta — can be gathered **with network access**, which
+  this session did not have. It is NOT in `requirements.lock` today (45
+  lines, 0 matches). Owner: E + Karl (a dependency is Karl's call).
+  **Trigger: Checkpoint 1**, or the first time a surface exceeds one 512×512
+  block. Detail:
+  [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) (E3.0
+  approval block; E3.1+2 commit 1).
+
+- [ ] **E3.3 REPORTS r WITH N_eff AND NO p-VALUE — record the reasoning in the
+  OUTPUT, not only here** (decided by Karl at the E3.0 approval, 2026-08-20).
+  A correlation between two spatially autocorrelated surfaces is inflated
+  because the effective number of independent observations is far below the
+  cell count. On the common grid that is **3,400 cells carrying df ≈ 3,398**,
+  which is fiction. A geometric bound gives **N_eff ≈ 278** if the surface
+  varied everywhere; it does not — **kriging is constant over 99% of the
+  domain and the ~34 signal-carrying cells fall in TWO clusters, so N_eff ≈
+  2.** For RF, N_eff is bounded by its handful of plateaus.
+  **The decision:** descriptive r, N_eff printed beside it, **no p-value** —
+  at N_eff ≈ 2 no significance test is meaningful, and a corrected test would
+  turn p < 0.001 into p ≈ 0.6, which is more honest inference over the same
+  emptiness.
+  **THE LIMIT, which must travel with the number: a correction adjusts
+  DEGREES OF FREEDOM; IT CANNOT MANUFACTURE INFORMATION.** The real problem is
+  that one surface is constant over 99% of its own domain, and no test
+  corrects for that.
+  **Tooling, verified rather than assumed:** Clifford–Richardson (1989) and
+  Dutilleul (1993) are the standard corrections and both are hand-implementable
+  over numpy (the lag structure over 3,400 cells is 5.8M pairs — seconds).
+  `scipy` **1.17.1** is importable but arrives TRANSITIVELY via scikit-learn
+  and is **not a declared dependency** — using it directly needs a
+  `pyproject.toml` entry. `statsmodels`, `esda`, `libpysal`, `pysal`: **not
+  installed**. Owner: E. **Trigger: E3.3 commit 2** (implement a correction
+  only if a test is ever demanded). Detail:
+  [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) E3.3.
+
 - [ ] **LITERATURE's evidence requirement has NO OBSERVER — the one evidence
   check of five that nothing tests** (found at P2.CLOSE commit 4, 2026-08-20,
   by the sole-observer measurement; **not fixed there — that commit is
@@ -921,6 +1019,29 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   all promote this way). Nothing is currently wrong in the repo; the check
   would fire today. What is missing is any evidence that it still will after
   the next edit to the resolver.
+
+  **QUALIFIED AT THE E3.0 APPROVAL (2026-08-20): NEITHER PHASE-3 DELIVERABLE'S
+  ORIGIN CLASS IS SETTLED BY THE REPO**, so "both arrive as LITERATURE" is a
+  premise this entry must not rest on.
+
+  * **The AOI polygon** could be MEASURED (hashed DeepData polygons —
+    `docs/contracts/README.md`'s Contract 2 row already contemplates them),
+    DERIVED (computed from the corpus, which is the "sampled areas only"
+    option), or LITERATURE (a cited published boundary). The class follows
+    the option chosen, and the option is §1's open AOI decision.
+  * **The TS-6 raster**: Contract 6 gives it fields matching ALL THREE
+    evidence shapes at once and decides none — `content_hash: null "filled at
+    ingestion"` (MEASURED's evidence), `digitization_method` (DERIVED's), and
+    values that come from a publication (LITERATURE's).
+    **DECIDING TS-6's CLASS IS A PREREQUISITE FOR E3.3, NOT A DISCOVERY
+    DURING IT** — the comparison writes an origin into the manifest, and a
+    class chosen while the number is being computed is chosen to suit it.
+
+  **THE URGENCY SURVIVES THE QUALIFICATION, which is the point:** whichever
+  way each lands, at least one Phase-3 arrival falls in LITERATURE — the ONLY
+  class with no observer. DERIVED, the likeliest alternative for TS-6, HAS
+  one (1 of 471). So the gap is not hypothetical for Phase 3; it is on the
+  path.
 
   **The fix is one negation fixture**, in the shape the other two already
   use: a `data_origin: LITERATURE` node with no citation must appear in
