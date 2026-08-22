@@ -31,8 +31,12 @@ rule and where each is enforced; P2.0c applied the markers):
   covariates.yaml's ts6_finding strings cite findings with no table or page
   reference; P2.0c records those as evidence gaps rather than closing them by
   guessing.)
-* SYNTHETIC  — the generator's import path and seed. In this repo only
-  tests/fixtures/rasters.py currently qualifies (seeds 0 and 1).
+* SYNTHETIC  — the generator's import path AND (a seed OR a recorded
+  determinism basis naming what makes it deterministic). Widened at TAX.1
+  (2026-08-21) because the seed-only rule was unsatisfiable for a
+  synthetic-by-inheritance artifact whose generator is seedless; see
+  CLAUDE.md's evidence table. tests/fixtures/rasters.py qualifies by seed
+  (0 and 1); E3.1+2's surfaces qualify by basis.
 * AUTHORED   — author: one of ALLOWED_AUTHORS ("model", "karl", "isaac", or
   "unrecorded" — the last reserved for values predating this rule; see
   validate_author).
@@ -58,7 +62,8 @@ Terminology collision, recorded so no one trusts a filename
 This repo's word "synthetic" mostly denotes taxonomy-AUTHORED: the hand-typed
 fixture values in data/fixtures/native/*.csv, SYNTHETIC_MEAN_NODULE_MASS_G in
 tests/fixtures/normalizers.py, and the src_synthetic_* source ids.
-Taxonomy-SYNTHETIC requires a deterministic generator with a recorded seed,
+Taxonomy-SYNTHETIC requires a deterministic generator with a recorded seed
+or determinism basis,
 which only tests/fixtures/rasters.py satisfies. Nothing is renamed (P2.0
 decision, CLAUDE.md "Data origin" section); the collision is recorded rather
 than corrected.

@@ -54,6 +54,24 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 SIDECAR_NAME = "data_origin.yaml"
 
+# TAX.1: the loophole in "a seed OR a determinism basis" is a basis that
+# satisfies the letter and carries nothing — "deterministic", "n/a", "none".
+# The basis must NAME WHAT MAKES IT DETERMINISTIC.
+#
+# THE CHECK IS A MINIMUM LENGTH, and the trade-off is stated rather than
+# hidden: it is crude but MECHANICALLY OBSERVABLE, where "must reference the
+# generator's mechanism" is better in principle and not checkable without
+# reading English. 40 characters is above every bare token that would be
+# reached for ("deterministic" 13, "no seed" 7, "n/a" 3, "fixed" 5) and below
+# one clause naming a mechanism.
+#
+# WHAT IT DOES NOT CATCH, said plainly: a long sentence that names nothing —
+# "this artifact is deterministic and always reproducible" is 54 characters
+# and vacuous. THE CHECK VERIFIES EFFORT, NOT MEANING, and no mechanical
+# check can verify meaning. Review is the observer for vacuity; this is the
+# observer for absence.
+MIN_DETERMINISM_BASIS_CHARS = 40
+
 # ---------------------------------------------------------------------------
 # EXPLICIT EXCLUSIONS — one file, one reason. No globs, no directories: a
 # pattern lets a subtree go dark, the coverage-that-isn't shape three Phase-1
@@ -140,6 +158,10 @@ class Declaration:
     generator: str | None = None
     seeds: object | None = None
     derivation: str | None = None
+    # TAX.1 (2026-08-21): SYNTHETIC's second evidence half is a seed OR a
+    # DETERMINISM BASIS. See MIN_DETERMINISM_BASIS_CHARS for why a bare word
+    # does not count.
+    determinism_basis: str | None = None
 
 
 def tracked_subject_files() -> list[str]:
@@ -186,6 +208,7 @@ def _in_file_declaration(root: Path, rel_path: str) -> Declaration | None:
             author=getattr(module, "DATA_AUTHOR", None),
             generator=getattr(module, "DATA_GENERATOR", None),
             seeds=getattr(module, "DATA_SEEDS", getattr(module, "DATA_SEED", None)),
+            determinism_basis=getattr(module, "DATA_DETERMINISM_BASIS", None),
         )
     else:
         return None
@@ -199,6 +222,7 @@ def _in_file_declaration(root: Path, rel_path: str) -> Declaration | None:
         generator=top.get("generator"),
         seeds=top.get("seeds", top.get("seed")),
         derivation=top.get("derivation"),
+        determinism_basis=top.get("determinism_basis"),
     )
 
 
@@ -242,6 +266,7 @@ def _sidecar_declaration(root: Path, rel_path: str) -> Declaration | None:
         generator=entry.get("generator"),
         seeds=entry.get("seeds", entry.get("seed")),
         derivation=entry.get("derivation"),
+        determinism_basis=entry.get("determinism_basis"),
     )
 
 
@@ -335,8 +360,33 @@ def audit(
                 # values under a "synthetic_" filename (P2.0d-2 §0.1).
                 if not (declaration.generator and str(declaration.generator).strip()):
                     invalid.append(f"{path}: SYNTHETIC without a generator import path")
+                # TAX.1 (2026-08-21) — WIDENED, AND THIS IS NOT A LOOSENING.
+                # The rule was: generator AND seed. It was UNSATISFIABLE for a
+                # SYNTHETIC-BY-INHERITANCE artifact whose generator is
+                # genuinely seedless: E3.1+2's kriging surface is synthetic
+                # because its DEM is, and ordinary kriging records no seed
+                # because it has none. The artifact existed, was declared
+                # honestly, and could not pass — while a FABRICATED seed would
+                # have passed. A rule that only the dishonest path can satisfy
+                # is not strict, it is unenforceable.
+                #
+                # A seed and a determinism basis are TWO ANSWERS TO ONE
+                # QUESTION — what makes this reproducible — and the old rule
+                # admitted only one of them. Same information, satisfiable.
                 if declaration.seeds is None:
-                    invalid.append(f"{path}: SYNTHETIC without a recorded seed")
+                    basis = (declaration.determinism_basis or "").strip()
+                    if not basis:
+                        invalid.append(
+                            f"{path}: SYNTHETIC without a recorded seed or a "
+                            "determinism basis"
+                        )
+                    elif len(basis) < MIN_DETERMINISM_BASIS_CHARS:
+                        # THE LOOPHOLE, CLOSED WHERE THE RULE IS WRITTEN.
+                        invalid.append(
+                            f"{path}: SYNTHETIC determinism basis {basis!r} is too "
+                            f"short to name a mechanism (< {MIN_DETERMINISM_BASIS_CHARS} "
+                            "chars) — say WHAT makes it deterministic, not THAT it is"
+                        )
             if origin is DataOrigin.DERIVED and not (
                 declaration.derivation and str(declaration.derivation).strip()
             ):
@@ -548,26 +598,68 @@ def test_audit_reports_an_unknown_origin_label_and_a_missing_author(tmp_path: Pa
     assert any("authorless.yaml" in item for item in findings.invalid)
 
 
-def test_audit_reports_synthetic_declarations_missing_generator_or_seed(tmp_path: Path) -> None:
-    """SYNTHETIC's evidence bar, both halves independently: no generator at
-    all, and a generator with no seed. This is the check separating a seeded
-    generator from hand-typed values under a synthetic_* filename.
+def test_audit_reports_synthetic_declarations_missing_generator_seed_or_basis(
+    tmp_path: Path,
+) -> None:
+    """SYNTHETIC's evidence bar after TAX.1, all five cases separated.
 
-    SOLE OBSERVER (measured at P2.CLOSE, 2026-08-20, over the full 471-test suite): this is the ONLY test in the suite that fails when EITHER half of
-    the SYNTHETIC evidence check is removed — 1 of 471 for the generator
-    check, 1 of 471 for the seed check. It protects the distinction CLAUDE.md
-    calls "the only thing separating a seeded generator from hand-typed
-    values under a synthetic_* filename"; weaken it and a SYNTHETIC
-    declaration needs no evidence at all."""
+    The rule is `a generator import path, AND (a seed OR a determinism
+    basis)`. Each row isolates one half so a single broken branch cannot hide
+    behind another:
+
+      * generator + seed       -> ADMITTED (the pre-TAX.1 path, asserted so
+                                  the widening cannot regress it)
+      * generator + real basis -> ADMITTED (the path TAX.1 adds)
+      * generator + BARE basis -> REFUSED  (the loophole)
+      * generator + neither    -> REFUSED  (unchanged)
+      * seed, no generator     -> REFUSED  (unchanged)
+
+    SOLE OBSERVER (re-measured at TAX.1, 2026-08-21): this is the only test in
+    the suite that fails when ANY of the three SYNTHETIC evidence branches is
+    removed — the generator check, the seed-or-basis check, and the
+    bare-basis length check. Weaken it and a SYNTHETIC declaration needs no
+    evidence at all, which is the distinction the taxonomy rests on.
+    """
     _write(tmp_path, "bare.yaml", "data_origin: SYNTHETIC\n")
     _write(tmp_path, "seedless.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\n")
-    _write(tmp_path, "proper.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\nseed: 7\n")
-    rel_paths = ["bare.yaml", "seedless.yaml", "proper.yaml"]
+    _write(tmp_path, "seeded.yaml", "data_origin: SYNTHETIC\ngenerator: pkg.gen\nseed: 7\n")
+    _write(
+        tmp_path,
+        "basis.yaml",
+        "data_origin: SYNTHETIC\ngenerator: pkg.gen\n"
+        "determinism_basis: closed-form weighted least squares over a fixed "
+        "candidate grid; no sampling anywhere in the path\n",
+    )
+    _write(
+        tmp_path,
+        "loophole.yaml",
+        "data_origin: SYNTHETIC\ngenerator: pkg.gen\ndeterminism_basis: deterministic\n",
+    )
+    _write(tmp_path, "nogen.yaml", "data_origin: SYNTHETIC\nseed: 7\n")
+    rel_paths = [
+        "bare.yaml", "seedless.yaml", "seeded.yaml",
+        "basis.yaml", "loophole.yaml", "nogen.yaml",
+    ]
     findings = audit(rel_paths, collect_declarations(tmp_path, rel_paths, {}), {})
+
     assert "bare.yaml: SYNTHETIC without a generator import path" in findings.invalid
-    assert "bare.yaml: SYNTHETIC without a recorded seed" in findings.invalid
-    assert "seedless.yaml: SYNTHETIC without a recorded seed" in findings.invalid
-    assert not any("proper.yaml" in item for item in findings.invalid)
+    assert "bare.yaml: SYNTHETIC without a recorded seed or a determinism basis" in findings.invalid
+    assert (
+        "seedless.yaml: SYNTHETIC without a recorded seed or a determinism basis"
+        in findings.invalid
+    )
+    assert "nogen.yaml: SYNTHETIC without a generator import path" in findings.invalid
+    loophole = [item for item in findings.invalid if item.startswith("loophole.yaml")]
+    assert loophole and "too short to name a mechanism" in loophole[0], loophole
+    assert "say WHAT makes it deterministic, not THAT it is" in loophole[0]
+
+    # A POSITIVE FULL-STATE COMPARISON of WHICH files were refused (rule 3):
+    # a resolver that refused everything, or nothing, fails here — asserting
+    # only "seeded.yaml not in invalid" would pass on a resolver that had
+    # stopped checking altogether.
+    assert {item.split(":")[0] for item in findings.invalid} == {
+        "bare.yaml", "seedless.yaml", "loophole.yaml", "nogen.yaml"
+    }
 
 
 def test_audit_reports_derived_declarations_missing_their_derivation(tmp_path: Path) -> None:
