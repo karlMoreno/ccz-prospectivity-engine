@@ -136,4 +136,7 @@ class FixtureTS6Reference(TS6Reference):
             raster_path=str(self._raster_path),
             role_note="benchmark_only",
             content_hash=file_sha256(self._raster_path),
+            # The DECLARATION (P2.0d-3 rule): this is the synthetic fixture,
+            # and it says so — the comparison's origin is computed FROM this.
+            data_origin="SYNTHETIC",
         )

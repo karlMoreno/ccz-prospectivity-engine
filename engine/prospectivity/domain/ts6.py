@@ -24,3 +24,9 @@ class TS6Surface(BaseModel):
     crs: str = "EPSG:4326"
     role_note: str | None = None  # "benchmark_only" | "reproduction_check"
     content_hash: str | None = None
+    # The raster's DECLARED origin class (E3.3, mirroring Contract 6 v3's
+    # `raster_data_origin`): the fixture declares SYNTHETIC; the real
+    # digitized surface is DERIVED — a raster WE compute from a published
+    # figure by a recorded procedure. None is "undeclared", which the
+    # comparison REFUSES rather than defaults (declaration or nothing).
+    data_origin: str | None = None
