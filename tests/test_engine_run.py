@@ -52,22 +52,11 @@ CLAIM_DESIGN = "leave_one_site_out"
 ESTIMATORS = {"mean_baseline", "ordinary_kriging", "random_forest"}
 
 
-class _Phase4Stub(EconomicModel):
-    """E4.1 commit 1: the seam is revised, the computation (commit 2) is
-    not yet here; this stub records the scenario name and the DERIVED
-    watermark verdict, copying no flag."""
-
-    def apply(self, inputs, scenario):
-        from engine.prospectivity.economics.watermark import economic_watermark_verdict
-
-        class _Footprints:
-            def record(_self) -> EconomicScenarioResult:
-                return EconomicScenarioResult(
-                    scenario_name=scenario.name,
-                    watermark=economic_watermark_verdict(inputs.dem_data_origin, scenario).to_record(),
-                )
-
-        return _Footprints()
+# E4.1 commit 2: the real EconomicModel runs in the composition — Phase 4's
+# seam is no longer stubbed (PATTERNS §3.2's last zero-implementation ABC
+# after TS6Reference, which waits on G3.1).
+from engine.prospectivity.economics.contract import difference_pairs
+from engine.prospectivity.economics.cutoff import CutoffEconomicModel
 
 
 def _study_area() -> StudyArea:
@@ -106,8 +95,9 @@ def _engine(
         ),
         estimators=registry,
         ts6_reference=FixtureTS6Reference(ts6_path),
-        economic_model=_Phase4Stub(),
+        economic_model=CutoffEconomicModel(),
         scenario_configs=_scenarios(),
+        difference_pairs=difference_pairs(),
         output_dir=tmp / out,
         claim_design=CLAIM_DESIGN,
         seed=seed,
@@ -142,10 +132,17 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     # every written file, hashed by basename, recomputed here from the bytes
     files = {p.name: file_sha256(p) for p in out.iterdir() if p.name != "run_manifest.json"}
     assert manifest.output_hashes == files and len(files) == 10
-    # Phase 4's seam ran over Contract 4's two scenarios; the verdict is DERIVED, both reasons unlifted today
+    # Phase 4's model ran over Contract 4's two scenarios and its one difference
+    # pair; the verdict is DERIVED, both reasons unlifted today; the computed
+    # origin is AUTHORED (the lattice's lossy answer, beside the verdict)
     assert [r.scenario_name for r in manifest.economic_results] == ["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"]
-    assert all(r.watermark["watermarked"] and len(r.watermark["reasons"]) == 2 for r in manifest.economic_results)
-    assert manifest.economic_differences == [] and manifest.schema_version == 2
+    for r in manifest.economic_results:
+        assert r.watermark["watermarked"] and [x["lifted"] for x in r.watermark["reasons"]] == [False, False]
+        assert r.data_origin == "AUTHORED" and set(r.footprints) == ESTIMATORS and set(r.footprints["random_forest"]) == {"0.0", "1.0"}
+        assert all(v["fraction_of_predictable"] == 1.0 for by_z in r.footprints.values() for v in by_z.values())
+    assert [d.pair for d in manifest.economic_differences] == [["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"]]
+    assert all(v["n_minable"] == 0 for by_z in manifest.economic_differences[0].footprints.values() for v in by_z.values())
+    assert manifest.schema_version == 2
 
 
 def test_the_run_is_watermarked_refused_and_says_so_as_data(run: dict) -> None:

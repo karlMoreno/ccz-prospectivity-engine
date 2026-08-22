@@ -241,6 +241,54 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   composition, and price sources; the engine watermarks output until
   flipped. Owner: G. Trigger: Checkpoint 4. Detail:
   [scenarios.yaml:10](../data/economics/scenarios.yaml#L10)–78.
+  **G4.1's ASK, SHARPENED by E4.1 (2026-08-22) — what the consumer actually
+  needs, now that it exists** (`economics/cutoff.py`; the
+  `acceptance_thresholds` / `digitization_uncertainty` precedent: a slot
+  arrives when its consumer exists, not before):
+  * **THE TWO SCENARIOS BRACKET NOTHING on today's surfaces** — measured,
+    not assumed (`test_economic_cutoff.py`): kriging sits within 0.5 kg/m²
+    of the 19.5 kg/m² training mean over 99.62% of the domain and RF's
+    plateaus lie in [15.1, 21.7], so cutoffs of 10.0 and 5.5 both admit
+    the WHOLE predictable domain (2,880 of 2,880 cells, 347,707 km²) at
+    z = 0 AND z = 1, and the difference map is EMPTY for every estimator.
+    This is a property of the cutoffs' relation to the training mean, not
+    of the seafloor — and it means the placeholders do not do the one thing
+    two scenarios exist for. The ask: cutoffs that bracket the corpus's own
+    distribution (11.6–26.8 kg/m², mean 19.5), or a stated reason the
+    bracket should sit below it (the TS-6 anchors quoted in the comments
+    are from a different, grab-sampler-biased distribution — the file's
+    own caveat says so).
+  * **Five slots Contract 4 does not have, each with a consumer now or
+    named** (E4.0 §1): (a) a RECOVERY FRACTION — `cost_model` carries a
+    recovery *cost*, not a recoverable share, so "abundance × recovery" has
+    no parameter; (b) the UNCERTAINTY TREATMENT — Decision 2's confidence
+    levels are a model default (`z ∈ {0, 1}`), not a contract value;
+    (c) a PRICE SOURCE — `price_usd_per_tonne: 0` with nowhere to cite
+    from, so `dollar_value` refuses by name; (d) the WET/DRY BASIS the
+    cutoff is on (the separate entry below — a Contract 1 gap too);
+    (e) the difference's semantics, today a comment. Owner: G (values) +
+    Karl (slots). Trigger: Checkpoint 4, and (d) before any published run.
+- [ ] **THE WET/DRY BASIS IS RECORDED NOWHERE, AND IT NOW HAS A LIVE
+  CONSUMER** (found at E4.0 §1, confirmed at E4.1 commit 2, 2026-08-22;
+  deferred rather than invented — a basis picked here would be an AUTHORED
+  value in a training target). What each source actually says, verified:
+  Contract 1 has `abundance_basis` (enum wet | dry | unknown, NOT
+  required); the corpus's 108 rows leave it EMPTY — not even "unknown";
+  `source_queue.yaml` `[01]`'s own derivation note reads "reported directly
+  (kg/m2); **confirm wet/dry basis**" — unconfirmed at the source;
+  `normalization.yaml:57` says "record wet/dry basis; do not silently mix
+  bases"; Contract 8's `target_definition` (`total_as_published`) names no
+  basis; and Contract 4's `grade_units: kg_m2` "must match the sample
+  unit" with NO basis slot, while its cutoffs are anchored to TS-6's
+  distribution, whose basis is also unstated. So the model compares a
+  cutoff in kg/m² of SOMETHING against a target in kg/m² of SOMETHING
+  ELSE-OR-THE-SAME, and nothing in the repo can say which. **Two
+  contracts, one gap:** Contract 1 should REQUIRE `abundance_basis`
+  ("unknown" is an admissible answer; empty is not) and the `[01]` adapter
+  should write what the source states; Contract 4 needs a `cutoff_basis`
+  beside `grade_units`. Owner: G (the [01] basis; TS-6's) + Karl (both
+  slots). **Trigger: before any published run; before Checkpoint 4.**
+  Detail: [E4.1.md](walkthroughs/E4.1.md) §2.
 - [ ] **LITERATURE citations that fail the locate-the-number bar** (P2.0c;
   the bar: document + table/section/page — "TS-6" alone is insufficient).
   Labels carried as LITERATURE with the gap recorded, not guessed closed and
@@ -1639,6 +1687,19 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   row M (a, b, c); [E2.4.md](walkthroughs/E2.4.md) §3 "what does and does not
   reproduce"; `features/stack.py` manifest assembly;
   [PROVENANCE.md](contracts/PROVENANCE.md) "CONTENT HASH SCHEME".
+- [ ] **THE SLOPE FILTER IS PHYSICALLY MEANINGLESS AT 0.1° AND IS APPLIED
+  ANYWAY — resolve at Checkpoint 1** (E4.1 commit 2, 2026-08-22).
+  Contract 4's `spatial_filters.max_slope_degrees: 6` is a COLLECTOR limit;
+  the stack's `slope` is Horn's 3x3 gradient on ~11 km cells, a regional
+  gradient whose maximum on this grid is **0.87°** (median 0.31°) — the
+  filter removes zero cells and could not remove any. `CutoffEconomicModel`
+  applies it as specified (not skipped, not pretended to mean something)
+  and records `SLOPE_RESOLUTION_NOTE` beside the count. At Checkpoint 1
+  with ~460 m GEBCO cells the gradient becomes local enough that a
+  collector limit begins to mean something — and Isaac's `[GEOLOGY —
+  ISAAC]` confirmation of the threshold is still owed. Owner: E (the
+  resolution note becomes a measurement) + G (the value). **Trigger:
+  Checkpoint 1.** Detail: `economics/cutoff.py`; [E4.1.md](walkthroughs/E4.1.md) §2.
 - [ ] **OTHER ENTRIES TRIGGERED "BEFORE CHECKPOINT 1", reported at HASH.1 so
   none expires the way the sole-observer pass did** (2026-08-22; none of
   them is HASH.1's to do). Three remain live with that trigger: (i) §1/§2

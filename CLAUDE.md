@@ -443,7 +443,12 @@ ccz-prospectivity-engine/
   to the boundary the two-track design allows:** the proposal's Phase 4
   Track-E lane (E4.1–E4.3, the EconomicModel over Contract 4's PLACEHOLDER
   scenarios, "illustrative only") needs no Track-G input, and BACKLOG §3
-  items remain E's alone. **HASH.1 (2026-08-22) is done:** the hash scheme
+  items remain E's alone. **E4.1 (2026-08-22) is done:** Contract 4's loader,
+  the per-reason watermark verdict (terrain ↔ Checkpoint 1; parameters ↔
+  Checkpoint 4), and `CutoffEconomicModel` on confidence-level footprints —
+  the measured output on today's surfaces is the whole domain under both
+  scenarios and an empty difference, stated in advance, a property of the
+  placeholder cutoffs, not the seafloor. **HASH.1 (2026-08-22) is done:** the hash scheme
   is shape-tolerant (present fields + `schema_version`; two legacy
   artifacts keep their hashes) and the path-hash defect is fixed (0
   directory-dependent hash values, was 11) — Checkpoint 1 is unblocked on
