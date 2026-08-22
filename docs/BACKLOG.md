@@ -426,8 +426,15 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   policy (each shape change re-stamps committed artifacts, diff on record)
   or whether the hash scheme should become shape-tolerant (e.g. hash only
   fields that are set, or version the shape) — the second changes the
-  semantics of every artifact's hash and was NOT made unilaterally. The
-  path-hash fix (§3) will force the same choice again. Owner: Karl.
+  semantics of every artifact's hash and was NOT made unilaterally.
+  **BOTH COSTS, recorded (E3.4 prompt §6):** re-stamping means a PROVENANCE
+  RECORD THAT CHANGES AFTER THE FACT — in tension with what the chain is
+  for, and survivable only because the commit shows the diff is the shape's;
+  shape-tolerant hashing means TWO MANIFESTS WITH DIFFERENT SHAPES CAN HASH
+  IDENTICALLY, so the hash stops identifying the schema and a reader can no
+  longer tell from the hash which fields a record was able to carry. The
+  path-hash fix (§3) will force the same choice again, so it should be
+  decided BEFORE then rather than under it. Owner: Karl.
   **Trigger: before the path-hash fix, or the next RunManifest field.**
   Detail: [E3.4.md](walkthroughs/E3.4.md) §1; `domain/results.py` docstring.
 
@@ -1498,8 +1505,15 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   its SUBSTANCE fields from a different directory, and in neither of its
   identity fields.
 
-  **THE BLAST RADIUS, RE-MEASURED AT E3.4 (2026-08-22): IT NOW REACHES EVERY
-  OUTPUT FILE.** Each written raster's tags and each sidecar carry the stack
+  **THE BLAST RADIUS, RE-MEASURED AT E3.4 (2026-08-22): IT NOW REACHES 9 OF
+  THE 10 OUTPUT FILES** — every raster (tags) and every provenance sidecar
+  (`grid.identity()`); NOT `data_origin.yaml`, which quotes no hash. (The
+  first statement of this, "every output file", was wrong by one and was
+  corrected by MEASURING the two-directory diff: **11 distinct hash values
+  move** — the stack hash, the matrix hash, nine files — and the manifest's
+  `provenance_chain.path_dependent_hashes.count` now carries that number,
+  computed at emission by testing each file's bytes for the stack hash.)
+  Each written raster's tags and each provenance sidecar carry the stack
   hash (`grid_stack_content_hash`; `grid.identity()`), so the same
   SurfaceResult written against a stack built from the same DEM bytes at a
   different path is a DIFFERENT FILE (values identical — measured with

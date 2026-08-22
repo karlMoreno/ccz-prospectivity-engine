@@ -34,10 +34,12 @@ verifiable off the machine that wrote it (BACKLOG §3, trigger before
 Checkpoint 1). That is not this task's to fix — but a chain that claims more
 than it delivers is exactly the defect that entry exists to prevent, so the
 limit is stated in `provenance_chain`, where a manifest reader meets it,
-and not only in a doc. Measured here for the first time: the limit REACHES
-EVERY OUTPUT FILE, because each raster's tags and each sidecar carry the
-stack hash (`test_run_manifest_extension.py` pins this; when the BACKLOG
-fix lands, that test goes red and this block's claim must change with it).
+and not only in a doc — and its SCOPE IS COUNTED at emission
+(`path_dependent_hashes`): every output file whose bytes quote the stack
+hash (each raster's tags, each provenance sidecar — 9 of 10 today; the
+origin sidecar carries none) plus the stack and matrix hashes themselves.
+The tests pin that count against a measured two-directory diff; when the
+BACKLOG fix lands they go red and this block's claim must change with them.
 
 E2.5's VERDICT IS DATA, NOT PROSE. `claim` carries every design's verdict —
 each precondition, pass AND fail, by name — plus the design the caller
@@ -90,10 +92,12 @@ CHAIN_LIMIT_NOTE = (
     "link is verifiable: FeatureStackManifest's substance embeds the caller-"
     "supplied DEM path string (nine times), so the feature_stack hash — and "
     "everything that quotes it: the training_matrix hash, this run's "
-    "content_hash, every raster's tags and every sidecar — changes with the "
-    "directory the stack was built from, for reasons unrelated to the terrain. "
-    "Recorded in docs/BACKLOG.md §3 (trigger: before Checkpoint 1). A reader "
-    "elsewhere can verify ORIGIN for the corpus and CONSISTENCY for the rest."
+    "content_hash, and every output file whose bytes quote it (each raster's "
+    "tags, each provenance sidecar; NOT the origin sidecar, which carries no "
+    "hash) — changes with the directory the stack was built from, for reasons "
+    "unrelated to the terrain. `path_dependent_hashes` COUNTS them, measured at "
+    "emission. Recorded in docs/BACKLOG.md §3 (trigger: before Checkpoint 1). A "
+    "reader elsewhere can verify ORIGIN for the corpus and CONSISTENCY for the rest."
 )
 
 CLAIM_NOTE = (
@@ -297,11 +301,19 @@ def extend_run_manifest(
     surfaces_block: dict[str, dict] = {}
     output_hashes: dict[str, str] = {}
     origin_sidecars: set[Path] = set()
+    # MEASURED, not asserted: which output files quote the stack hash in their
+    # bytes — those are the ones whose identity moves with the directory.
+    # (Rasters carry it in their tags, provenance sidecars in grid.identity();
+    # the origin sidecar carries no hash at all, which the first draft of the
+    # chain block got wrong by saying "every output file".)
+    path_dependent_files: list[str] = []
 
     def _record_output(path: Path, digest: str) -> None:
         if path.name in output_hashes and output_hashes[path.name] != digest:
             raise _refuse(f"two written files share the basename {path.name!r} with different bytes")
         output_hashes[path.name] = digest
+        if stack_hash.encode("utf-8") in path.read_bytes():
+            path_dependent_files.append(path.name)
 
     for name in sorted(surfaces):
         result = surfaces[name]
@@ -446,12 +458,44 @@ def extend_run_manifest(
                 "agrees_with": ["output_hashes", "surfaces.*.rasters", "surfaces.*.sidecar"],
                 "verifiable_off_machine": False,
                 "why": (
-                    "every raster's tags and every sidecar carry the stack hash, so the "
-                    "feature_stack limit reaches every output file (measured at E3.4)"
+                    f"{len(path_dependent_files)} of {len(output_hashes)} written files quote "
+                    "the stack hash in their bytes (measured at emission: every raster's tags, "
+                    "every provenance sidecar), so the feature_stack limit reaches them; the "
+                    "files that do not are listed under path_dependent_hashes.independent"
                 ),
             },
         },
         "verifiable_off_machine": ["corpus"],
+        # THE LIMIT'S SCOPE AS A NUMBER (E3.4 prompt §4): which recorded hash
+        # VALUES move with the stack's directory, counted and named by the JSON
+        # path they are recorded at. A fix that stops the stack hash varying
+        # must bring this to zero — and the test that pins it will say so.
+        "path_dependent_hashes": {
+            "count": 2 + len(path_dependent_files),
+            "values": {
+                "feature_stack": [
+                    "upstream_hashes.feature_stack",
+                    "prediction_grid.stack_content_hash",
+                    "provenance_chain.links.feature_stack.content_hash",
+                ],
+                "training_matrix": [
+                    "upstream_hashes.training_matrix",
+                    "provenance_chain.links.training_matrix.content_hash",
+                ],
+                **{
+                    name: [f"output_hashes.{name}", "surfaces.*.rasters|sidecar"]
+                    for name in sorted(path_dependent_files)
+                },
+            },
+            "independent": sorted(set(output_hashes) - set(path_dependent_files)),
+            "note": (
+                "count = distinct hash VALUES that change when the same inputs are run "
+                "from another directory (the stack hash, the matrix hash that quotes it, "
+                "and each output file whose bytes quote it); `values` maps each to every "
+                "JSON path it is recorded at; `independent` names the written files whose "
+                "bytes carry no stack hash"
+            ),
+        },
         "limit": CHAIN_LIMIT_NOTE,
     }
 

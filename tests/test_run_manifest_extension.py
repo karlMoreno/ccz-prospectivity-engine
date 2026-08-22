@@ -459,3 +459,91 @@ def test_the_corpus_bytes_are_pinned_by_the_run_and_recomputed_from_the_csv(
     monkeypatch.setattr(emitter, "_REPO_ROOT", tmp_path)  # an intact manifest, no CSV beneath it
     with pytest.raises(ValueError, match=r"corpus_path 'data/corpus/master_observations.csv', which is not a file"):
         _extend(run)
+
+
+# ──────────────── the E3.4 prompt's named tests the first pass lacked
+
+
+def test_each_agreement_entry_carries_r_n_eff_mean_difference_role_note_and_the_benchmark_state(run: dict) -> None:
+    """Prompt §3: every mapping entry carries the five facts. The benchmark
+    state today is the FIXTURE path's — None with the not-applicable note;
+    the real path with a null Contract 6 value REFUSES in E3.3's comparison
+    (no manifest exists to carry a 'refused' state), which is the design."""
+    entries = json.loads(run["manifest"].to_json())["ts6_agreement"]
+    for name, entry in entries.items():
+        assert entry["estimator_name"] == name and entry["role_note"] == "benchmark_only"
+        assert {"spatial_correlation", "n_eff", "mean_difference"} <= set(entry)
+        assert entry["mean_difference"] is not None
+        assert entry["benchmark_uncertainty"] is None
+        assert entry["benchmark_uncertainty_note"] == "not applicable — synthetic fixture, not a digitized surface"
+    assert entries["ordinary_kriging"]["n_eff"] is not None and entries["ordinary_kriging"]["spatial_correlation"] is not None
+    assert entries["mean_baseline"]["spatial_correlation"] is None  # constant surface: undefined, by name
+
+
+def test_an_empty_agreement_mapping_and_a_null_field_are_distinguishable_and_the_emitter_refuses_the_empty_one(run: dict) -> None:
+    """Prompt §2: 'no comparison ran' (None) and 'ran and produced nothing'
+    ({}) must not read the same. They serialize differently and hash
+    differently — and the second cannot be EMITTED at all, because the
+    registry always holds the baseline, so an empty mapping is refused by
+    name as a cherry-pick of zero estimators."""
+    null = RunManifest(run_id="x", seed=0, ts6_agreement=None).finalize()
+    empty = RunManifest(run_id="x", seed=0, ts6_agreement={}).finalize()
+    assert '"ts6_agreement": null' in null.to_json() and '"ts6_agreement": {}' in empty.to_json()
+    assert null.content_hash != empty.content_hash
+    with pytest.raises(ValueError, match=r"the agreements cover estimators \[\] but the run cross-validated"):
+        _extend(run, agreements={})
+
+
+def test_the_path_dependent_hash_count_equals_the_measured_two_directory_difference(
+    run: dict, tmp_path: Path
+) -> None:
+    """Prompt §4: the limit's scope as a NUMBER, and the number MEASURED. A
+    second extension over a stack built from the same DEM bytes at another
+    path: the distinct sha256 VALUES present in one manifest and absent from
+    the other (content_hash excluded) must number exactly what the record
+    claims — today 11: the stack hash, the matrix hash, and 9 of 10 files
+    (data_origin.yaml quotes no hash). A fix that makes the stack hash
+    portable drives the measured number down and this test red, which is
+    the point of pinning it."""
+    import re
+
+    from engine.prospectivity.features.dem_grid import DemGrid
+    from engine.prospectivity.features.registry import build_default_registry
+    from engine.prospectivity.samples.corpus_csv import CorpusCsvSampleSource
+    from engine.prospectivity.training_matrix import assemble_training_matrix
+
+    block = run["manifest"].provenance_chain["path_dependent_hashes"]
+    assert block["independent"] == ["data_origin.yaml"] and block["count"] == 11
+    assert set(block["values"]) == {"feature_stack", "training_matrix"} | (set(run["manifest"].output_hashes) - {"data_origin.yaml"})
+
+    dem_path = Path(run["stack_manifest"]["dem"]["path"])
+    other_dem = tmp_path / "elsewhere" / "dem.tif"
+    other_dem.parent.mkdir()
+    shutil.copyfile(dem_path, other_dem)
+    written = build_covariate_stack(other_dem, tmp_path / "stack2", dem_data_origin=DataOrigin.SYNTHETIC)
+    stack2 = json.loads(written["provenance"].read_text())
+    dem_grid = DemGrid.load(other_dem)
+    matrix2, mm2 = assemble_training_matrix(
+        CorpusCsvSampleSource(), dem_grid, build_default_registry().build_all(dem_grid), run["corpus_manifest"], stack2
+    )
+    grid2 = PredictionGrid.from_stack(written["provenance"].parent)
+    report = CrossValidationRunner(splitters=_designs(), registry=_light_registry(matrix2.covariate_names)).run(matrix2, seed=0)
+    base2 = emit_run_manifest(report, matrix=matrix2, matrix_manifest=mm2, run_id=RUN_ID)
+    verdicts2 = {d.name: evaluate_claim(base2, design=d.name, feature_stack_manifest=stack2) for d in _designs()}
+    out2 = tmp_path / "out2"
+    written2 = {
+        name: write_surface(result, grid2, out2, data_origin=run["origin"], verdict=verdicts2[CLAIM_DESIGN])
+        for name, result in run["surfaces"].items()
+    }
+    agreements2 = compare_all_to_ts6(run["surfaces"], grid2, run["ts6"], surface_data_origin=run["origin"])
+    second = extend_run_manifest(
+        base2, matrix=matrix2, matrix_manifest=mm2, corpus_manifest=run["corpus_manifest"], stack_manifest=stack2,
+        grid=grid2, surfaces=run["surfaces"], written=written2, ts6=run["ts6"], agreements=agreements2,
+        verdicts=verdicts2, claim_design=CLAIM_DESIGN,
+    )
+    pattern = re.compile(r"sha256:[0-9a-f]{64}")
+    def values(manifest):
+        return set(pattern.findall(json.dumps({k: v for k, v in json.loads(manifest.to_json()).items() if k != "content_hash"})))
+    differing = values(run["manifest"]) - values(second)
+    assert len(differing) == block["count"] == second.provenance_chain["path_dependent_hashes"]["count"]
+    assert values(run["manifest"]) & values(second) >= {run["manifest"].upstream_hashes["corpus"], run["ts6"].content_hash}

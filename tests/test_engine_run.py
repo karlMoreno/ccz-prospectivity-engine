@@ -112,8 +112,9 @@ def _engine(
 @pytest.fixture(scope="module")
 def run(tmp_path_factory) -> dict:
     tmp = tmp_path_factory.mktemp("engine_run")
-    manifest = _engine(tmp).run()
-    return {"manifest": manifest, "out": tmp / "out", "tmp": tmp}
+    engine = _engine(tmp)
+    manifest = engine.run()
+    return {"manifest": manifest, "out": tmp / "out", "tmp": tmp, "registry": engine._estimators}
 
 
 def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everything(run: dict) -> None:
@@ -123,6 +124,9 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     assert manifest.generator == GENERATOR and manifest.run_id == "e3.4-engine"
     assert set(manifest.surfaces) == set(manifest.ts6_agreement) == ESTIMATORS
     assert set(manifest.inputs["registry"]) == ESTIMATORS
+    # prompt §5: the mapping's keys are the REGISTRY's names — the object the
+    # engine was handed, not only the record of it
+    assert sorted(manifest.ts6_agreement) == sorted(run["registry"].names())
     assert [d["name"] for d in manifest.cross_validation["designs"]] == [
         "leave_one_cluster_out", "leave_one_site_out", "random_k_fold"
     ]
@@ -218,6 +222,14 @@ def test_the_same_bytes_in_a_different_tree_reproduce_the_science_and_nothing_th
     a, b = json.loads(run["manifest"].to_json()), json.loads(elsewhere.to_json())
     differing = {k for k in a if k not in excluded and a[k] != b[k]} | {"content_hash"}
     assert differing == STACK_HASH_CARRIERS
+    # …and the record's own COUNT of path-dependent hash values equals the measured one
+    import re
+    pattern = re.compile(r"sha256:[0-9a-f]{64}")
+    moved = set(pattern.findall(json.dumps({k: v for k, v in a.items() if k != "content_hash"}))) - set(
+        pattern.findall(json.dumps({k: v for k, v in b.items() if k != "content_hash"}))
+    )
+    assert len(moved) == a["provenance_chain"]["path_dependent_hashes"]["count"] == 11
+    assert a["provenance_chain"]["path_dependent_hashes"]["independent"] == ["data_origin.yaml"]
     assert a["upstream_hashes"]["corpus"] == b["upstream_hashes"]["corpus"]  # the one portable link
     # the surfaces themselves are the same surfaces: only their files' identities moved
     strip = lambda block: {k: v for k, v in block.items() if k not in ("rasters", "sidecar")}
