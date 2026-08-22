@@ -41,7 +41,18 @@
 #     an explicit "reproduction check" and label it as such. Record which case
 #     applies in `role_note` below.
 
-# reference_version 2 -> 3 (TAX.1 approval, 2026-08-21): ADDS
+# reference_version 3 -> 4 (E3.3 approval, 2026-08-22): ADDS
+# digitization_uncertainty — the slot whose ABSENCE E3.3's comparison refuses
+# by name on the real path. The consumer existed first
+# (ts6.comparison.ts6_digitization_uncertainty, a three-state accessor), so
+# P2.A's "a field with no consumer is a field nobody has tested the meaning
+# of" condition is met — the C8.1 sequence, one contract over. ADDITIVE: no
+# existing field's value or semantics changed, so Track G's re-sync is a
+# read, not a review.
+#
+# reference_version 2 -> 3 (TAX.1 approval, COMMITTED 2026-08-22 `9a7ecac`;
+# this note originally said 08-21 — the stated-vs-landed gap's fourth
+# instance, corrected at the E3.3 approval): ADDS
 # raster_data_origin: DERIVED — Karl's decision on the TS-6 raster's ORIGIN
 # CLASS, which E3.0 §6 established is a PREREQUISITE for E3.3 rather than a
 # discovery during it. ADDITIVE: no existing field's value or semantics
@@ -56,7 +67,7 @@
 # level because the combined origin is AUTHORED either way (combine_origins
 # returns the least-real input). The [GEOLOGY — ISAAC] null fields are
 # untouched. No value changed; re-sync is a read, not a review.
-reference_version: 3
+reference_version: 4
 
 data_origin: AUTHORED
 author: unrecorded
@@ -79,7 +90,8 @@ ts6_reference:
 
   raster: data/ts6/ts6_abundance.tif     # the digitized surface Track G produces
 
-  # ── THE RASTER'S ORIGIN CLASS — DERIVED (Karl, TAX.1 approval, 2026-08-21).
+  # ── THE RASTER'S ORIGIN CLASS — DERIVED (Karl, TAX.1 approval, committed
+  # 2026-08-22 `9a7ecac`).
   # Decided BEFORE E3.3 rather than during it (E3.0 §6). This file previously
   # offered fields matching three evidence shapes at once — content_hash for
   # MEASURED, digitization_method for DERIVED, published values for LITERATURE
@@ -125,6 +137,28 @@ ts6_reference:
   #   "reproduction_check"    = TS-6's modeled grid also fed the samples;
   #                             comparison is circular and labeled as such.
   role_note: null
+
+  # ── THE DIGITIZATION ERROR (E3.3 approval, 2026-08-22). [GEOLOGY — ISAAC]
+  # fills this WITH the digitization (G3.1) — do not fill it before then.
+  #
+  # WHAT IT IS, because the name invites the wrong reading: this is the error
+  # WE INTRODUCE reading values off a printed surface — a property of OUR
+  # digitization procedure (georeferencing residual + value-extraction error,
+  # in kg/m²) — NOT TS-6's own stated uncertainty about the seafloor.
+  # Getting that backwards would put someone else's uncertainty in a field
+  # our comparison treats as its own.
+  #
+  # WHO READS IT: E3.3's comparison (ts6.comparison), which REFUSES to run
+  # the real (non-SYNTHETIC) path while this is null — a comparison that
+  # treated a hand-digitized benchmark as EXACT would overstate its own
+  # precision in the same table that reports an r whose n_eff it just
+  # deflated. The fixture path reports "not applicable — synthetic fixture,
+  # not a digitized surface", because nothing was digitized.
+  #
+  # NO data_origin on this field: there is no value to classify (the
+  # acceptance_thresholds precedent). The value arrives WITH
+  # digitization_method, whose specificity the comparison also enforces.
+  digitization_uncertainty: null
 
   # How Track E should compare (Track E reads these; Track G may tune with metrics.md)
   comparison:
