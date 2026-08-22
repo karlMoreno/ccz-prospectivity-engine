@@ -1,6 +1,10 @@
 # HASH.1 — shape-tolerant hashing, then the path-hash fix
 
-**Landed 2026-08-22.** Specification: the HASH.1 prompt (Karl), itself built
+**Landed 2026-08-22; APPROVED by Karl 2026-08-22** (ledger rows in
+`docs/audits/2026-08-19-e2.4-implementation-audit.md`; one correction to the
+approval's stated precedent for the end-to-end rule is recorded there and
+in CLAUDE.md's drift row, instance (m)). Specification: the HASH.1 prompt
+(Karl), itself built
 on two BACKLOG §3 entries whose triggers order the commits — the
 shape-tolerant decision's trigger is "before the path-hash fix", the
 path-hash entry's is "before Checkpoint 1". Reading order:
