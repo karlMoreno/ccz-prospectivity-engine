@@ -15,6 +15,17 @@ byte-identical `cross_validation`, `cv_scores`, `estimator_declarations` and
 PATH (docs/BACKLOG.md §3, recorded 2026-08-19). So the assertions below pin
 the reproducible content and the artifact's internal consistency, and the
 non-portable identity is a named backlog item rather than a green test.
+
+RE-STAMPED ONCE, AT E3.4 (2026-08-22). `RunManifest.substance()` dumps every
+field, defaults included, so the four fields E3.4 added (`prediction_grid`,
+`surfaces`, `claim`, `provenance_chain`) re-hashed this committed artifact.
+The file was reloaded under the new shape and `finalize()`d: the four new
+fields are `null`, `content_hash` moved from `sha256:7f6c7fae…` to
+`sha256:e3ac1561…`, and EVERY OTHER BYTE is identical — including
+`generated_at`, `scores_first_visible` and the path-dependent upstream
+hashes, which a regeneration would have moved. The commit is the witness.
+So the self-hash test below still means "not hand-edited": the one edit it
+has had is the shape's, and it is on record.
 """
 
 from __future__ import annotations

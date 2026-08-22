@@ -1,9 +1,10 @@
 {
+  "claim": null,
   "claim_eligible_designs": [
     "leave_one_cluster_out",
     "leave_one_site_out"
   ],
-  "content_hash": "sha256:7f6c7fae0ecf0f5a2b249bf96887f3743104b9428ea752cd9074e22d57f4ed58",
+  "content_hash": "sha256:e3ac1561b8f681bb30ce05c9638325f9f58b0223ee56596e53fc68d89f6e7ad4",
   "contract_versions": {
     "covariates_registry_version": 4,
     "master_observations_schema_version": 5,
@@ -53587,10 +53588,13 @@
     "zero_tolerance_rel": 1e-09
   },
   "output_hashes": {},
+  "prediction_grid": null,
+  "provenance_chain": null,
   "run_id": "e2.4-report",
   "scores_first_visible": "2026-08-19T22:07:36.681679Z",
   "scores_first_visible_note": "When this run's comparison scores first became visible \u2014 THE PRE-REGISTRATION CLOCK (docs/BACKLOG.md \u00a72): every acceptance threshold set after this moment is post-hoc for this dataset, permanently (for kriging in the FULL sense: it fits real coordinates against real y, so its scores are real measurements today). This field sits OUTSIDE the content hash (like generated_at) so identical runs hash identically across days \u2014 and is therefore MUTABLE METADATA: honest by convention, not by mechanism; nothing detects a hand-edited timestamp. THE AUTHORITATIVE DATE IS THE COMMIT THAT INTRODUCED THE SCORES \u2014 the git history is the witness, not this JSON.",
   "seed": 0,
+  "surfaces": null,
   "ts6_agreement": null,
   "upstream_hashes": {
     "corpus": "sha256:0227d6df608ee23476c7f5915bede82f1ffb360c542e33152386257a2fd07fd9",

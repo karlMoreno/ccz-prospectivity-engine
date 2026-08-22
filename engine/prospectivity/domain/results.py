@@ -2,11 +2,18 @@
 
 `CVScore` and `RunManifest` are EMITTED and tested since E2.4 §2 — the run
 manifest is written by `validation/runner.py: emit_run_manifest` and a real
-one is committed at `data/runs/e2.4/run_manifest.json`. `PredictionSurface`,
-`UncertaintySurface`, `TS6Agreement` and `EconomicScenarioResult` are still
-Phase-0 shapes that Phases 3–4 fill in. (The former blanket "Phase 2-4 fill
-these in" was corrected at the E2.4 audit, F-3: it survived the §2B
-stale-reference sweep and contradicted the same file's own contents.)
+one is committed at `data/runs/e2.4/run_manifest.json`; since E3.4 it is
+EXTENDED by `provenance/emitter.py: extend_run_manifest` with the surfaces,
+the TS-6 agreement mapping, the claim verdict and the recomputed chain.
+`TS6Agreement` is filled by `ts6/comparison.py` (E3.3). `PredictionSurface`,
+`UncertaintySurface` and `EconomicScenarioResult` are still Phase-0 shapes:
+the first two have NO PRODUCER — E3.1+2's writer records a surface's
+identity in its sidecar and E3.4's manifest records it under `surfaces`,
+neither through these types (a stale-reference finding of the E3.4 2B
+sweep, recorded rather than silently retired); economics is Phase 4. (The
+former blanket "Phase 2-4 fill these in" was corrected at the E2.4 audit,
+F-3: it survived the §2B stale-reference sweep and contradicted the same
+file's own contents.)
 """
 
 from __future__ import annotations
@@ -181,8 +188,41 @@ class RunManifest(ProvenanceArtifact):
     estimator's per-fold provenance, and the pooled metrics); and
     `claim_eligible_designs` (designs whose recorded declaration is
     spatially_blocked; random k-fold and leave-one-station-out never appear).
-    `cv_scores` remains the flat per-metric table (CVScore, revised). Phase
-    3–4 fill ts6_agreement / economic_results / output_hashes.
+    `cv_scores` remains the flat per-metric table (CVScore, revised).
+
+    E3.4 REVISION (the same 2B protocol; Karl's arity decision at the E3.3
+    approval, 2026-08-22). BEFORE: `ts6_agreement: TS6Agreement | None` —
+    ONE agreement, unable to say which estimator it described — and
+    `output_hashes` populated by nothing. AFTER:
+
+    * `ts6_agreement: dict[str, TS6Agreement] | None` — ONE AGREEMENT PER
+      ESTIMATOR, keyed by name, each self-identifying via `estimator_name`.
+      Collapsing to one number would force a "which estimator IS the
+      comparison" answer nobody has argued for, and the three genuinely
+      differ (kriging near-constant, RF ceiling-bound, the baseline flat by
+      construction). `None` keeps its meaning — THE COMPARISON STEP DID NOT
+      RUN — which is what the committed E2.4 CV-only artifact records; an
+      empty mapping would be a comparison over zero estimators, which the
+      registry (baseline REQUIRED) makes unrepresentable.
+    * `output_hashes` — FILLED: `{basename: sha256}` for every file the run
+      wrote, each recomputed from the bytes at emission (basenames, never
+      paths — a path in the substance is the E2.4-audit defect one artifact
+      over).
+    * `prediction_grid`, `surfaces`, `claim`, `provenance_chain` — NEW, all
+      defaulting to None so a CV-only manifest still validates. `surfaces`
+      is each estimator's surface identity (summary, origin, watermark, the
+      two rasters' hashes); `claim` is E2.5's verdict AS DATA — every
+      design's preconditions, pass and fail, by name — plus the design the
+      caller declared as the claim's basis; `provenance_chain` is every
+      upstream link RECOMPUTED at emission with its off-machine
+      verifiability stated, because a chain that claims more than it
+      delivers is the defect the path-hash BACKLOG entry exists to prevent.
+
+    THE HASH COVERS THE SHAPE. `substance()` dumps every field, defaults
+    included, so adding a field re-hashes every committed run manifest: the
+    E2.4 artifact was RE-STAMPED at E3.4 (its four new fields null, its
+    `content_hash` recomputed, every other byte identical — the commit shows
+    the diff). Stated here so the next field addition expects it.
     """
 
     # `run_id` joins the two base exclusions and `scores_first_visible`
@@ -200,9 +240,17 @@ class RunManifest(ProvenanceArtifact):
     seed: int
     inputs: dict = Field(default_factory=dict)
     cv_scores: list[CVScore] = Field(default_factory=list)
-    ts6_agreement: TS6Agreement | None = None
+    # E3.4: a MAPPING, one self-identifying agreement per estimator (see the
+    # docstring's revision note). None = the comparison step did not run.
+    ts6_agreement: dict[str, TS6Agreement] | None = None
     economic_results: list[EconomicScenarioResult] = Field(default_factory=list)
+    # E3.4: filled by provenance/emitter.py — {basename: sha256 of the bytes}.
     output_hashes: dict[str, str] = Field(default_factory=dict)
+    # ---- E3.4 additions (provenance/emitter.py: extend_run_manifest)
+    prediction_grid: dict | None = None
+    surfaces: dict[str, dict] | None = None
+    claim: dict | None = None
+    provenance_chain: dict | None = None
     # ---- E2.4 additions
     scores_first_visible: datetime | None = Field(
         default=None, description=SCORES_FIRST_VISIBLE_DESCRIPTION

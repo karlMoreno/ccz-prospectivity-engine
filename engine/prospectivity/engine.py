@@ -92,7 +92,9 @@ class ProspectivityEngine:
         economic_model: EconomicModel,
         scenario_configs: list[dict[str, Any]],
         seed: int = 0,
-        compare_to_ts6_fn: Callable[[Any, Any], TS6Agreement] = compare_to_ts6,
+        # E3.4 (2B): the comparison returns a MAPPING, one agreement per
+        # estimator — the manifest's ts6_agreement arity, Karl's decision.
+        compare_to_ts6_fn: Callable[[Any, Any], dict[str, TS6Agreement]] = compare_to_ts6,
         manifest_emitter: ManifestEmitter = emit_run_manifest,
     ) -> None:
         runner_registry = getattr(cv_runner, "registry", None)
@@ -154,7 +156,7 @@ class ProspectivityEngine:
             predictions[name] = estimator.predict(features)
         return predictions
 
-    def _compare_to_ts6(self, predictions: dict[str, tuple[Any, Any]]) -> TS6Agreement:
+    def _compare_to_ts6(self, predictions: dict[str, tuple[Any, Any]]) -> dict[str, TS6Agreement]:
         ts6_surface = self._ts6_reference.load()
         return self._compare_to_ts6_fn(predictions, ts6_surface)
 
@@ -169,7 +171,7 @@ class ProspectivityEngine:
         cv_report: CVReport,
         matrix: TrainingMatrix,
         matrix_manifest: TrainingMatrixManifest,
-        ts6_agreement: TS6Agreement,
+        ts6_agreement: dict[str, TS6Agreement],
         economic_results: list[EconomicScenarioResult],
     ) -> RunManifest:
         manifest = self._manifest_emitter(cv_report, matrix=matrix, matrix_manifest=matrix_manifest)

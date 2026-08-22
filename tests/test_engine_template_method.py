@@ -111,9 +111,10 @@ def test_run_calls_steps_in_the_documented_order() -> None:
             call_order.append("ts6:load")
             return TS6Surface(title="stub", source_id="src_ts6_grid", raster_path="stub.tif")
 
-    def stub_compare_to_ts6(prediction, ts6_surface) -> TS6Agreement:
+    def stub_compare_to_ts6(prediction, ts6_surface) -> dict[str, TS6Agreement]:
         call_order.append("ts6:compare")
-        return TS6Agreement(spatial_correlation=0.5)
+        # E3.4 (2B): one agreement PER ESTIMATOR, keyed by name.
+        return {MEAN_BASELINE_NAME: TS6Agreement(estimator_name=MEAN_BASELINE_NAME, spatial_correlation=0.5)}
 
     class StubEconomicModel(EconomicModel):
         def apply(self, prediction, scenario_config) -> EconomicScenarioResult:
@@ -163,5 +164,5 @@ def test_run_calls_steps_in_the_documented_order() -> None:
     ]
     assert manifest.seed == 42
     assert manifest.ts6_agreement is not None
-    assert manifest.ts6_agreement.spatial_correlation == 0.5
+    assert manifest.ts6_agreement[MEAN_BASELINE_NAME].spatial_correlation == 0.5
     assert len(manifest.economic_results) == 2
