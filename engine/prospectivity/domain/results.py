@@ -273,7 +273,7 @@ class RunManifest(ProvenanceArtifact):
     # HASH.1: the field set frozen at 2026-08-22 — what data/runs/e2.4/
     # run_manifest.json (LEGACY, re-stamped at E3.4 with its five nulls IN the
     # substance) is hashed over. A SNAPSHOT; never regenerate from model_fields.
-    SCHEMA_VERSION: ClassVar[int] = 2  # E4.1: + economic_differences
+    SCHEMA_VERSION: ClassVar[int] = 3  # E4.1: + economic_differences; E4.3: + economics
     LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
         "claim", "claim_eligible_designs", "contract_versions", "cross_validation", "cv_scores",
         "data_origin", "derivation", "economic_results", "estimator_declarations", "generator",
@@ -292,6 +292,12 @@ class RunManifest(ProvenanceArtifact):
     # E4.1 (schema_version 2): Contract 4's difference pairs. None = the
     # economics step did not run (the legacy artifacts).
     economic_differences: list[EconomicDifferenceResult] | None = None
+    # E4.3 (schema_version 3): the economics block — every E4.2 raster's
+    # identity RECOMPUTED and resolved from the association record, the
+    # scenarios with their cutoffs' declared origins, the difference
+    # fractions, and the two-reason watermark per artifact. None = the
+    # economics rasters were not written (a CV-only run, or before E4.2).
+    economics: dict | None = None
     # E3.4: filled by provenance/emitter.py — {basename: sha256 of the bytes}.
     output_hashes: dict[str, str] = Field(default_factory=dict)
     # ---- E3.4 additions (provenance/emitter.py: extend_run_manifest)

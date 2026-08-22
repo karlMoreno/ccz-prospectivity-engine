@@ -436,14 +436,23 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **3, Track E — COMPLETE and APPROVED (E3.4 approved 2026-08-22;
-  E3.0 → E3.1+2 → TAX.1 → E3.3 → E3.4)**; Phase 2 Track E complete (E2.5,
-  2026-08-19). (Minimal update; the full status refresh is the P2.C item in
-  `docs/BACKLOG.md` §2.) **Track E is complete to the Phase-3 boundary, NOT
-  to the boundary the two-track design allows:** the proposal's Phase 4
-  Track-E lane (E4.1–E4.3, the EconomicModel over Contract 4's PLACEHOLDER
-  scenarios, "illustrative only") needs no Track-G input, and BACKLOG §3
-  items remain E's alone. **E4.2 (2026-08-22) is done:** the 12 footprint
+- Phase: **4, Track E — COMPLETE pending Karl's E4.3 review (E4.3 landed
+  2026-08-22; E4.0 → E4.1 → E4.2 → E4.3)**; Phase 3 Track E complete and
+  approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
+  the full status refresh is the P2.C item in `docs/BACKLOG.md` §2.)
+  **Phase 4's design contribution:** an economic artifact carries TWO
+  watermark reasons as separate claims with separate expiry — terrain lifts
+  at Checkpoint 1, economic parameters at Checkpoint 4 — because the origin
+  lattice's single AUTHORED answer is correct and lossy. **What Checkpoint 4
+  can review:** the machinery end to end and the fact that both scenarios
+  cover the whole predictable domain (2,880/2,880; 347,707 km²) with an
+  empty difference. **What it cannot:** an economic claim — no real Contract
+  4 value, no GRADE, no recovery fraction, no recorded wet/dry basis; the
+  claim verdict refuses on every design and the economics block says why a
+  second time. **Track E is complete to the Phase-4 boundary:** Phase 5's
+  E-lane (E5.1 API, E5.3 harness, E5.4 CI e2e) is the next G-free work; E5.2
+  needs a stack decision (Next.js is not approved) and E5.5 is Karl's.
+  **E4.2 (2026-08-22) is done:** the 12 footprint
   rasters and the 6 difference maps, on the surfaces' grid through the one
   COG writer, the two-reason verdict per reason on every file, the mask kept
   apart from the footprint, the difference's meaning ("a sensitivity map,

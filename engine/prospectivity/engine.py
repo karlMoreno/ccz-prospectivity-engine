@@ -384,6 +384,7 @@ class ProspectivityEngine:
             claim_design=self._claim_design,
             economic_results=economic_results,
             economic_differences=economic_differences,
+            economics_dir=self._output_dir / ECONOMICS_DIR,
         )
         self._output_dir.mkdir(parents=True, exist_ok=True)
         (self._output_dir / MANIFEST_NAME).write_text(manifest.to_json())

@@ -211,6 +211,7 @@ def extend_run_manifest(
     claim_design: str,
     economic_results: Sequence[EconomicScenarioResult] = (),
     economic_differences: Sequence[EconomicDifferenceResult] | None = None,
+    economics_dir: Path | str | None = None,
 ) -> RunManifest:
     """Extend the CV-stage RunManifest with Phase 3's outputs, asserting every
     link of the provenance chain by recomputation. Returns a NEW finalized
@@ -319,10 +320,13 @@ def extend_run_manifest(
     output_hashes: dict[str, str] = {}
     origin_sidecars: set[Path] = set()
 
-    def _record_output(path: Path, digest: str) -> None:
-        if path.name in output_hashes and output_hashes[path.name] != digest:
-            raise _refuse(f"two written files share the basename {path.name!r} with different bytes")
-        output_hashes[path.name] = digest
+    def _record_output(path: Path, digest: str, key: str | None = None) -> None:
+        # keyed by basename; the economics subdirectory passes its one constant
+        # relative component explicitly (economics/<basename>) — never a run directory
+        key = key or path.name
+        if key in output_hashes and output_hashes[key] != digest:
+            raise _refuse(f"two written files share the key {key!r} with different bytes")
+        output_hashes[key] = digest
 
     for name in sorted(surfaces):
         result = surfaces[name]
@@ -506,8 +510,38 @@ def extend_run_manifest(
         "limit": CHAIN_LIMIT_NOTE,
     }
 
+    # ---- 7. E4.3 — the economics rasters, RESOLVED FROM E4.2's RECORD and
+    # verified by recomputation; the block and the chain link
+    economics_block = None
+    if economics_dir is not None:
+        economics_block = _verify_economics(
+            Path(economics_dir),
+            economic_results,
+            economic_differences or (),
+            expected_surface_origin=expected_origin.value,
+            dem_data_origin=stack_manifest.get("dem_data_origin"),
+            record_output=_record_output,
+        )
+        provenance_chain["links"]["economics"] = {
+            "files": economics_block["n_files"],
+            "recomputed_from": (
+                "every raster's bytes (sha256) against the association record's; each "
+                "raster's tags against its record entry (kind, scenario, estimator, z, "
+                "counts); each record entry against the manifest's own economic_results; "
+                "the origin by combine_origins; the terrain reason from the stack's "
+                "declared DEM origin"
+            ),
+            "agrees_with": ["output_hashes (economics/*)", "economics.rasters", "economic_results.*.footprints.*.raster_file"],
+            "verifiable_off_machine": "directory-independent; cross-GDAL-version byte identity not measured",
+            "why": (
+                "the same limit as the surfaces — the rasters quote the stack hash, which no "
+                "longer moves with the directory (HASH.1); no path enters the block"
+            ),
+        }
+
     extended = base.model_copy(
         update={
+            "economics": economics_block,
             "ts6_agreement": {name: agreements[name] for name in sorted(agreements)},
             "economic_results": list(economic_results),
             "economic_differences": (
@@ -526,3 +560,200 @@ def extend_run_manifest(
     )
     extended.finalize()
     return extended
+
+
+# ═══════════════════════════════════════════════ E4.3: the economics block
+
+ECONOMICS_DIR_NAME = "economics"
+ASSOCIATION_NAME = "economics.footprints.json"
+ORIGIN_SIDECAR_NAME = "data_origin.yaml"
+WATERMARK_REASONS_NOTE = (
+    "two INDEPENDENT reasons with SEPARATE expiry conditions — terrain lifts at "
+    "Checkpoint 1 (real bathymetry), economic_parameters at Checkpoint 4 (real Contract "
+    "4 values) — and fixing one leaves the other; the computed data_origin beside them "
+    "is correct and lossy, which is why they are recorded per reason"
+)
+
+
+def _verify_economics(
+    economics_dir: Path,
+    results: Sequence[EconomicScenarioResult],
+    differences: Sequence[EconomicDifferenceResult],
+    *,
+    expected_surface_origin: str,
+    dem_data_origin: str | None,
+    record_output,
+) -> dict:
+    """E4.3: assemble the economics block by RESOLVING E4.2's association
+    record and VERIFYING every claim in it by recomputation — never by
+    re-deriving from filenames and never by trusting a record unhashed.
+
+    What is recomputed: each raster's sha256 from its bytes (== the record's);
+    each raster's tags (== the record's kind/scenario/estimator/z and counts);
+    the set of rasters the manifest's own results name (== the record's ==
+    the directory's .tif files, counted); each scenario's origin by
+    combine_origins over the surfaces' computed origin and the cutoff's
+    declared origin (== the result's == the record's — the laundering
+    direction); the terrain reason's lifted state from the stack's declared
+    DEM origin. The association record and the origin sidecar are then
+    hashed into output_hashes, so the record the block resolved from is a
+    link the chain HAS, not one it claims.
+    """
+    import rasterio
+
+    from engine.prospectivity.provenance.origin import DataOrigin
+
+    association_path = economics_dir / ASSOCIATION_NAME
+    if not association_path.is_file():
+        raise _refuse(
+            f"the economics directory {economics_dir.name!r} carries no {ASSOCIATION_NAME} — "
+            "the manifest resolves every economics raster FROM that record and cannot "
+            "record a block without it"
+        )
+    record = json.loads(association_path.read_text())
+    entries: dict[str, dict] = record.get("files") or {}
+    on_disk = sorted(p.name for p in economics_dir.iterdir() if p.suffix == ".tif")
+    if sorted(entries) != on_disk:
+        raise _refuse(
+            f"the association record names {len(entries)} raster(s) but the directory holds "
+            f"{len(on_disk)}: only in record {sorted(set(entries) - set(on_disk))}, only on "
+            f"disk {sorted(set(on_disk) - set(entries))} — a record that disagrees with the "
+            "directory is the E4.2 misplaced-output catch recurring"
+        )
+
+    # the manifest's OWN results name the rasters: every named file must be in the record, and vice versa
+    named: dict[str, tuple] = {}
+    for result in results:
+        for estimator, by_z in result.footprints.items():
+            for z, summary in by_z.items():
+                file = summary.get("raster_file")
+                if not file:
+                    raise _refuse(
+                        f"scenario {result.scenario_name!r} records no raster_file for "
+                        f"{estimator!r} at z={z} — a footprint without a file was computed and not written"
+                    )
+                named[file] = ("footprint", result.scenario_name, estimator, float(z), result)
+    for difference in differences:
+        for estimator, by_z in difference.footprints.items():
+            for z, summary in by_z.items():
+                file = summary.get("raster_file")
+                if not file:
+                    raise _refuse(
+                        f"difference {difference.pair} records no raster_file for {estimator!r} at z={z}"
+                    )
+                named[file] = ("difference", tuple(difference.pair), estimator, float(z), difference)
+    if set(named) != set(entries):
+        raise _refuse(
+            f"the manifest's results name {len(named)} economics raster(s) and the record "
+            f"holds {len(entries)}: named but not recorded {sorted(set(named) - set(entries))}, "
+            f"recorded but not named {sorted(set(entries) - set(named))}"
+        )
+
+    rasters_block: dict[str, dict] = {}
+    for file in sorted(entries):
+        entry = entries[file]
+        kind, who, estimator, z, owner = named[file]
+        path = economics_dir / file
+        if not path.is_file():
+            raise _refuse(f"the {kind} raster {file!r} is missing from {economics_dir.name!r}")
+        digest = file_sha256(path)
+        _require_equal(f"sha256 of {file}", recomputed_from_bytes=digest, association_record=entry.get("sha256"))
+        with rasterio.open(path) as dataset:
+            tags = dataset.tags()
+            values = dataset.read(1)
+        _require_equal(f"kind of {file}", raster_tag=tags.get("kind"), record=entry.get("kind"), manifest=kind)
+        _require_equal(f"estimator of {file}", raster_tag=tags.get("estimator"), record=entry.get("estimator"), manifest=estimator)
+        _require_equal(f"z of {file}", raster_tag=str(float(tags.get("z", "nan"))), record=str(float(entry.get("z"))), manifest=str(z))
+        if kind == "footprint":
+            _require_equal(f"scenario of {file}", raster_tag=tags.get("scenario"), record=entry.get("scenario"), manifest=who)
+            n_minable = int(np.nansum(values == 1.0))
+            _require_equal(
+                f"n_minable of {file}",
+                recomputed_from_values=str(n_minable),
+                raster_tag=tags.get("n_minable"),
+                record=str(entry.get("n_minable")),
+                manifest=str(owner.footprints[estimator][str(z) if str(z) in owner.footprints[estimator] else f"{z:g}"]["n_minable"]),
+            )
+            origin_expected = combine_origins([expected_surface_origin, owner.cutoff["data_origin"]]).value
+            _require_equal(
+                f"data_origin of {file}",
+                recomputed_by_combine_origins=origin_expected,
+                raster_tag=tags.get("data_origin"),
+                record=entry.get("data_origin"),
+                manifest=owner.data_origin,
+            )
+        else:
+            _require_equal(f"scenario_a of {file}", raster_tag=tags.get("scenario_a"), record=entry.get("scenario_a"), manifest=who[0])
+            _require_equal(f"scenario_b of {file}", raster_tag=tags.get("scenario_b"), record=entry.get("scenario_b"), manifest=who[1])
+            n_only_b = int(np.nansum(values == 2.0))
+            _require_equal(
+                f"n_only_b of {file}",
+                recomputed_from_values=str(n_only_b),
+                raster_tag=tags.get("n_only_b"),
+                record=str((entry.get("counts") or {}).get("only_b")),
+                manifest=str(owner.footprints[estimator][str(z) if str(z) in owner.footprints[estimator] else f"{z:g}"]["n_minable"]),
+            )
+            _require_equal(f"data_origin of {file}", raster_tag=tags.get("data_origin"), record=entry.get("data_origin"), manifest=owner.data_origin)
+        # THE TWO REASONS, per artifact: the record's verdict must equal the manifest's,
+        # and the terrain reason's state must be what the stack's declared origin implies
+        verdict = entry.get("watermark") or {}
+        reasons = {r.get("reason"): r for r in verdict.get("reasons", [])}
+        if set(reasons) != {"terrain", "economic_parameters"}:
+            raise _refuse(f"{file}'s record carries reasons {sorted(reasons)} — both independent reasons must be present")
+        terrain_should_lift = dem_data_origin is not None and DataOrigin(dem_data_origin) is DataOrigin.MEASURED
+        _require_equal(
+            f"terrain reason of {file}",
+            derived_from_stack_dem_origin=str(terrain_should_lift),
+            record=str(reasons["terrain"].get("lifted")),
+            manifest=str({r["reason"]: r["lifted"] for r in owner.watermark["reasons"]}["terrain"]),
+        )
+        _require_equal(
+            f"economic_parameters reason of {file}",
+            record=str(reasons["economic_parameters"].get("lifted")),
+            manifest=str({r["reason"]: r["lifted"] for r in owner.watermark["reasons"]}["economic_parameters"]),
+        )
+        record_output(path, digest, key=f"{ECONOMICS_DIR_NAME}/{file}")
+        rasters_block[file] = {
+            "kind": kind,
+            "scenario": who if kind == "footprint" else None,
+            "pair": list(who) if kind == "difference" else None,
+            "estimator": estimator,
+            "z": z,
+            "sha256": digest,
+            "counts": {k: entry[k] for k in ("n_minable", "n_predictable", "fraction_of_predictable", "area_m2") if k in entry}
+            if kind == "footprint"
+            else {**(entry.get("counts") or {}), "difference_fraction_of_predictable": entry.get("difference_fraction_of_predictable"), "area_m2": entry.get("area_m2")},
+            "watermark": {r["reason"]: {"lifted": r["lifted"], "lifted_by": r["lifted_by"]} for r in verdict.get("reasons", [])},
+        }
+
+    association_digest = file_sha256(association_path)
+    record_output(association_path, association_digest, key=f"{ECONOMICS_DIR_NAME}/{ASSOCIATION_NAME}")
+    origin_sidecar = economics_dir / ORIGIN_SIDECAR_NAME
+    if not origin_sidecar.is_file():
+        raise _refuse(f"the economics directory carries no {ORIGIN_SIDECAR_NAME} — its rasters are unclassified to the audit")
+    record_output(origin_sidecar, file_sha256(origin_sidecar), key=f"{ECONOMICS_DIR_NAME}/{ORIGIN_SIDECAR_NAME}")
+
+    return {
+        "directory": ECONOMICS_DIR_NAME,
+        "n_files": len(rasters_block) + 2,
+        "n_footprint_rasters": sum(1 for r in rasters_block.values() if r["kind"] == "footprint"),
+        "n_difference_rasters": sum(1 for r in rasters_block.values() if r["kind"] == "difference"),
+        "association": {"file": ASSOCIATION_NAME, "sha256": association_digest, "resolved_from": "the record, not the filenames"},
+        "scenarios": [
+            {
+                "name": r.scenario_name,
+                "cutoff": r.cutoff,  # the DeclaredField shape: value WITH its declared origin
+                "grade_metric": r.grade_metric,
+                "confidence_levels": r.confidence_levels,
+                "data_origin": r.data_origin,
+                "watermark": r.watermark,
+            }
+            for r in results
+        ],
+        "difference_fraction_of_predictable": {
+            "->".join(d.pair): {est: {z: s["fraction_of_predictable"] for z, s in by_z.items()} for est, by_z in d.footprints.items()}
+            for d in differences
+        },
+        "rasters": rasters_block,
+        "watermark_note": WATERMARK_REASONS_NOTE,
+    }

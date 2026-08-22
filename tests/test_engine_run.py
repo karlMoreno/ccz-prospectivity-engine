@@ -129,17 +129,19 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     assert set(manifest.claim["verdicts"]) == {"leave_one_cluster_out", "leave_one_site_out", "random_k_fold"}
     assert manifest.claim["design"] == CLAIM_DESIGN
     assert manifest.prediction_grid["n_cells"] == 3400 and manifest.prediction_grid["n_masked"] == 520
-    # every written SURFACE file, hashed by basename, recomputed here from the bytes
+    # every written file, hashed by basename (economics/<basename> for the
+    # subdirectory), recomputed here from the bytes — the FULL listing
     files = {p.name: file_sha256(p) for p in out.iterdir() if p.is_file() and p.name != "run_manifest.json"}
-    assert manifest.output_hashes == files and len(files) == 10
-    # E4.2: the economics rasters in their own directory — 12 footprints and the
-    # two sidecars — recorded by basename in the results; hashed by E4.3
-    economics = sorted(p.name for p in (out / "economics").iterdir())
-    rasters = {n for n in economics if n.endswith(".tif")}
-    assert len(rasters) == 18 == 12 + 6 and {"economics.footprints.json", "data_origin.yaml"} <= set(economics)
+    files |= {f"economics/{p.name}": file_sha256(p) for p in (out / "economics").iterdir() if p.is_file()}
+    assert manifest.output_hashes == files and len(files) == 10 + 18 + 2
+    # E4.2/E4.3: 18 rasters and two sidecars, every raster named by a result and resolved from the record
+    rasters = {n[len("economics/"):] for n in files if n.startswith("economics/") and n.endswith(".tif")}
+    assert len(rasters) == 18 == 12 + 6
     recorded = {v["raster_file"] for r in manifest.economic_results for by_z in r.footprints.values() for v in by_z.values()}
     recorded |= {v["raster_file"] for d in manifest.economic_differences for by_z in d.footprints.values() for v in by_z.values()}
-    assert recorded == rasters
+    assert recorded == rasters == set(manifest.economics["rasters"])
+    assert (manifest.economics["n_files"], manifest.economics["n_footprint_rasters"], manifest.economics["n_difference_rasters"]) == (20, 12, 6)
+    assert manifest.schema_version == 3
     # Phase 4's model ran over Contract 4's two scenarios and its one difference
     # pair; the verdict is DERIVED, both reasons unlifted today; the computed
     # origin is AUTHORED (the lattice's lossy answer, beside the verdict)
@@ -150,7 +152,7 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
         assert all(v["fraction_of_predictable"] == 1.0 for by_z in r.footprints.values() for v in by_z.values())
     assert [d.pair for d in manifest.economic_differences] == [["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"]]
     assert all(v["n_minable"] == 0 for by_z in manifest.economic_differences[0].footprints.values() for v in by_z.values())
-    assert manifest.schema_version == 2
+    assert manifest.economics["scenarios"][0]["cutoff"] == {"value": 10.0, "units": "kg_m2", "data_origin": "AUTHORED", "author": "unrecorded"}
 
 
 def test_the_run_is_watermarked_refused_and_says_so_as_data(run: dict) -> None:

@@ -83,10 +83,35 @@ def _compose(built: dict, out: Path, *, run_id: str = RUN_ID) -> dict:
     write_synthetic_ts6_raster(ts6_path)
     ts6 = FixtureTS6Reference(ts6_path).load()
     agreements = compare_all_to_ts6(surfaces, grid, ts6, surface_data_origin=origin)
+    # E4.3: the economics rasters (E4.1 computes, E4.2 writes) into out/economics/
+    from engine.prospectivity.economics.contract import difference_pairs, scenarios
+    from engine.prospectivity.economics.cutoff import CutoffEconomicModel
+    from engine.prospectivity.economics.model import EconomicInputs
+    from engine.prospectivity.economics.writer import write_difference, write_footprints
+    from engine.prospectivity.features.bundle import cell_areas_m2
+    from engine.prospectivity.features.dem_grid import DemGrid
+
+    econ_inputs = EconomicInputs(
+        surfaces=surfaces, grid=grid, cell_area_m2=cell_areas_m2(DemGrid.load(Path(stack["dem_path"]))),
+        dem_data_origin=stack["dem_data_origin"], surface_data_origin=origin.value,
+    )
+    model = CutoffEconomicModel()
+    footprints = {s.name: model.apply(econ_inputs, s) for s in scenarios()}
+    economics_dir = out / "economics"
+    economic_results = [
+        fp.record({k: p.name for k, p in write_footprints(fp, grid, surfaces, economics_dir, claim_verdict=verdicts[CLAIM_DESIGN]).items()})
+        for fp in footprints.values()
+    ]
+    economic_differences = []
+    for a, b in difference_pairs():
+        diff = model.difference(footprints[a], footprints[b])
+        paths = write_difference(diff, footprints[a], footprints[b], grid, surfaces, economics_dir, claim_verdict=verdicts[CLAIM_DESIGN])
+        economic_differences.append(diff.record({k: p.name for k, p in paths.items()}))
     inputs = dict(
         base=base, matrix=matrix, matrix_manifest=matrix_manifest, corpus_manifest=corpus,
         stack_manifest=stack, grid=grid, surfaces=surfaces, written=written, ts6=ts6,
         agreements=agreements, verdicts=verdicts, claim_design=CLAIM_DESIGN,
+        economic_results=economic_results, economic_differences=economic_differences, economics_dir=economics_dir,
     )
     manifest = extend_run_manifest(**inputs)
     (out / "run_manifest.json").write_text(manifest.to_json())
@@ -102,6 +127,7 @@ def _extend(run: dict, **overrides) -> RunManifest:
     keys = (
         "base", "matrix", "matrix_manifest", "corpus_manifest", "stack_manifest", "grid",
         "surfaces", "written", "ts6", "agreements", "verdicts", "claim_design",
+        "economic_results", "economic_differences", "economics_dir",
     )
     return extend_run_manifest(**{**{k: run[k] for k in keys}, **overrides})
 
@@ -142,7 +168,7 @@ def test_two_runs_reproduce_byte_identically_apart_from_the_hash_excluded_fields
     assert run["manifest"].content_hash == second["manifest"].content_hash
     # the two runs wrote into different directories, and the record cannot tell
     assert run["out"] != second["out"]
-    assert a["output_hashes"] == b["output_hashes"] and len(a["output_hashes"]) == 10
+    assert a["output_hashes"] == b["output_hashes"] and len(a["output_hashes"]) == 30
 
 
 def test_every_recorded_hash_matches_its_artifact_by_recomputation(run: dict) -> None:
@@ -172,9 +198,10 @@ def test_every_recorded_hash_matches_its_artifact_by_recomputation(run: dict) ->
     expected = {
         p.name: file_sha256(p)
         for p in out.iterdir()
-        if p.name not in ("run_manifest.json", "ts6_fixture.tif")
+        if p.is_file() and p.name not in ("run_manifest.json", "ts6_fixture.tif")
     }
-    assert manifest.output_hashes == expected and len(expected) == 10
+    expected |= {f"economics/{p.name}": file_sha256(p) for p in (out / "economics").iterdir() if p.is_file()}
+    assert manifest.output_hashes == expected and len(expected) == 30
     for name, block in manifest.surfaces.items():
         for kind in ("prediction", "uncertainty"):
             assert block["rasters"][kind]["sha256"] == file_sha256(out / block["rasters"][kind]["file"])
@@ -185,8 +212,10 @@ def test_output_hashes_are_keyed_by_basename_never_by_path(run: dict) -> None:
     """A path in the substance is the E2.4-audit defect one artifact over:
     the record must not vary with the directory the run wrote into."""
     keys = set(run["manifest"].output_hashes)
-    assert keys == {Path(p).name for files in run["written"].values() for p in files.values()}
-    assert all("/" not in k and not Path(k).is_absolute() for k in keys)
+    surface_keys = {k for k in keys if not k.startswith("economics/")}
+    assert surface_keys == {Path(p).name for files in run["written"].values() for p in files.values()}
+    # economics files carry ONE constant relative component — the subdirectory's name — never a directory of the run
+    assert all(k.count("/") <= 1 and not Path(k).is_absolute() and (not k.startswith("economics/") or k.count("/") == 1) for k in keys)
     assert str(run["out"]) not in run["manifest"].to_json()
 
 
@@ -356,6 +385,7 @@ def test_the_chain_block_states_the_remaining_limits_and_the_former_one_is_measu
         "training_matrix": "same-endianness hosts",
         "ts6_benchmark": "not measured — a synthetic fixture today; G3.1 delivers the real raster",
         "surfaces": "directory-independent; cross-GDAL-version byte identity not measured",
+        "economics": "directory-independent; cross-GDAL-version byte identity not measured",  # E4.3: the same limit, no fourth
     }
     assert len(chain["path_dependent_hashes"]["remaining_limits"]) == 3
     # the measurement: the former limit is gone
@@ -543,6 +573,8 @@ def test_the_path_dependent_hash_count_equals_the_measured_two_directory_differe
         base2, matrix=matrix2, matrix_manifest=mm2, corpus_manifest=run["corpus_manifest"], stack_manifest=stack2,
         grid=grid2, surfaces=run["surfaces"], written=written2, ts6=run["ts6"], agreements=agreements2,
         verdicts=verdicts2, claim_design=CLAIM_DESIGN,
+        economic_results=run["economic_results"], economic_differences=run["economic_differences"],
+        economics_dir=run["economics_dir"],
     )
     pattern = re.compile(r"sha256:[0-9a-f]{64}")
     def values(manifest):
@@ -551,3 +583,177 @@ def test_the_path_dependent_hash_count_equals_the_measured_two_directory_differe
     assert len(differing) == block["count"] == second.provenance_chain["path_dependent_hashes"]["count"] == 0
     assert values(run["manifest"]) == values(second) and len(values(second)) >= 14
     assert second.content_hash == run["manifest"].content_hash  # the whole extension, from another tree
+
+
+# ═══════════════════════════════ E4.3 — the economics block (2026-08-22)
+
+
+def _copied_economics(run: dict, tmp_path: Path) -> Path:
+    copy = tmp_path / "economics"
+    shutil.copytree(run["economics_dir"], copy)
+    assert len(list(copy.glob("*.tif"))) == 18
+    return copy
+
+
+def test_the_economics_block_resolves_every_raster_from_the_record_and_recomputes_it(run: dict) -> None:
+    """18 rasters + 2 sidecars, resolved FROM economics.footprints.json (no
+    name parsed here either): every block entry's sha256 recomputes from the
+    file, equals the record's, and is in output_hashes under economics/;
+    the block's scenarios carry the cutoff in the DeclaredField shape."""
+    manifest = run["manifest"]
+    block = manifest.economics
+    record = json.loads((run["economics_dir"] / "economics.footprints.json").read_text())["files"]
+    assert set(block["rasters"]) == set(record) and len(record) == 18
+    assert (block["n_files"], block["n_footprint_rasters"], block["n_difference_rasters"]) == (20, 12, 6)
+    for name, entry in block["rasters"].items():
+        assert entry["sha256"] == file_sha256(run["economics_dir"] / name) == record[name]["sha256"] == manifest.output_hashes[f"economics/{name}"]
+        assert (entry["kind"], entry["estimator"], entry["z"]) == (record[name]["kind"], record[name]["estimator"], record[name]["z"])
+        assert set(entry["watermark"]) == {"terrain", "economic_parameters"} and entry["watermark"]["terrain"]["lifted"] is False
+    assert block["association"]["sha256"] == file_sha256(run["economics_dir"] / "economics.footprints.json") == manifest.output_hashes["economics/economics.footprints.json"]
+    assert manifest.output_hashes["economics/data_origin.yaml"] == file_sha256(run["economics_dir"] / "data_origin.yaml")
+    assert [s["cutoff"] for s in block["scenarios"]] == [
+        {"value": 10.0, "units": "kg_m2", "data_origin": "AUTHORED", "author": "unrecorded"},
+        {"value": 5.5, "units": "kg_m2", "data_origin": "AUTHORED", "author": "unrecorded"},
+    ]
+    assert block["difference_fraction_of_predictable"] == {"MARKET_STANDARD->STRATEGIC_SUBSIDIZED": {e: {"0.0": 0.0, "1.0": 0.0} for e in ("mean_baseline", "ordinary_kriging", "random_forest")}}
+    assert "SEPARATE expiry" in block["watermark_note"]
+    assert manifest.provenance_chain["links"]["economics"]["files"] == 20
+
+
+def test_a_missing_footprint_raster_fails_by_name(run: dict, tmp_path: Path) -> None:
+    copy = _copied_economics(run, tmp_path)
+    (copy / "footprint__STRATEGIC_SUBSIDIZED__random_forest__z1.tif").unlink()
+    with pytest.raises(ValueError, match=r"record names 18 raster\(s\) but the directory holds 17: only in record \['footprint__STRATEGIC_SUBSIDIZED__random_forest__z1.tif'\]"):
+        _extend(run, economics_dir=copy)
+    # …and a result that names no file at all, distinct from a file that vanished
+    results = [r.model_copy(deep=True) for r in run["economic_results"]]
+    results[0].footprints["ordinary_kriging"]["0.0"]["raster_file"] = None
+    with pytest.raises(ValueError, match=r"scenario 'MARKET_STANDARD' records no raster_file for 'ordinary_kriging' at z=0.0"):
+        _extend(run, economic_results=results)
+
+
+def test_a_record_that_disagrees_with_the_bytes_or_the_tags_fails_by_name(run: dict, tmp_path: Path) -> None:
+    copy = _copied_economics(run, tmp_path)
+    record = json.loads((copy / "economics.footprints.json").read_text())
+    record["files"]["footprint__MARKET_STANDARD__mean_baseline__z0.tif"]["sha256"] = "sha256:" + "0" * 64
+    (copy / "economics.footprints.json").write_text(json.dumps(record))
+    with pytest.raises(ValueError, match=r"sha256 of footprint__MARKET_STANDARD__mean_baseline__z0.tif is recorded inconsistently: recomputed_from_bytes="):
+        _extend(run, economics_dir=copy)
+    copy2 = _copied_economics(run, tmp_path / "b")
+    record = json.loads((copy2 / "economics.footprints.json").read_text())
+    record["files"]["difference__MARKET_STANDARD__STRATEGIC_SUBSIDIZED__random_forest__z0.tif"]["counts"]["only_b"] = 7
+    (copy2 / "economics.footprints.json").write_text(json.dumps(record))
+    with pytest.raises(ValueError, match=r"n_only_b of difference__MARKET_STANDARD__STRATEGIC_SUBSIDIZED__random_forest__z0.tif is recorded inconsistently: recomputed_from_values='0'"):
+        _extend(run, economics_dir=copy2)
+
+
+def test_the_economics_origin_is_recomputed_never_declared_the_laundering_direction(run: dict) -> None:
+    """combine_origins(surface SYNTHETIC, cutoff AUTHORED) = AUTHORED is
+    recomputed at emission; a result declaring DERIVED is refused by name
+    even though its rasters and record agree with each other."""
+    results = [r.model_copy(update={"data_origin": "DERIVED"}) if r.scenario_name == "MARKET_STANDARD" else r for r in run["economic_results"]]
+    with pytest.raises(ValueError, match=r"data_origin of footprint__MARKET_STANDARD__mean_baseline__z0.tif is recorded inconsistently: recomputed_by_combine_origins='AUTHORED'.*manifest='DERIVED'"):
+        _extend(run, economic_results=results)
+
+
+def test_the_terrain_reason_is_derived_from_the_stacks_declared_dem_origin_not_copied(run: dict, tmp_path: Path) -> None:
+    """A record and a result that both claim the terrain reason LIFTED on a
+    SYNTHETIC stack agree with each other and are still refused: the state
+    is re-derived from the declared DEM origin."""
+    copy = _copied_economics(run, tmp_path)
+    record = json.loads((copy / "economics.footprints.json").read_text())
+    for entry in record["files"].values():
+        for reason in entry["watermark"]["reasons"]:
+            if reason["reason"] == "terrain":
+                reason["lifted"] = True
+    (copy / "economics.footprints.json").write_text(json.dumps(record))
+    def lifted(records):
+        out = []
+        for r in records:
+            wm = json.loads(json.dumps(r.watermark))
+            for reason in wm["reasons"]:
+                if reason["reason"] == "terrain":
+                    reason["lifted"] = True
+            out.append(r.model_copy(update={"watermark": wm}))
+        return out
+    with pytest.raises(ValueError, match=r"terrain reason of .* is recorded inconsistently: derived_from_stack_dem_origin='False', record='True', manifest='True'"):
+        _extend(run, economics_dir=copy, economic_results=lifted(run["economic_results"]), economic_differences=lifted(run["economic_differences"]))
+
+
+def test_the_claim_verdicts_failing_and_passing_sets_do_not_move_when_the_economics_block_exists(run: dict) -> None:
+    """§3: adding an economics layer adds no precondition and lifts none.
+    Compared as SETS of precondition names, per design, BEFORE (the CV-only
+    base manifest) and AFTER (the final manifest with the economics block) —
+    both the failing and the passing sets, because a guard that only pinned
+    failures could not be told from a blanket refusal."""
+    stack = run["stack_manifest"]
+    designs = [d["name"] for d in run["base"].cross_validation["designs"]]
+    def sets(manifest):
+        out = {}
+        for d in designs:
+            v = evaluate_claim(manifest, design=d, feature_stack_manifest=stack)
+            out[d] = (frozenset(r.precondition.value for r in v.results if not r.passed), frozenset(r.precondition.value for r in v.results if r.passed))
+        return out
+    before, after = sets(run["base"]), sets(run["manifest"])
+    assert before == after
+    gate = Precondition.PRE_REGISTERED_THRESHOLD.value
+    assert after["leave_one_site_out"][0] == {gate} and len(after["leave_one_site_out"][1]) == 5
+    assert after["random_k_fold"][0] == {gate, Precondition.SPATIALLY_BLOCKED_CV.value} and len(after["random_k_fold"][1]) == 4
+    assert run["manifest"].economics is not None and run["base"].economics is None
+
+
+def test_the_two_historical_artifacts_hashes_did_not_move_at_shape_tolerant_hashings_first_real_use() -> None:
+    """§4: RunManifest gained `economics` (schema 3); the legacy set of two
+    keeps its literal hashes — HASH.1's property at first real exercise."""
+    pins = {
+        "data/corpus/manifest.json": "sha256:0227d6df608ee23476c7f5915bede82f1ffb360c542e33152386257a2fd07fd9",
+        "data/runs/e2.4/run_manifest.json": "sha256:e3ac1561b8f681bb30ce05c9638325f9f58b0223ee56596e53fc68d89f6e7ad4",
+    }
+    raw = json.loads((REPO_ROOT / "data/runs/e2.4/run_manifest.json").read_text())
+    assert raw["content_hash"] == RunManifest(**raw).compute_content_hash() == pins["data/runs/e2.4/run_manifest.json"]
+    assert json.loads((REPO_ROOT / "data/corpus/manifest.json").read_text())["content_hash"] == pins["data/corpus/manifest.json"]
+    assert RunManifest.SCHEMA_VERSION == 3 and RunManifest.model_fields["economics"].default is None
+
+
+def test_a_count_forged_consistently_in_tag_record_and_result_is_refused_by_recomputation_from_the_pixels(run: dict, tmp_path: Path) -> None:
+    """THE SEPARATING FIXTURE for counts (found by mutation E-M6, which
+    survived the first test set: an emitter reading n_minable from the TAG
+    passed every test, because the only count-tamper test forged the record
+    alone and was caught by tag-vs-record — which a copying emitter also
+    catches). Here the tag, the record and the manifest's result all agree
+    on a wrong count, the record's sha256 is updated to the re-tagged bytes,
+    and only recomputation from the PIXELS can refuse. Both raster kinds."""
+    copy = _copied_economics(run, tmp_path)
+    record = json.loads((copy / "economics.footprints.json").read_text())
+
+    def forge(name: str, tag: str, value: str, record_key, result_records, kind: str):
+        # the file is a COG: re-tagging breaks its layout, which GDAL refuses by
+        # default — accepted here on purpose (the forgery must change the bytes)
+        with rasterio.open(copy / name, "r+", IGNORE_COG_LAYOUT_BREAK="YES") as ds:
+            ds.update_tags(**{tag: value})
+        record["files"][name]["sha256"] = file_sha256(copy / name)
+        record_key(record["files"][name])
+        return result_records
+
+    # a footprint: n_minable 2880 -> 7 everywhere but the pixels
+    fp = "footprint__MARKET_STANDARD__mean_baseline__z0.tif"
+    forge(fp, "n_minable", "7", lambda e: e.__setitem__("n_minable", 7), None, "footprint")
+    results = [r.model_copy(deep=True) for r in run["economic_results"]]
+    results[0].footprints["mean_baseline"]["0.0"]["n_minable"] = 7
+    (copy / "economics.footprints.json").write_text(json.dumps(record))
+    with pytest.raises(ValueError, match=rf"n_minable of {fp} is recorded inconsistently: recomputed_from_values='2880', raster_tag='7', record='7', manifest='7'"):
+        _extend(run, economics_dir=copy, economic_results=results)
+
+    # a difference: n_only_b 0 -> 7 everywhere but the pixels
+    copy2 = _copied_economics(run, tmp_path / "b")
+    record2 = json.loads((copy2 / "economics.footprints.json").read_text())
+    df = "difference__MARKET_STANDARD__STRATEGIC_SUBSIDIZED__ordinary_kriging__z1.tif"
+    with rasterio.open(copy2 / df, "r+", IGNORE_COG_LAYOUT_BREAK="YES") as ds:
+        ds.update_tags(n_only_b="7")
+    record2["files"][df]["sha256"] = file_sha256(copy2 / df)
+    record2["files"][df]["counts"]["only_b"] = 7
+    (copy2 / "economics.footprints.json").write_text(json.dumps(record2))
+    differences = [d.model_copy(deep=True) for d in run["economic_differences"]]
+    differences[0].footprints["ordinary_kriging"]["1.0"]["n_minable"] = 7
+    with pytest.raises(ValueError, match=rf"n_only_b of {df} is recorded inconsistently: recomputed_from_values='0', raster_tag='7', record='7', manifest='7'"):
+        _extend(run, economics_dir=copy2, economic_differences=differences)

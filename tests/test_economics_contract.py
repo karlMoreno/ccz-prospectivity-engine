@@ -230,4 +230,4 @@ def test_the_result_shape_carries_no_copied_flag_and_the_manifest_is_at_schema_v
     fields = set(EconomicScenarioResult.model_fields)
     assert "illustrative_only" not in fields and "minable_footprint_path" not in fields
     assert {"cutoff", "confidence_levels", "footprints", "uncertainty_semantics", "data_origin", "watermark"} <= fields
-    assert RunManifest.SCHEMA_VERSION == 2 and RunManifest.model_fields["economic_differences"].default is None
+    assert RunManifest.SCHEMA_VERSION == 3 and RunManifest.model_fields["economic_differences"].default is None
