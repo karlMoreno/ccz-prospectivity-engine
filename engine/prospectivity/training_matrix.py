@@ -42,6 +42,8 @@ has no identity in the provenance chain.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import hashlib
 from dataclasses import dataclass
 
@@ -147,6 +149,14 @@ class TrainingMatrixManifest(ProvenanceArtifact):
     coord_columns: list[str] = Field(default_factory=list)
     matrix_sha256: str
     data_origin: str
+
+    # HASH.1: frozen field set (matrix manifests are in-memory, never committed).
+    SCHEMA_VERSION: ClassVar[int] = 1
+    LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
+        "cell_groups", "contract_versions", "coord_columns", "covariate_names", "data_origin",
+        "distinct_cell_count", "matrix_sha256", "n_covariates", "n_stations", "sampling_method",
+        "shared_cell_count", "target_definition", "upstream_hashes",
+    })
 
 
 def matrix_watermark(data_origin: DataOrigin | str | None) -> str | None:

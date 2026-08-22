@@ -218,11 +218,15 @@ class RunManifest(ProvenanceArtifact):
       verifiability stated, because a chain that claims more than it
       delivers is the defect the path-hash BACKLOG entry exists to prevent.
 
-    THE HASH COVERS THE SHAPE. `substance()` dumps every field, defaults
-    included, so adding a field re-hashes every committed run manifest: the
-    E2.4 artifact was RE-STAMPED at E3.4 (its four new fields null, its
-    `content_hash` recomputed, every other byte identical — the commit shows
-    the diff). Stated here so the next field addition expects it.
+    THE HASH COVERED THE SHAPE — until HASH.1 (2026-08-22). `substance()`
+    dumped every field, defaults included, so adding a field re-hashed every
+    committed run manifest: the E2.4 artifact was RE-STAMPED at E3.4 (its
+    four new fields null, its `content_hash` recomputed, every other byte
+    identical). HASH.1 made the scheme shape-tolerant: that artifact is now
+    LEGACY (no schema_version) and hashed over the frozen set below, so its
+    hash never moves again; fresh manifests hash their present fields plus
+    `schema_version`. A new field here must default to None and bump
+    SCHEMA_VERSION (`provenance/artifact.py`).
     """
 
     # `run_id` joins the two base exclusions and `scores_first_visible`
@@ -235,6 +239,16 @@ class RunManifest(ProvenanceArtifact):
     HASH_EXCLUDED_FIELDS: ClassVar[frozenset[str]] = frozenset(
         {"content_hash", "generated_at", "scores_first_visible", "run_id"}
     )
+    # HASH.1: the field set frozen at 2026-08-22 — what data/runs/e2.4/
+    # run_manifest.json (LEGACY, re-stamped at E3.4 with its five nulls IN the
+    # substance) is hashed over. A SNAPSHOT; never regenerate from model_fields.
+    SCHEMA_VERSION: ClassVar[int] = 1
+    LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
+        "claim", "claim_eligible_designs", "contract_versions", "cross_validation", "cv_scores",
+        "data_origin", "derivation", "economic_results", "estimator_declarations", "generator",
+        "inputs", "output_hashes", "prediction_grid", "provenance_chain",
+        "scores_first_visible_note", "seed", "surfaces", "ts6_agreement", "upstream_hashes",
+    })
 
     run_id: str
     seed: int

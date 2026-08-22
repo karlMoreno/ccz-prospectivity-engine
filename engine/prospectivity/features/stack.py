@@ -13,6 +13,8 @@ module exists so E1.4's rasters/provenance can be produced and reviewed now.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from pathlib import Path
 
 import numpy as np
@@ -57,6 +59,14 @@ class FeatureStackManifest(ProvenanceArtifact):
     # SYNTHETIC rather than laundering into DERIVED.
     dem_data_origin: str
     layers_by_data_origin: dict[str, int] = Field(default_factory=dict)
+
+    # HASH.1: frozen field set (no stack manifest is committed; the set exists
+    # so the rule is uniform and a future field cannot reach a legacy hash).
+    SCHEMA_VERSION: ClassVar[int] = 1
+    LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
+        "contract", "contract_versions", "dem", "dem_data_origin", "layers",
+        "layers_by_data_origin", "registry_version", "upstream_hashes",
+    })
 
 
 def build_covariate_stack(

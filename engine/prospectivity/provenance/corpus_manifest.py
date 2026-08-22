@@ -19,6 +19,8 @@ What the CSV cannot tell you, and this does:
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -119,6 +121,19 @@ class SourceProvenance(BaseModel):
 
 class CorpusManifest(ProvenanceArtifact):
     """Ingestion-stage provenance for one corpus build."""
+
+    # HASH.1: the field set frozen at 2026-08-22 — what data/corpus/manifest.json
+    # (a LEGACY artifact, no schema_version) is hashed over. A SNAPSHOT: do not
+    # regenerate it from model_fields, or the committed hash moves.
+    SCHEMA_VERSION: ClassVar[int] = 1
+    LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
+        "admitted_rows_by_data_origin", "any_non_commercial_input", "bounding_box_all_rows",
+        "bounding_box_training_eligible", "contract_versions", "contributing_sources",
+        "corpus_path", "corpus_row_count", "rows_by_evidence_class", "rows_by_qa_status",
+        "sources", "sources_absorbed_entirely", "spatial_summary_all_rows",
+        "spatial_summary_training_eligible", "study_area_containment",
+        "training_eligible_count", "upstream_hashes",
+    })
 
     corpus_path: str
     corpus_row_count: int = 0

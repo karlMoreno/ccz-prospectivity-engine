@@ -1405,8 +1405,18 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   wording, "with the next Track G delivery", made the trigger contingent on a
   delivery rather than preceding it). Detail:
   [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4.
-- [ ] **THE HASH SCHEME BECOMES SHAPE-TOLERANT** (DECIDED by Karl at the E3.4
-  approval, 2026-08-22; **not built there — docs-only commit**).
+- [x] **THE HASH SCHEME BECOMES SHAPE-TOLERANT** (DECIDED by Karl at the E3.4
+  approval, 2026-08-22; **not built there — docs-only commit**). **BUILT at
+  HASH.1 commit 1 (2026-08-22):** present fields + `schema_version` inside
+  the substance for versioned artifacts; a LEGACY mode over a per-class
+  FROZEN field set for artifacts that arrive with a `content_hash` and no
+  `schema_version` — needed because a plain present-fields rule was
+  MEASURED to move the E2.4 run manifest's hash (its re-stamp hashed five
+  nulls) and `exclude_defaults` the corpus manifest's too. Both committed
+  hashes unchanged and pinned by literal; new fields must default to None,
+  refused at class definition otherwise. The historical set is 2, as
+  counted here. Detail: [HASH.1.md](walkthroughs/HASH.1.md) §1;
+  `provenance/artifact.py` module docstring. *(original entry)*
   **The question:** `ProvenanceArtifact.substance()` is `model_dump()` minus
   the excluded names, defaults included, so any new field re-hashes every
   committed instance of that artifact class. Re-stamp history on every

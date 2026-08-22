@@ -121,34 +121,64 @@ Identical *names* are the point — `tests/test_provenance_artifact.py` asserts
 it over all four — because walking the chain must not require per-artifact
 special cases.
 
-### The content-hash scheme
+### The content-hash scheme (HASH.1, 2026-08-22: shape-tolerant)
 
 `content_hash` is computed over the artifact's canonical JSON with **two
-fields excluded**:
+fields excluded** — `content_hash` itself (self-reference is impossible) and
+`generated_at` (a wall-clock timestamp would make two otherwise identical
+builds hash differently) — and, since HASH.1, over **present fields only,
+with the schema version inside the substance**:
 
-- `content_hash` itself — self-reference is impossible.
-- `generated_at` — a wall-clock timestamp would make two otherwise identical
-  builds hash differently, destroying the one property the hash exists to
-  provide.
+| artifact | detected by | substance |
+|---|---|---|
+| **versioned** (every artifact emitted since HASH.1) | `schema_version` set at construction to the class's `SCHEMA_VERSION` | every field whose value is not `None`, `schema_version` among them |
+| **legacy** (stamped before HASH.1) | arrives with a `content_hash` and **no** `schema_version` — only `finalize()` ever sets `content_hash`, so this separates reloaded history from a fresh build | the class's **frozen** `LEGACY_HASHED_FIELDS`, defaults included — byte-for-byte the pre-HASH.1 payload, so the hash never moves |
+
+**Why** (Karl's decision, E3.4 approval): under the old rule `substance()`
+dumped every field, defaults included, so adding ANY field re-hashed every
+committed artifact of that type — E3.4 paid that once (six lines on
+`data/runs/e2.4/run_manifest.json`), and every future field would have
+charged it again. Re-stamping means committed provenance CHANGES AFTER THE
+FACT, against what the chain exists to do. **The losing argument, because it
+is real:** two manifests with different shapes can now hash identically when
+their present fields agree, so the hash no longer identifies the schema. It
+loses because the shape is recorded elsewhere in the artifact and the hash's
+job is SUBSTANCE; `schema_version` inside the substance restores what is
+given up explicitly (v1 and v2 with identical present fields hash apart —
+tested), not as a side effect of dumping defaults.
+
+**Why a legacy mode rather than a plain present-fields rule — measured
+before building:** the E2.4 run manifest was re-stamped at E3.4 with five
+`null` fields IN its substance, so `exclude_none` alone moves its hash
+(`e3ac1561…` → `b649fd96…`), and `exclude_defaults` moves the corpus
+manifest's too (`upstream_hashes: {}`). "Leave historical artifacts with
+their original hashes" therefore requires the old rule for them, over a
+field set frozen at HASH.1 per class.
+
+**What the decision does NOT fix, bounded:** artifacts stamped before HASH.1
+carry no schema version, so by hash alone they cannot be told from a
+differently-shaped artifact. That set is **two committed files** —
+`data/corpus/manifest.json` and `data/runs/e2.4/run_manifest.json`; stack
+and matrix manifests are generated fresh per run and are unaffected. **The
+E3.4 re-stamp stays as it is**: un-stamping it would be the after-the-fact
+edit the decision exists to prevent. Both legacy hashes are pinned by
+literal in `tests/test_provenance_artifact.py`.
+
+**The rule for new fields, enforced at class definition:** a field a
+subclass introduces outside its frozen legacy set must default to `None`
+(`__pydantic_init_subclass__` refuses otherwise, by name) and
+`SCHEMA_VERSION` is bumped — a non-None default would enter every
+artifact's present-field substance and re-hash history by a side door.
 
 So `content_hash` is a hash of **substance**: same inputs and same decisions
-produce the same hash on any machine at any time (CLAUDE.md: "same inputs +
-seed → same outputs"). This is what makes it usable both as an upstream
-reference and as a reproducibility check. Manifests are therefore
-byte-identical across builds **apart from `generated_at`**, and their
-`content_hash` matches outright — both asserted in the tests.
-
-**Two measured qualifications** (the sentence above is the design intent;
-these are what the implementation delivers today): (1) "on any machine" does
-not yet hold for the feature stack and everything downstream of it —
-`FeatureStackManifest` embeds the caller-supplied DEM path (BACKLOG §3,
-trigger before Checkpoint 1), and E3.4's `provenance_chain` says so in every
-run manifest; (2) **the hash covers the SHAPE**: `substance()` dumps every
-field, defaults included, so adding a field to an artifact class re-hashes
-every committed instance of it. E3.4 met this and RE-STAMPED
-`data/runs/e2.4/run_manifest.json` (four `null` fields, new `content_hash`,
-every other byte identical); whether that is the standing policy is BACKLOG
-§2's.
+produce the same hash at any time. **"On any machine" — the remaining
+qualification, measured:** it does not yet hold for the feature stack and
+everything downstream of it — `FeatureStackManifest` embeds the
+caller-supplied DEM path (BACKLOG §3, trigger before Checkpoint 1; HASH.1
+commit 2 addresses it), and the run manifest's `provenance_chain` says so
+in every emission. Manifests are byte-identical across builds **apart from
+`generated_at`**, and their `content_hash` matches outright — asserted in
+the tests.
 
 **Corollary — order invariance.** `CorpusManifest` sorts its source lists by
 `source_id` rather than leaving them in adapter-run order, because the corpus
