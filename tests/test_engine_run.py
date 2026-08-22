@@ -1,0 +1,278 @@
+"""E3.4 commit 2 — `ProspectivityEngine.run()` end to end, on the REAL
+composition: the real corpus and 35-station matrix over the synthetic-DEM
+stack, every production collaborator except the two Phase-3/4 Strategies
+that have no production implementation (TS6Reference — the fixture, since
+G3.1 has not delivered; EconomicModel — a stub, since Phase 4 has not begun
+and the ABC has zero implementations, PATTERNS.md §3.2).
+
+STATED FIRST: the DEM and the TS-6 raster are SYNTHETIC FIXTURES. Every
+manifest here is watermarked, every verdict is a refusal, and no number in
+it measures anything about the seafloor or TS-6. What is under test is that
+the Template Method composes the Phase-1–3 machinery into ONE record whose
+every link is recomputed — and that "same inputs + seed -> same outputs"
+holds at the level of the whole run, not only of its parts.
+
+Three of the four designs are run (leave-one-station-out's 35 folds are
+omitted for time); the registry is E2.4's light one (RF at 40 trees).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from engine.prospectivity.domain.results import EconomicScenarioResult, RunManifest, TS6Agreement
+from engine.prospectivity.domain.study_area import StudyArea
+from engine.prospectivity.domain.terrain import TerrainLayer
+from engine.prospectivity.economics.model import EconomicModel
+from engine.prospectivity.engine import GENERATOR, ProspectivityEngine
+from engine.prospectivity.features.bundle import StackFeatureBuilder
+from engine.prospectivity.provenance.contract_versions import file_sha256
+from engine.prospectivity.samples.corpus_csv import CorpusCsvSampleSource
+from engine.prospectivity.terrain.source import TerrainSource
+from engine.prospectivity.validation.claim import evaluate_claim
+from engine.prospectivity.validation.runner import CrossValidationRunner
+from engine.prospectivity.validation.splitter import (
+    RandomKFoldSplitter,
+    leave_one_cluster_out,
+    leave_one_site_out,
+)
+from tests.fixtures.rasters import (
+    FixtureTerrainSource,
+    FixtureTS6Reference,
+    write_synthetic_bathymetry,
+    write_synthetic_ts6_raster,
+)
+from tests.test_cv_runner import _light_registry
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+CLAIM_DESIGN = "leave_one_site_out"
+ESTIMATORS = {"mean_baseline", "ordinary_kriging", "random_forest"}
+
+
+class _Phase4Stub(EconomicModel):
+    """Phase 4 has no EconomicModel; this one records only what the contract
+    requires every implementation to propagate — `illustrative_only`."""
+
+    def apply(self, surfaces, scenario_config) -> EconomicScenarioResult:
+        return EconomicScenarioResult(
+            scenario_name=scenario_config["scenario_name"],
+            illustrative_only=bool(scenario_config["illustrative_only"]),
+        )
+
+
+def _study_area() -> StudyArea:
+    raw = json.loads((REPO_ROOT / "data" / "aoi" / "study_area.geojson").read_text())
+    feature = raw["features"][0]
+    return StudyArea(
+        area_id=feature["properties"]["area_id"],
+        name=feature["properties"].get("name", feature["properties"]["area_id"]),
+        geometry=feature["geometry"],
+    )
+
+
+def _scenarios() -> list[dict]:
+    import yaml
+
+    loaded = yaml.safe_load((REPO_ROOT / "data" / "economics" / "scenarios.yaml").read_text())
+    return [dict(s) for s in loaded["scenarios"]]
+
+
+def _engine(
+    tmp: Path, *, seed: int = 0, run_id: str = "e3.4-engine", out: str = "out", features: str = "features"
+) -> ProspectivityEngine:
+    tmp.mkdir(parents=True, exist_ok=True)
+    dem_path = tmp / "dem.tif"
+    write_synthetic_bathymetry(dem_path)
+    ts6_path = tmp / "ts6.tif"
+    write_synthetic_ts6_raster(ts6_path)
+    registry = _light_registry(covariate_names=None)
+    return ProspectivityEngine(
+        study_area=_study_area(),
+        terrain_source=FixtureTerrainSource(dem_path),
+        sample_source=CorpusCsvSampleSource(),
+        feature_builder=StackFeatureBuilder(tmp / features),
+        cv_runner=CrossValidationRunner(
+            splitters=[leave_one_cluster_out(), leave_one_site_out(), RandomKFoldSplitter(k=5, seed=seed)],
+            registry=registry,
+        ),
+        estimators=registry,
+        ts6_reference=FixtureTS6Reference(ts6_path),
+        economic_model=_Phase4Stub(),
+        scenario_configs=_scenarios(),
+        output_dir=tmp / out,
+        claim_design=CLAIM_DESIGN,
+        seed=seed,
+        run_id=run_id,
+    )
+
+
+@pytest.fixture(scope="module")
+def run(tmp_path_factory) -> dict:
+    tmp = tmp_path_factory.mktemp("engine_run")
+    manifest = _engine(tmp).run()
+    return {"manifest": manifest, "out": tmp / "out", "tmp": tmp}
+
+
+def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everything(run: dict) -> None:
+    manifest, out = run["manifest"], run["out"]
+    on_disk = RunManifest(**json.loads((out / "run_manifest.json").read_text()))
+    assert on_disk.content_hash == manifest.content_hash == on_disk.compute_content_hash()
+    assert manifest.generator == GENERATOR and manifest.run_id == "e3.4-engine"
+    assert set(manifest.surfaces) == set(manifest.ts6_agreement) == ESTIMATORS
+    assert set(manifest.inputs["registry"]) == ESTIMATORS
+    assert [d["name"] for d in manifest.cross_validation["designs"]] == [
+        "leave_one_cluster_out", "leave_one_site_out", "random_k_fold"
+    ]
+    assert set(manifest.claim["verdicts"]) == {"leave_one_cluster_out", "leave_one_site_out", "random_k_fold"}
+    assert manifest.claim["design"] == CLAIM_DESIGN
+    assert manifest.prediction_grid["n_cells"] == 3400 and manifest.prediction_grid["n_masked"] == 520
+    # every written file, hashed by basename, recomputed here from the bytes
+    files = {p.name: file_sha256(p) for p in out.iterdir() if p.name != "run_manifest.json"}
+    assert manifest.output_hashes == files and len(files) == 10
+    # Phase 4's seam ran over Contract 4's two scenarios, both still illustrative
+    assert [r.scenario_name for r in manifest.economic_results] == ["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"]
+    assert all(r.illustrative_only for r in manifest.economic_results)
+
+
+def test_the_run_is_watermarked_refused_and_says_so_as_data(run: dict) -> None:
+    """Today's honest output, produced by the machinery: SYNTHETIC origin,
+    every surface non-publishable, every verdict a refusal naming its
+    preconditions, and the agreement numbers labelled synthetic."""
+    manifest = run["manifest"]
+    assert manifest.data_origin == "SYNTHETIC"
+    assert all(s["data_origin"] == "SYNTHETIC" and s["publishable"] is False for s in manifest.surfaces.values())
+    assert all(v["eligible"] is False and v["is_scientific"] is False for v in manifest.claim["verdicts"].values())
+    gate = "an_acceptance_threshold_existed_before_the_scores"
+    failing = {
+        d: sorted(r["precondition"] for r in v["preconditions"] if not r["passed"])
+        for d, v in manifest.claim["verdicts"].items()
+    }
+    assert failing == {
+        "leave_one_cluster_out": [gate],
+        "leave_one_site_out": [gate],
+        "random_k_fold": [gate, "spatially_blocked_cross_validation_ran"],
+    }
+    assert all(isinstance(a, TS6Agreement) and a.data_origin == "SYNTHETIC" for a in manifest.ts6_agreement.values())
+    assert manifest.provenance_chain["verifiable_off_machine"] == ["corpus"]
+    # the verdict in the record IS the guard's verdict on the final record
+    for design, recorded in manifest.claim["verdicts"].items():
+        stack = json.loads((run["tmp"] / "features" / "stack" / "provenance.json").read_text())
+        assert evaluate_claim(manifest, design=design, feature_stack_manifest=stack).to_record() == recorded
+
+
+def test_the_phase_headline_findings_travel_in_the_record(run: dict) -> None:
+    """E3.1+2 pinned the two measured findings as tests on the builder; the
+    manifest's `surfaces` block must carry them so a reader of the record
+    meets them without re-running anything: RF's ~1,842 distinct values
+    inside the entailed [min(y), max(y)] bound (not E3.0's refuted one), and
+    kriging's near-constant surface. Loose re-pins — the exact values are
+    E3.1+2's to pin; this asserts the RECORD carries them."""
+    surfaces = run["manifest"].surfaces
+    rf = surfaces["random_forest"]
+    assert rf["n_distinct_values"] > 1000 and 11.6 <= rf["mu_min"] and rf["mu_max"] <= 26.8
+    kriging = surfaces["ordinary_kriging"]
+    assert kriging["mu_max"] - kriging["mu_min"] < 3.0  # [17.866, 20.454] measured at E3.1+2
+    assert surfaces["mean_baseline"]["n_distinct_values"] == 1
+    assert all(s["n_predicted"] == 2880 and s["n_masked"] == 520 for s in surfaces.values())
+
+
+def test_same_inputs_and_seed_in_the_same_tree_give_the_same_manifest_hash_across_two_whole_runs(
+    run: dict
+) -> None:
+    """CLAUDE.md's reproducibility rule at the level of the WHOLE run —
+    ingestion through the extended manifest — with the same DEM at the same
+    path and a different output directory. Full-state: every field outside
+    the hash-excluded set equal, content_hash equal."""
+    second = _engine(run["tmp"], out="out_again").run()
+    excluded = RunManifest.hash_excluded_fields()
+    a, b = json.loads(run["manifest"].to_json()), json.loads(second.to_json())
+    assert {k: v for k, v in a.items() if k not in excluded} == {k: v for k, v in b.items() if k not in excluded}
+    assert second.content_hash == run["manifest"].content_hash
+
+
+STACK_HASH_CARRIERS = {"upstream_hashes", "prediction_grid", "provenance_chain", "output_hashes", "surfaces", "content_hash"}
+
+
+def test_the_same_bytes_in_a_different_tree_reproduce_the_science_and_nothing_that_quotes_the_stack_hash(
+    run: dict, tmp_path: Path
+) -> None:
+    """THE PATH-HASH LIMIT AT WHOLE-RUN SCALE (BACKLOG §3; E2.4 audit row M
+    measured it on the CV record: 15 substance fields reproduce, neither
+    identity field does). The same DEM bytes written to a different directory
+    give a different feature_stack hash, and at E3.4 that hash is quoted by
+    the prediction grid, every raster's tags, every sidecar, the chain block
+    and output_hashes — so the set of top-level fields that differ is
+    EXACTLY the set that carries it, and everything else (the scores, the
+    fold record, the verdicts, the agreements, the surface summaries minus
+    their file hashes) is byte-identical.
+
+    Asserted as an EQUALITY on the differing set, not a subset: a new field
+    that silently picked up the hash would widen it and fail here; when the
+    BACKLOG fix lands the set collapses toward empty and this test must be
+    rewritten — which is the point of pinning a limit."""
+    elsewhere = _engine(tmp_path / "elsewhere").run()
+    excluded = RunManifest.hash_excluded_fields()
+    a, b = json.loads(run["manifest"].to_json()), json.loads(elsewhere.to_json())
+    differing = {k for k in a if k not in excluded and a[k] != b[k]} | {"content_hash"}
+    assert differing == STACK_HASH_CARRIERS
+    assert a["upstream_hashes"]["corpus"] == b["upstream_hashes"]["corpus"]  # the one portable link
+    # the surfaces themselves are the same surfaces: only their files' identities moved
+    strip = lambda block: {k: v for k, v in block.items() if k not in ("rasters", "sidecar")}
+    assert {n: strip(s) for n, s in a["surfaces"].items()} == {n: strip(s) for n, s in b["surfaces"].items()}
+    assert a["ts6_agreement"] == b["ts6_agreement"] and a["claim"] == b["claim"]
+
+
+def test_a_terrain_layer_without_a_declared_origin_is_refused_by_name_before_any_stack_is_built(tmp_path: Path) -> None:
+    """Declaration or nothing: the feature builder refuses an undeclared DEM
+    origin rather than defaulting it (P2.0d-3), and nothing is written."""
+    dem_path = tmp_path / "dem.tif"
+    write_synthetic_bathymetry(dem_path)
+    builder = StackFeatureBuilder(tmp_path / "features")
+    undeclared = TerrainLayer(name="bathymetry", path=str(dem_path), data_origin=None)
+    with pytest.raises(ValueError, match=r"declares no data_origin .*declaration or nothing"):
+        builder(undeclared, CorpusCsvSampleSource().get_training_samples())
+    assert not (tmp_path / "features").exists()
+    with pytest.raises(ValueError, match=r"carries no path"):
+        builder(TerrainLayer(name="bathymetry", data_origin="SYNTHETIC"), [])
+
+
+def test_the_prediction_grid_is_the_stack_the_matrix_was_sampled_from(run: dict) -> None:
+    """The bundle's point: one stack, read twice. The manifest's grid quotes
+    the stack hash the matrix manifest chains to, and the emitter recomputed
+    both from the same provenance.json."""
+    manifest = run["manifest"]
+    stack = json.loads((run["tmp"] / "features" / "stack" / "provenance.json").read_text())
+    assert manifest.prediction_grid["stack_content_hash"] == stack["content_hash"]
+    assert manifest.upstream_hashes["feature_stack"] == stack["content_hash"]
+    assert manifest.provenance_chain["links"]["feature_stack"]["content_hash"] == stack["content_hash"]
+    assert manifest.prediction_grid["layer_names"] == manifest.inputs["training_matrix"]["covariate_names"]
+
+
+def test_the_surfaces_are_marked_with_the_declared_claim_designs_verdict_not_another_designs(
+    tmp_path: Path
+) -> None:
+    """THE SEPARATING FIXTURE: leave_one_site_out and leave_one_cluster_out
+    fail the same single precondition today, so a writer handed the FIRST
+    design's verdict instead of the DECLARED one would write identical tags
+    and no test could tell. random_k_fold fails two, so a run that declares
+    it as the claim design must carry BOTH in every raster's tags and
+    sidecar — and a run declaring site-out must carry one."""
+    manifest = _engine(tmp_path / "rk", run_id="e3.4-claim-rk").run()
+    sidecar = json.loads((tmp_path / "rk" / "out" / "ordinary_kriging.provenance.json").read_text())
+    failing = {
+        d: sorted(r["precondition"] for r in v["preconditions"] if not r["passed"])
+        for d, v in manifest.claim["verdicts"].items()
+    }
+    assert manifest.claim["design"] == CLAIM_DESIGN
+    assert sidecar["claim_failing_preconditions"] == failing[CLAIM_DESIGN] and len(failing[CLAIM_DESIGN]) == 1
+
+    declared_random = _engine(tmp_path / "rk", run_id="e3.4-claim-rk", out="out_rk")
+    declared_random._claim_design = "random_k_fold"  # the declaration, varied; everything else identical
+    manifest_rk = declared_random.run()
+    sidecar_rk = json.loads((tmp_path / "rk" / "out_rk" / "ordinary_kriging.provenance.json").read_text())
+    assert manifest_rk.claim["design"] == "random_k_fold"
+    assert sidecar_rk["claim_failing_preconditions"] == failing["random_k_fold"] and len(failing["random_k_fold"]) == 2
+    assert manifest_rk.claim["verdicts"] == manifest.claim["verdicts"]  # every design's verdict, both runs

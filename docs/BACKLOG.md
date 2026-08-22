@@ -409,6 +409,28 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §4; [docs/contracts/README.md:24](../docs/contracts/README.md#L24)–37.
 
+- [ ] **`RunManifest.content_hash` COVERS THE SHAPE: adding a field re-hashes
+  every committed run manifest — decide the policy** (found at E3.4 commit 1,
+  2026-08-22, the moment the four new fields turned
+  `test_the_committed_artifact_hash_verifies_against_its_own_contents` red).
+  `substance()` is `model_dump()` minus the excluded names, defaults
+  included, so a new `None`-defaulted field changes the canonical JSON of an
+  artifact emitted before the field existed. **What E3.4 did:** RE-STAMPED
+  `data/runs/e2.4/run_manifest.json` mechanically — reloaded under the new
+  shape, `finalize()`d, written back: four `null` lines and
+  `content_hash sha256:7f6c7fae… → sha256:e3ac1561…`, every other byte
+  identical (the commit shows exactly that; `generated_at`,
+  `scores_first_visible` and the path-dependent upstream hashes untouched,
+  which a regeneration would have moved). The artifact test's docstring
+  records it. **What needs Karl's word:** whether that is the standing
+  policy (each shape change re-stamps committed artifacts, diff on record)
+  or whether the hash scheme should become shape-tolerant (e.g. hash only
+  fields that are set, or version the shape) — the second changes the
+  semantics of every artifact's hash and was NOT made unilaterally. The
+  path-hash fix (§3) will force the same choice again. Owner: Karl.
+  **Trigger: before the path-hash fix, or the next RunManifest field.**
+  Detail: [E3.4.md](walkthroughs/E3.4.md) §1; `domain/results.py` docstring.
+
 ## 3. Engineering (Track E)
 
 - [ ] **ANY process that mutates the tree — reviewer, harness, or the session
@@ -1149,13 +1171,26 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   guard is right and the writer is over-general**; the entry stays open
   because that is an argument, not a measurement. Karl's call. Owner: E +
   Karl. **Trigger: with the E3.3 type decision**, since they are the same
-  shape of question.
+  shape of question. **E3.4's disposition (2026-08-22), which does NOT
+  close this:** the engine takes a REQUIRED `claim_design` (the caller's
+  declaration, recorded in the manifest), evaluates the guard for EVERY
+  design, records all of them as data (`claim.verdicts`), and hands the
+  writer the declared design's verdict for every surface — the run-level
+  reading in practice, with the writer's per-surface signature left as
+  built. The arity question this entry was tied to is closed (below); this
+  one still wants Karl's word on which direction the SIGNATURE goes.
   Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §3;
   `engine/prospectivity/surfaces/writer.py` module docstring.
 
-- [ ] **`compare_to_ts6`'s type is UNDECIDED, and the two candidate answers
+- [x] **`compare_to_ts6`'s type is UNDECIDED, and the two candidate answers
   pull apart** (E3.1+2 commit 1, 2026-08-21 — **reported rather than picked,
-  per the task's own instruction**).
+  per the task's own instruction**). **CLOSED at E3.4 commit 1 (2026-08-22,
+  `31dc10b`): `RunManifest.ts6_agreement` IS the mapping** — one
+  self-identifying agreement per estimator, `None` meaning "the comparison
+  step did not run" (what the E2.4 CV-only artifact records). Built under the
+  2B protocol (before/after in `results.py`'s docstring; sweep: `engine.py`,
+  the template-method stub, `reference.py`'s Phase-0 `compare_to_ts6` stub
+  RETIRED at commit 2). Detail: [E3.4.md](walkthroughs/E3.4.md) §1.
   The prompt offered two reconciliations: `PredictionSurface` gains a
   constructor from the per-estimator `(mu, sd)` dict, or `_compare_to_ts6`'s
   signature changes to take what `run()` holds. The constraint it named is
@@ -1210,9 +1245,15 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   commit 2**, with the correlation posture. Detail: Contract 6's
   `raster_data_origin` comment; [E3.1-2.md](walkthroughs/E3.1-2.md).
 
-- [ ] **ADD Contract 6's `digitization_uncertainty` SLOT — a structural
-  contract change, Karl's call** (found at E3.3 commit 2, 2026-08-22, by a
-  premise check: the task prompt said the field "is null today" and it does
+- [x] **ADD Contract 6's `digitization_uncertainty` SLOT — a structural
+  contract change, Karl's call** — **DONE at the E3.3 approval (2026-08-22,
+  `4834e31`, `reference_version` 3 → 4, `digitization_uncertainty: null`,
+  `[GEOLOGY — ISAAC]`, additive). Checked off at E3.4 (2026-08-22): the
+  commit that closed it did not tick this box — the first repo-vs-repo
+  disagreement the E3.4 premise check found, and the deferral rule's
+  "closing = checking it off in the commit that closed it" applied one
+  commit late. The VALUE is still G3.1's.** *(original entry)* (found at E3.3
+  commit 2, 2026-08-22, by a premise check: the task prompt said the field "is null today" and it does
   not EXIST — absent, not null, and this project treats those as different
   states with different remedies).
   **The consumer already exists** (`ts6.comparison.ts6_digitization_uncertainty`,
@@ -1304,6 +1345,14 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   one (1 of 471). So the gap is not hypothetical for Phase 3; it is on the
   path.
 
+  **RE-QUALIFIED AT E3.4 (2026-08-22): TS-6's class is now SETTLED — DERIVED
+  (Contract 6 v3, TAX.1 approval, `9a7ecac`), the class WITH an observer. So
+  "two Phase-3 arrivals riding on LITERATURE" (the E3.4 spec's closing list;
+  the handoff) is STALE: ONE Phase-3 arrival — the AOI — can still land in
+  LITERATURE, and it is not settled either way (§1). Isaac's target citation
+  (Contract 8, AUTHORED→LITERATURE) remains the certain arrival. Trigger
+  unchanged; the count is corrected rather than inflated.
+
   **The fix is one negation fixture**, in the shape the other two already
   use: a `data_origin: LITERATURE` node with no citation must appear in
   `findings.invalid`, and one with a locating citation must not. Owner: E.
@@ -1313,6 +1362,41 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   wording, "with the next Track G delivery", made the trigger contingent on a
   delivery rather than preceding it). Detail:
   [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4.
+- [ ] **`claim.py`'s runner-vs-record disagreement branch raises `NameError`,
+  not `ClaimRefused`** (found at E3.4 while reading the guard before wiring
+  it, 2026-08-22; **deferred, not fixed: E2.5's module, its own test**).
+  `_check_spatially_blocked`'s SECOND refusal — "declares
+  spatially_blocked=True but is absent from the manifest's
+  claim_eligible_designs" — formats `manifest.claim_eligible_designs!r`
+  (`validation/claim.py:195`) where only `inputs.manifest` is in scope
+  (line 191 reads it correctly). The branch is reachable only when the
+  runner and its own record disagree, which no run today produces, so it
+  has NO OBSERVER and would surface as a `NameError` traceback instead of
+  the named refusal it was written to give. **Fix:** `inputs.manifest`,
+  plus a constructed manifest whose design declares `spatially_blocked=True`
+  while `claim_eligible_designs` omits it (the `_eligible_run()` fixture
+  with one field broken — the file's own convention). Owner: E. **Trigger:
+  the next edit to `claim.py`, or before Checkpoint 3**, whichever first.
+  Detail: [E3.4.md](walkthroughs/E3.4.md) §4.
+- [ ] **A PASSING pre-registration gate will put a timestamp INSIDE the
+  content hash** (found at E3.4 commit 1 while recording the verdict as
+  data, 2026-08-22; latent — no gate passes today).
+  `claim.verdicts.*.preconditions[].detail` is inside the substance hash.
+  Five of the six checkers' success details are constants or run facts; the
+  sixth — `_check_pre_registered_threshold` — renders
+  `scores_first_visible.isoformat()` into its SUCCESS detail, and
+  `scores_first_visible` is deliberately OUTSIDE the hash (the
+  pre-registration clock). So the day Contract 8's `acceptance_thresholds`
+  is filled and the gate passes, two emissions of one run with different
+  clocks will hash differently — the property the exclusion exists to
+  protect, lost through a string. Today every verdict FAILS that
+  precondition with a clock-free message, which is why the reproduction
+  tests are green. **Fix:** the detail names the comparison's OUTCOME, not
+  the clock's value (the clock is already recorded beside it), or the
+  emitter records `{precondition, passed}` and keeps `detail` out of the
+  substance. Owner: E. **Trigger: with Contract 8's `acceptance_thresholds`
+  VALUE (Track G / Karl) — before the first passing verdict is emitted.**
+  Detail: [E3.4.md](walkthroughs/E3.4.md) §2.
 - [ ] **The THEOREM test's numeric tolerances are seed-calibrated too — the
   same defect as the leakage pins, in the test next to them** (found at
   P2.CLOSE commit 1, 2026-08-20, by a premise check that swept the file's
@@ -1397,11 +1481,33 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   its SUBSTANCE fields from a different directory, and in neither of its
   identity fields.
 
+  **THE BLAST RADIUS, RE-MEASURED AT E3.4 (2026-08-22): IT NOW REACHES EVERY
+  OUTPUT FILE.** Each written raster's tags and each sidecar carry the stack
+  hash (`grid_stack_content_hash`; `grid.identity()`), so the same
+  SurfaceResult written against a stack built from the same DEM bytes at a
+  different path is a DIFFERENT FILE (values identical — measured with
+  `np.array_equal`; bytes not). At whole-run scale: the same DEM bytes in a
+  different directory reproduce the scores, the fold record, every verdict,
+  every agreement and every surface summary byte-for-byte, and differ in
+  EXACTLY `upstream_hashes`, `prediction_grid`, `provenance_chain`,
+  `output_hashes`, `surfaces` (the file hashes) and `content_hash` — pinned
+  as an equality on the differing SET in
+  `tests/test_engine_run.py::test_the_same_bytes_in_a_different_tree_…` and
+  in `tests/test_run_manifest_extension.py::test_the_chain_limit_…`. Both
+  tests pin the defect's PRESENCE deliberately: when the fix lands they go
+  red and the manifest's `provenance_chain` claim (which today says only the
+  corpus is verifiable off-machine) must change in the same commit. The
+  limit is STATED IN THE EMITTER'S OUTPUT (`provenance/emitter.py:
+  CHAIN_LIMIT_NOTE`), not only here.
+
   **Fix** (small in code, wide in consequence — it changes an E1.4 artifact's
   substance and every pinned hash, which is why E2.4 listed it rather than
   making it): record paths as basenames or repo-relative, or exclude them from
   the substance as `generated_at` is; then re-pin. The determinism test must be
-  rebuilt to vary the DEM PATH, or it will keep passing either way.
+  rebuilt to vary the DEM PATH, or it will keep passing either way. **Note the
+  re-stamp precedent (E3.4): fixing this re-hashes the committed E2.4 artifact
+  AGAIN (its `upstream_hashes` quote the stack), and the §2 entry on
+  shape-rehashing decides how.**
 
   Owner: E. **Trigger: BEFORE CHECKPOINT 1** — real GEBCO arrives at a new path
   and every stack hash changes for a reason that has nothing to do with the

@@ -22,17 +22,25 @@ this one interface — a third scenario is a config addition, not a code change.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Any
 
-from engine.prospectivity.domain.results import EconomicScenarioResult, PredictionSurface
+from engine.prospectivity.domain.results import EconomicScenarioResult
 
 
 class EconomicModel(ABC):
-    """Applies one scenarios.yaml scenario to a prediction surface."""
+    """Applies one scenarios.yaml scenario to the prediction surfaces.
+
+    E3.4 (2B sweep, 2026-08-22): the engine hands this seam the MAPPING of
+    per-estimator `SurfaceResult`s E3.1+2 builds (paired mu/sd over the
+    grid), not a `PredictionSurface` — that Phase-0 type has no producer.
+    The annotation now says what arrives; Phase 4 decides what the model
+    does with it (zero implementations today, PATTERNS.md §3.2).
+    """
 
     @abstractmethod
     def apply(
-        self, prediction: PredictionSurface, scenario_config: dict[str, Any]
+        self, surfaces: Mapping[str, Any], scenario_config: dict[str, Any]
     ) -> EconomicScenarioResult:
         """Return the minable-footprint result for one scenario.
 

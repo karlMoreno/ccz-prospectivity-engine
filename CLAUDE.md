@@ -422,8 +422,17 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **2, Track E — COMPLETE (E2.5 landed 2026-08-19)** (minimal update;
-  the full status refresh is the P2.C item in `docs/BACKLOG.md` §2). Phase 0's scaffold +
+- Phase: **3, Track E — COMPLETE pending Karl's E3.4 review (E3.4 landed
+  2026-08-22; E3.0 → E3.1+2 → TAX.1 → E3.3 → E3.4)**; Phase 2 Track E complete
+  (E2.5, 2026-08-19). (Minimal update; the full status refresh is the P2.C
+  item in `docs/BACKLOG.md` §2.) **What Checkpoint 3 can review:** the
+  machinery end to end (`ProspectivityEngine.run()` composes ingestion,
+  features, CV, the guard, paired surfaces, the writer, the TS-6 comparison
+  and the extended manifest on the real corpus over a synthetic DEM) and two
+  real measurements (kriging within 0.5 kg/m² of the mean over 99.62% of its
+  domain; RF's ~1,842-value surface inside [11.6, 26.8]). **What it cannot
+  review:** a model claim — there is no publishable one, and the guard says
+  so structurally (`docs/walkthroughs/E3.4.md` §5). Phase 0's scaffold +
   seven contracts, Phase 1's real ingestion (E1.1–E1.3 + the P1/P1b/P2/P3 review batches),
   terrain feature recipes (E1.4), and E1.5 are built and reviewed; Phase 2's preflight
   (P2.0 origin taxonomy, Contract 8, P2.B/P2.A), the training matrix (E2.0), the Estimator
@@ -455,7 +464,8 @@ ccz-prospectivity-engine/
 - Per-task walkthroughs are in `docs/walkthroughs/` (`phase-0-and-E1.1.md`, `E1.2.md`
   … `E1.5.md`, `P2.0.md`, `P2.B-and-P2.A.md`, `E2.0.md` … `E2.5.md`, whose second
   half is the PHASE-2 TRACK-E CLOSEOUT, `C8.1.md`, `P2-closeout.md`,
-  `E3.1-2.md`, `TAX.1.md`, and `E3.3.md`). Read the relevant
+  `E3.1-2.md`, `TAX.1.md`, `E3.3.md`, and `E3.4.md`, whose second half is
+  the PHASE-3 TRACK-E CLOSEOUT). Read the relevant
   one before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;

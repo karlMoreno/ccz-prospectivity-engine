@@ -787,7 +787,7 @@ def test_the_engine_refuses_a_cv_runner_that_validates_a_different_registry(real
         ProspectivityEngine(
             study_area=None, terrain_source=None, sample_source=None, feature_builder=None,
             cv_runner=runner, estimators=predicted, ts6_reference=None, economic_model=None,
-            scenario_configs=[],
+            scenario_configs=[], output_dir="unused", claim_design="leave_one_cluster_out",  # E3.4 (2B)
         )
 
 
