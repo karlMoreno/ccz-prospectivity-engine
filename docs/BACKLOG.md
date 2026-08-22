@@ -73,8 +73,14 @@ installed can validate it), and E3.3's descriptive-r-with-N_eff posture. The
 AOI entry was REWRITTEN in the same commit — its trigger had expired ("before
 Phase-2 prediction surfaces", a phase that ended producing none) and its
 gating claim is disproved by E3.0 §2.
-**45 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 25, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
+3 ADDED at E3.1+2 (2026-08-20), all found by the task's own probes rather
+than by review: surface outputs cannot be committed under `data/` as they
+stand (the origin audit sees them and refuses); E2.5's guard cannot produce a
+per-estimator verdict; and `compare_to_ts6`'s type is undecided because the
+manifest's TS-6 arity is singular — reported rather than picked, per the
+task's instruction.
+**48 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
+Engineering 28, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
 fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -987,6 +993,81 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   installed**. Owner: E. **Trigger: E3.3 commit 2** (implement a correction
   only if a test is ever demanded). Detail:
   [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) E3.3.
+
+- [ ] **Surface OUTPUTS cannot be committed under `data/` as they stand — the
+  rasters are UNCLASSIFIED and a SYNTHETIC-BY-INHERITANCE surface cannot
+  satisfy SYNTHETIC's seed rule** (found at E3.1+2 commit 3, 2026-08-20, by
+  probing `test_data_origin_audit.py` against a staged output directory —
+  the probe the task required, and it found a real defect plus two open
+  questions).
+  **What the probe measured.** The audit's walk is `git ls-files -- data
+  tests/fixtures`, so outputs under `data/` ARE seen once tracked — the
+  coverage boundary is not where it was assumed. Staged, it returned:
+  * `SYNTHETIC without a generator import path` and `without a recorded seed`
+    for the sidecar — **a real defect, FIXED in that commit**: the sidecar now
+    carries `generator` and `seed`.
+  * `ordinary_kriging_prediction.tif` / `_uncertainty.tif` **UNCLASSIFIED** —
+    binary files carry no in-file marker and the audit does not treat an
+    adjacent sidecar as one.
+  * `SYNTHETIC without a recorded seed` STILL, for kriging specifically:
+    `_seed_of` returns None because **ordinary kriging is deterministic and
+    records no seed**, and the writer refuses to fabricate a 0 that would
+    satisfy the audit while naming a seed nothing used.
+
+  **THE OPEN QUESTION IS A TAXONOMY ONE, not a plumbing one.** SYNTHETIC's
+  evidence rule ("the generator's import path AND seed(s)") was written for
+  GENERATED FIXTURES. A prediction surface is SYNTHETIC BY INHERITANCE — it is
+  synthetic because the DEM upstream is, not because a seeded generator
+  produced it here — so the evidence that would actually locate its
+  synthetic-ness is the DEM's generator and seed, which the writer does not
+  hold (it holds the DEM's content hash). Options: (a) an exclusion entry for
+  output directories, with the sidecar as the marker of record; (b) a marker
+  convention that lets a sidecar classify its sibling rasters; (c) widen
+  SYNTHETIC's evidence rule to admit an upstream hash for inherited
+  synthetic-ness. **(c) is a taxonomy change and needs Karl.**
+  **Nothing is broken today: E3.1+2 commits no outputs.** Owner: E + Karl.
+  **Trigger: the first commit that writes a surface into `data/`** — which is
+  E3.4 if it commits an example run, and Checkpoint 1 otherwise. Detail:
+  [E3.1-2.md](walkthroughs/E3.1-2.md) §3.
+
+- [ ] **E2.5's guard cannot produce a PER-ESTIMATOR verdict, and E3.1+2 asked
+  it to** (found at E3.1+2 commit 3, 2026-08-20; the writer's signature was
+  built to express it, so nothing is blocked today).
+  `evaluate_claim` is keyed on `(RunManifest, design)`. **Four of its six
+  preconditions** — paired-uncertainty, single-DEM, provenance-chain,
+  pre-registered-threshold — are properties of the RUN; the remaining two are
+  properties of a DESIGN. **None is a property of an ESTIMATOR**, so the guard
+  cannot today return a verdict that differs between kriging's surface and
+  RF's, even though their claim-relevant facts genuinely differ (RF depends on
+  synthetic covariates; kriging is coordinate-only and its scores are real
+  measurements).
+  `write_surface` takes ONE VERDICT PER SURFACE so the shape is expressible
+  the day the guard gains that granularity; a caller passing the same verdict
+  to every surface is reporting the truth as the guard currently computes it.
+  **Deciding whether the guard's unit should become (run, design, estimator)
+  is an E2.5 structural change and Karl's call.** Owner: E + Karl. **Trigger:
+  E3.4**, which is the first consumer that records per-surface verdicts.
+  Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §3;
+  `engine/prospectivity/surfaces/writer.py` module docstring.
+
+- [ ] **`compare_to_ts6`'s type is UNDECIDED, and the two candidate answers
+  pull apart** (E3.1+2 commit 1, 2026-08-20 — **reported rather than picked,
+  per the task's own instruction**).
+  The prompt offered two reconciliations: `PredictionSurface` gains a
+  constructor from the per-estimator `(mu, sd)` dict, or `_compare_to_ts6`'s
+  signature changes to take what `run()` holds. The constraint it named is
+  that shipping a type which cannot express "all of them" would force E3.3's
+  "which estimator" answer by accident. **A THIRD constraint decides it and
+  was not named: the MANIFEST'S ARITY.** `RunManifest.ts6_agreement` is
+  singular (`TS6Agreement | None`), and `TS6Agreement` is `extra="forbid"`
+  with **no estimator field** — it cannot even self-identify which surface it
+  describes. So a mapping cannot be recorded without a Phase-0 shape change
+  (the 2B revision protocol), and a single agreement forces the choice.
+  **What E3.1+2 did instead:** left `compare_to_ts6` untouched (still
+  `NotImplementedError`) and had the builder return a MAPPING, which expresses
+  "all of them" without deciding which. Owner: Karl (the arity) + E.
+  **Trigger: E3.3, before it runs** — the same gate as TS-6's origin class.
+  Detail: [E3.1-2.md](walkthroughs/E3.1-2.md) §4.
 
 - [ ] **LITERATURE's evidence requirement has NO OBSERVER — the one evidence
   check of five that nothing tests** (found at P2.CLOSE commit 4, 2026-08-20,
