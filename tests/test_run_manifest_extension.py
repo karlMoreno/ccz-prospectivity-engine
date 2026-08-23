@@ -351,6 +351,8 @@ def test_surfaces_block_records_each_estimators_summary_origin_and_watermark(run
         sidecar = json.loads((out / f"{name}.provenance.json").read_text())
         expected = {
             **result.summary(),
+            # E5.5 commit 2: the full-data fit, from the provenance the builder recorded
+            "full_data_fit": json.loads(json.dumps(_jsonable(result.provenance))),
             "data_origin": "SYNTHETIC",
             "watermark": sidecar["watermark"],
             "publishable": False,
@@ -712,7 +714,7 @@ def test_the_two_historical_artifacts_hashes_did_not_move_at_shape_tolerant_hash
     raw = json.loads((REPO_ROOT / "data/runs/e2.4/run_manifest.json").read_text())
     assert raw["content_hash"] == RunManifest(**raw).compute_content_hash() == pins["data/runs/e2.4/run_manifest.json"]
     assert json.loads((REPO_ROOT / "data/corpus/manifest.json").read_text())["content_hash"] == pins["data/corpus/manifest.json"]
-    assert RunManifest.SCHEMA_VERSION == 3 and RunManifest.model_fields["economics"].default is None
+    assert RunManifest.SCHEMA_VERSION == 4 and RunManifest.model_fields["economics"].default is None  # 3 at E4.3; E5.5 commit 2 added training_stations
 
 
 def test_a_count_forged_consistently_in_tag_record_and_result_is_refused_by_recomputation_from_the_pixels(run: dict, tmp_path: Path) -> None:
@@ -757,3 +759,152 @@ def test_a_count_forged_consistently_in_tag_record_and_result_is_refused_by_reco
     differences[0].footprints["ordinary_kriging"]["1.0"]["n_minable"] = 7
     with pytest.raises(ValueError, match=rf"n_only_b of {df} is recorded inconsistently: recomputed_from_values='0', raster_tag='7', record='7', manifest='7'"):
         _extend(run, economics_dir=copy2, economic_differences=differences)
+
+
+# ═══════════════════════════════ E5.5 commit 2 — the three manifest additions (schema 4)
+#
+# E5.0 §3 found three things the viewer needs that no artifact carried. All
+# three are recorded by the emitter, where the objects already are, rather
+# than derived at the API or in the browser. STATED FIRST: the fixture run is
+# over the SYNTHETIC DEM with the LIGHT registry (40 trees), so the RF values
+# here are the light ones; the production numbers are pinned in
+# tests/test_run_harness.py, where the production registry runs.
+
+import csv
+
+from engine.prospectivity.estimators.kriging import OrdinaryKrigingEstimator
+from engine.prospectivity.features.extraction import Station
+from engine.prospectivity.samples.corpus_csv import CorpusCsvSampleSource
+from engine.prospectivity.validation.runner import _jsonable
+
+
+def test_the_full_data_variogram_parameters_match_a_direct_refit_and_are_not_any_per_fold_fit(run: dict) -> None:
+    """ADDITION 1. The ground truth is a FRESH estimator fitted on the matrix
+    here — not the object that wrote the record and not a walkthrough — and
+    the whole provenance dict must agree (range_km, the ceiling flag and its
+    floor twin, residual_dof, the fitted bins with their exclusions, the
+    spherical alternative). SEPARATES full-data from per-fold: the recorded
+    range is not any fold's range in the CV record (an emitter copying the
+    last fold's provenance would fail here by value)."""
+    matrix = run["matrix"]
+    fresh = OrdinaryKrigingEstimator()
+    fresh.fit(matrix.coords, matrix.y)
+    expected = json.loads(json.dumps(_jsonable(fresh.provenance())))
+    recorded = run["manifest"].surfaces["ordinary_kriging"]["full_data_fit"]
+    assert recorded == expected
+    for key in ("range_km", "range_at_candidate_ceiling", "range_below_first_supported_lag", "residual_dof",
+                "fitted_bins", "excluded_bins", "nugget", "partial_sill", "sill", "range_km_reported", "alternative"):
+        assert key in recorded, key
+    per_fold = {
+        r["provenance"]["range_km"]
+        for d in run["manifest"].cross_validation["designs"] for r in d["results"]
+        if r["estimator_name"] == "ordinary_kriging" and r["status"] == "scored"
+    }
+    assert len(per_fold) >= 2 and recorded["range_km"] not in per_fold
+    # E3.1+2 §2 measured 21.611 km on this corpus, AT the candidate ceiling —
+    # the prose this addition replaces; a loose re-pin, the exact value is the refit's
+    assert 21.0 < recorded["range_km"] < 22.5 and recorded["range_at_candidate_ceiling"] is True
+    assert recorded["n_training"] == 35 and len(recorded["fitted_bins"]) == recorded["residual_dof"] + 3
+    # the other two estimators' full-data state, read back from the fitted objects
+    # RF, read back from the fitted forest — and the record makes a fact of
+    # this fixture VISIBLE: conftest's `surface_assembly` builds the surfaces
+    # with a 100-tree forest while `_compose` cross-validates with the 40-tree
+    # light registry, so the full-data fit reads 100 where every fold reads
+    # 40. Two registries in one test composition is exactly the condition the
+    # engine refuses (`cv_runner.registry is not estimators`) and the harness
+    # cannot produce; here it is a test-only artefact, pinned so it stays seen.
+    rf = run["manifest"].surfaces["random_forest"]["full_data_fit"]
+    assert rf["n_estimators"] == 100 and rf["hyperparameters"]["max_samples_leaf"] is None
+    assert {r["provenance"]["n_estimators"] for d in run["manifest"].cross_validation["designs"] for r in d["results"]
+            if r["estimator_name"] == "random_forest" and r["status"] == "scored"} == {40}
+    baseline = run["manifest"].surfaces["mean_baseline"]["full_data_fit"]
+    assert baseline["training_mean"] == run["manifest"].surfaces["mean_baseline"]["mu_min"] == pytest.approx(float(matrix.y.mean()))
+    # a surface whose estimator reports nothing is refused by name
+    empty = {name: dataclasses.replace(r, provenance={}) if name == "ordinary_kriging" else r for name, r in run["surfaces"].items()}
+    with pytest.raises(ValueError, match="carries no estimator provenance"):
+        _extend(run, surfaces=empty)
+
+
+def test_sd_min_and_sd_max_match_the_uncertainty_raster_computed_independently_and_are_not_the_mus(run: dict) -> None:
+    """ADDITION 2. Recomputed from the written uncertainty raster's pixels,
+    not from the summary that wrote them; SEPARATES sd from mu (a swapped
+    field fails: no surface has equal mu and sd ranges) and a varying sd
+    from a constant one (kriging's sd spans, the baseline's does not)."""
+    for name, block in run["manifest"].surfaces.items():
+        with rasterio.open(run["out"] / f"{name}_uncertainty.tif") as ds:
+            sd = ds.read(1)
+        with rasterio.open(run["out"] / f"{name}_prediction.tif") as ds:
+            mu = ds.read(1)
+        finite_sd, finite_mu = sd[np.isfinite(sd)], mu[np.isfinite(mu)]
+        assert block["sd_min"] == pytest.approx(float(finite_sd.min()), rel=1e-6)
+        assert block["sd_max"] == pytest.approx(float(finite_sd.max()), rel=1e-6)
+        assert block["mu_min"] == pytest.approx(float(finite_mu.min()), rel=1e-6)
+        assert (block["sd_min"], block["sd_max"]) != (block["mu_min"], block["mu_max"])
+        sidecar = json.loads((run["out"] / f"{name}.provenance.json").read_text())
+        assert sidecar["surface"]["sd_min"] == block["sd_min"] and sidecar["surface"]["sd_max"] == block["sd_max"]
+    s = run["manifest"].surfaces
+    assert s["mean_baseline"]["sd_min"] == s["mean_baseline"]["sd_max"] > 0
+    assert s["ordinary_kriging"]["sd_min"] < s["ordinary_kriging"]["sd_max"]
+
+
+def test_the_recorded_training_stations_equal_the_sample_sources_by_id_and_the_raw_corpus_by_coordinate(run: dict) -> None:
+    """ADDITION 3. Two ground truths OUTSIDE the record: the station set from
+    the SAME SampleSource the matrix used (by ID, not by count), and each
+    coordinate from the corpus CSV read as strings by id (no Pydantic, no
+    gate in the path — rule 2). The origin is the CORPUS's (MEASURED), kept
+    apart from the run's (SYNTHETIC): a block copying the run's origin fails."""
+    block = run["manifest"].training_stations
+    matrix = run["matrix"]
+    assert block["n"] == 35 == len(block["station_ids"]) == len(block["coordinates"])
+    assert block["station_ids"] == list(matrix.station_ids)
+    from_source = {Station.from_observation(o).station_id for o in CorpusCsvSampleSource().get_training_samples()}
+    assert set(block["station_ids"]) == from_source and len(from_source) == 35
+    with (REPO_ROOT / "data" / "corpus" / "master_observations.csv").open(newline="") as fh:
+        rows = {r["source_record_id"]: r for r in csv.DictReader(fh)}
+    assert block["coord_columns"] == ["longitude", "latitude"]
+    for sid, (lon, lat) in block["coordinates"].items():
+        raw = rows[sid]
+        assert raw["evidence_class"] == "MASS"
+        assert (lon, lat) == (float(raw["longitude"]), float(raw["latitude"])), sid
+    assert block["data_origin"] == "MEASURED" and run["manifest"].data_origin == "SYNTHETIC"
+    assert block["matrix_sha256"] == matrix_sha256(matrix)
+    # two clusters ~991 km apart: the recorded points carry the finding
+    lons = np.array([c[0] for c in block["coordinates"].values()])
+    assert (lons < -121).sum() == 14 and (lons > -121).sum() == 21
+
+
+def test_schema_4_adds_training_stations_with_a_none_default_and_the_two_historical_hashes_did_not_move(run: dict) -> None:
+    """HASH.1's property at its second real exercise: the field is new,
+    defaults to None, the version moved, and both committed hashes are the
+    literals they were at HASH.1 — measured before this commit and pinned after."""
+    pins = {
+        "data/corpus/manifest.json": ("sha256:0227d6df608ee23476c7f5915bede82f1ffb360c542e33152386257a2fd07fd9", CorpusManifest),
+        "data/runs/e2.4/run_manifest.json": ("sha256:e3ac1561b8f681bb30ce05c9638325f9f58b0223ee56596e53fc68d89f6e7ad4", RunManifest),
+    }
+    for relative, (pinned, cls) in pins.items():
+        raw = json.loads((REPO_ROOT / relative).read_text())
+        assert raw["content_hash"] == pinned == cls(**raw).compute_content_hash(), relative
+    assert RunManifest.SCHEMA_VERSION == 4 and RunManifest.model_fields["training_stations"].default is None
+    assert run["base"].training_stations is None and run["manifest"].training_stations is not None
+    assert "training_stations" not in RunManifest.LEGACY_HASHED_FIELDS
+    assert run["manifest"].schema_version == 4 == RunManifest(**json.loads(run["manifest"].to_json())).schema_version
+
+
+def test_the_claim_verdicts_failing_and_passing_sets_are_unchanged_by_the_e5_5_additions(run: dict) -> None:
+    """This task adds no precondition and lifts none — both halves, per
+    design, base vs the manifest carrying all three additions."""
+    stack = run["stack_manifest"]
+    designs = [d["name"] for d in run["base"].cross_validation["designs"]]
+    def sets(manifest):
+        out = {}
+        for d in designs:
+            v = evaluate_claim(manifest, design=d, feature_stack_manifest=stack)
+            out[d] = (frozenset(r.precondition.value for r in v.results if not r.passed), frozenset(r.precondition.value for r in v.results if r.passed))
+        return out
+    before, after = sets(run["base"]), sets(run["manifest"])
+    assert before == after
+    gate = Precondition.PRE_REGISTERED_THRESHOLD.value
+    assert after["leave_one_site_out"] == (frozenset({gate}), after["leave_one_site_out"][1]) and len(after["leave_one_site_out"][1]) == 5
+    assert after["random_k_fold"][0] == {gate, Precondition.SPATIALLY_BLOCKED_CV.value} and len(after["random_k_fold"][1]) == 4
+    assert all("full_data_fit" in s and "sd_min" in s for s in run["manifest"].surfaces.values())
+    assert run["manifest"].training_stations["n"] == 35

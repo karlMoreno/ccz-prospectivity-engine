@@ -81,7 +81,7 @@ from engine.prospectivity.surfaces.grid import PredictionGrid
 from engine.prospectivity.surfaces.writer import SIDECAR_NAME, compute_surface_origin
 from engine.prospectivity.training_matrix import TrainingMatrix, TrainingMatrixManifest
 from engine.prospectivity.validation.claim import ClaimVerdict
-from engine.prospectivity.validation.runner import matrix_sha256
+from engine.prospectivity.validation.runner import _jsonable, matrix_sha256
 
 SURFACE_KINDS = ("prediction", "uncertainty")
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -363,8 +363,22 @@ def extend_run_manifest(
             ts6_surface=ts6.content_hash,
         )
 
+        # E5.5 commit 2 — THE FULL-DATA FIT. `build_surfaces` has recorded
+        # each estimator's `provenance()` at the full-matrix fit since
+        # E3.1+2 and nothing carried it: the manifest's per-fold fits live in
+        # `cross_validation`, and the full-data variogram the no-information
+        # contour depends on existed only in a walkthrough (E5.0 §3). An
+        # estimator that reports no fitted state cannot be recorded as a
+        # surface whose model a reader can see — refused by name.
+        if not result.provenance:
+            raise _refuse(
+                f"the surface for {name!r} carries no estimator provenance — the full-data "
+                "fit must be recordable (kriging's variogram, RF's read-back hyperparameters, "
+                "the baseline's moments), or a reader cannot see the model behind the map"
+            )
         surfaces_block[name] = {
             **result.summary(),
+            "full_data_fit": _jsonable(result.provenance),
             "data_origin": expected_origin.value,
             "watermark": sidecar.get("watermark"),
             "publishable": sidecar.get("publishable"),
@@ -510,6 +524,44 @@ def extend_run_manifest(
         "limit": CHAIN_LIMIT_NOTE,
     }
 
+    # ---- 6b. E5.5 commit 2 — THE TRAINING STATIONS, from the matrix object
+    # this run was built on (its arrays are what `matrix_sha256` above was
+    # recomputed from, so the chain already ties them to the manifest and the
+    # base; no second check is made here — one below a structural guarantee
+    # would be the unreachable-check sub-pattern). The coordinates are
+    # CORPUS values, so the block's origin is the corpus's — combined over
+    # the origins the corpus manifest admitted rows under — and NOT the
+    # matrix's computed origin, which is the covariates' (SYNTHETIC today).
+    corpus_origins = list((corpus_manifest.get("admitted_rows_by_data_origin") or {}).keys())
+    if not corpus_origins:
+        raise _refuse("the corpus manifest records no admitted_rows_by_data_origin — the stations' origin cannot be computed")
+    coords = np.asarray(matrix.coords, dtype=float)
+    if coords.shape != (len(matrix.station_ids), 2):
+        raise _refuse(
+            f"the training matrix carries {len(matrix.station_ids)} station ids and coordinates "
+            f"of shape {coords.shape} — one (lon, lat) pair per station, or the record misaligns them"
+        )
+    training_stations = {
+        "n": len(matrix.station_ids),
+        "coord_columns": list(matrix.coord_columns),
+        "station_ids": list(matrix.station_ids),
+        "coordinates": {
+            sid: [float(coords[i, 0]), float(coords[i, 1])] for i, sid in enumerate(matrix.station_ids)
+        },
+        "data_origin": combine_origins(corpus_origins).value,
+        "origin_note": (
+            "the CORPUS's origin (combine_origins over admitted_rows_by_data_origin): the "
+            "coordinates are corpus values; the run's data_origin is the training matrix's, "
+            "which the covariates taint"
+        ),
+        "source": (
+            "the TrainingMatrix object this run was built on (CorpusCsvSampleSource -> "
+            "assemble_training_matrix; station_ids and coords are inside matrix_sha256) — "
+            "recorded so a viewer never re-implements the training gate against the CSV"
+        ),
+        "matrix_sha256": recomputed_matrix,
+    }
+
     # ---- 7. E4.3 — the economics rasters, RESOLVED FROM E4.2's RECORD and
     # verified by recomputation; the block and the chain link
     economics_block = None
@@ -550,6 +602,7 @@ def extend_run_manifest(
             "output_hashes": dict(sorted(output_hashes.items())),
             "prediction_grid": grid.identity(),
             "surfaces": surfaces_block,
+            "training_stations": training_stations,
             "claim": {
                 "design": claim_design,
                 "verdicts": {design: verdicts[design].to_record() for design in sorted(verdicts)},

@@ -258,6 +258,20 @@ class RunManifest(ProvenanceArtifact):
     hash never moves again; fresh manifests hash their present fields plus
     `schema_version`. A new field here must default to None and bump
     SCHEMA_VERSION (`provenance/artifact.py`).
+
+    E5.5 commit 2 (schema_version 4) — THREE FACTS THE VIEWER NEEDS, recorded
+    where the emitter already holds the objects rather than derived at the
+    API or in the browser (a value derived downstream is a second source of
+    truth — E5.0 §3): `surfaces[est].full_data_fit` (the estimator's
+    `provenance()` at the FULL-DATA fit — kriging's range_km with its ceiling
+    and floor flags, residual_dof and the bin table it saw; RF's read-back
+    hyperparameters; the baseline's mean and sd — computed by `build_surfaces`
+    since E3.1+2 and dropped until now; the per-fold fits in
+    `cross_validation` are a different thing), `surfaces[est].sd_min/sd_max`
+    (inside the existing dict, no new field), and `training_stations` (NEW
+    FIELD: the 35 stations' ids and coordinates FROM THE MATRIX THE RUN WAS
+    BUILT ON, with the corpus's origin — so a viewer never re-implements the
+    training gate against the CSV).
     """
 
     # `run_id` joins the two base exclusions and `scores_first_visible`
@@ -273,7 +287,7 @@ class RunManifest(ProvenanceArtifact):
     # HASH.1: the field set frozen at 2026-08-22 — what data/runs/e2.4/
     # run_manifest.json (LEGACY, re-stamped at E3.4 with its five nulls IN the
     # substance) is hashed over. A SNAPSHOT; never regenerate from model_fields.
-    SCHEMA_VERSION: ClassVar[int] = 3  # E4.1: + economic_differences; E4.3: + economics
+    SCHEMA_VERSION: ClassVar[int] = 4  # E4.1: + economic_differences; E4.3: + economics; E5.5: + training_stations
     LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
         "claim", "claim_eligible_designs", "contract_versions", "cross_validation", "cv_scores",
         "data_origin", "derivation", "economic_results", "estimator_declarations", "generator",
@@ -298,6 +312,12 @@ class RunManifest(ProvenanceArtifact):
     # fractions, and the two-reason watermark per artifact. None = the
     # economics rasters were not written (a CV-only run, or before E4.2).
     economics: dict | None = None
+    # E5.5 commit 2 (schema_version 4): the training stations' ids and
+    # coordinates, from the matrix object the run was built on, with the
+    # CORPUS's origin (the coordinates are corpus values; the matrix's
+    # computed origin is the covariates' and says SYNTHETIC today). None =
+    # not extended (a CV-only run, or a manifest from before E5.5).
+    training_stations: dict | None = None
     # E3.4: filled by provenance/emitter.py — {basename: sha256 of the bytes}.
     output_hashes: dict[str, str] = Field(default_factory=dict)
     # ---- E3.4 additions (provenance/emitter.py: extend_run_manifest)

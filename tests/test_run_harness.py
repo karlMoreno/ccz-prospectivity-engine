@@ -215,3 +215,17 @@ def test_file_terrain_source_reads_resolution_and_hash_from_the_raster_not_from_
     surface = FileTS6Reference(coarse, data_origin="DERIVED", title="t").load()
     assert surface.content_hash == file_sha256(coarse) and surface.data_origin == "DERIVED"
     assert surface.role_note == "benchmark_only" and surface.source_id == "src_ts6_grid"
+
+
+def test_the_production_run_records_the_three_e5_5_additions_with_production_values(harness_run: dict) -> None:
+    """E5.5 commit 2 on the PRODUCTION path: the full-data fit read back from
+    the fitted objects (RF 500 trees, five importance seeds), the sd ranges,
+    and the 35 stations — the values a viewer would meet."""
+    m = harness_run["manifest"]
+    rf = m.surfaces["random_forest"]["full_data_fit"]
+    assert rf["n_estimators"] == 500 and len(rf["importance_by_seed"]) == 5
+    kriging = m.surfaces["ordinary_kriging"]["full_data_fit"]
+    assert 21.0 < kriging["range_km"] < 22.5 and kriging["range_at_candidate_ceiling"] is True
+    assert all(0 < s["sd_min"] <= s["sd_max"] for s in m.surfaces.values())
+    assert m.training_stations["n"] == 35 and m.training_stations["data_origin"] == "MEASURED"
+    assert m.schema_version == 4

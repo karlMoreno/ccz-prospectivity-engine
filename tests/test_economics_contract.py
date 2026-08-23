@@ -226,8 +226,11 @@ def test_an_undeclared_dem_origin_is_an_unlifted_reason_never_a_lifted_one() -> 
 # ───────────────────────────────────── the 2B shape, recorded
 
 
-def test_the_result_shape_carries_no_copied_flag_and_the_manifest_is_at_schema_version_2() -> None:
+def test_the_result_shape_carries_no_copied_flag_and_economic_differences_defaults_to_none() -> None:
     fields = set(EconomicScenarioResult.model_fields)
     assert "illustrative_only" not in fields and "minable_footprint_path" not in fields
     assert {"cutoff", "confidence_levels", "footprints", "uncertainty_semantics", "data_origin", "watermark"} <= fields
-    assert RunManifest.SCHEMA_VERSION == 3 and RunManifest.model_fields["economic_differences"].default is None
+    # E4.1 bumped SCHEMA_VERSION to 2; E4.3 to 3; E5.5 to 4 — the name used to carry the
+    # number and drifted at E4.3 (body said 3 under a name saying 2); the version is
+    # pinned in test_provenance_artifact.py, and this asserts only what E4.1 introduced
+    assert RunManifest.SCHEMA_VERSION >= 2 and RunManifest.model_fields["economic_differences"].default is None

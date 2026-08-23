@@ -141,7 +141,8 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     recorded |= {v["raster_file"] for d in manifest.economic_differences for by_z in d.footprints.values() for v in by_z.values()}
     assert recorded == rasters == set(manifest.economics["rasters"])
     assert (manifest.economics["n_files"], manifest.economics["n_footprint_rasters"], manifest.economics["n_difference_rasters"]) == (20, 12, 6)
-    assert manifest.schema_version == 3
+    assert manifest.schema_version == 4  # E4.3: 3; E5.5 commit 2: + training_stations
+    assert manifest.training_stations['n'] == 35 and all('full_data_fit' in s and 'sd_min' in s for s in manifest.surfaces.values())
     # Phase 4's model ran over Contract 4's two scenarios and its one difference
     # pair; the verdict is DERIVED, both reasons unlifted today; the computed
     # origin is AUTHORED (the lattice's lossy answer, beside the verdict)

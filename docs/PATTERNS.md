@@ -304,11 +304,11 @@ real and present.
 
 | ABC | Production impls | Status |
 |---|---|---|
-| [`TerrainSource:26`](../engine/prospectivity/terrain/source.py#L26) | 0 | **WIRED 2026-07-29** — no longer bypassed; see below |
+| [`TerrainSource:26`](../engine/prospectivity/terrain/source.py#L26) | 1 | **WIRED 2026-07-29** — no longer bypassed; see below. **IMPLEMENTED 2026-08-22 (E5.5)** — `FileTerrainSource` ([`terrain/file_source.py`](../engine/prospectivity/terrain/file_source.py)): a raster on disk with the CALLER'S declared origin; real GEBCO at Checkpoint 1 is the same class declared MEASURED |
 | [`SampleSource:33`](../engine/prospectivity/samples/source.py#L33) | 1 | **IMPLEMENTED 2026-08-13** (E2.0-1) — `CorpusCsvSampleSource`; see below |
 | [`Estimator`](../engine/prospectivity/estimators/base.py) | 1 | **FILLED 2026-08-14** (E2.1) — `MeanBaselineEstimator`; `predict` became the ABC's Template Method enforcing the (mean, std) pairing, final via `__init_subclass__`; kriging/RF arrive E2.2/E2.3 |
-| [`EconomicModel:30`](../engine/prospectivity/economics/model.py#L30) | 0 | Phase 4 |
-| [`TS6Reference:29`](../engine/prospectivity/ts6/reference.py#L29) | 0 | Phase 3 |
+| [`EconomicModel:30`](../engine/prospectivity/economics/model.py#L30) | 1 | **IMPLEMENTED 2026-08-22 (E4.1)** — `CutoffEconomicModel` ([`economics/cutoff.py`](../engine/prospectivity/economics/cutoff.py)), one model parameterized by a `ScenarioConfig` (§4.3's decision). *This row was due "with E4.2's walkthrough" (E4.1.md closing) and was not updated until E5.5 — a deferral that expired between two walkthroughs.* |
+| [`TS6Reference:29`](../engine/prospectivity/ts6/reference.py#L29) | 1 | **IMPLEMENTED 2026-08-22 (E5.5)** — `FileTS6Reference` ([`ts6/file_reference.py`](../engine/prospectivity/ts6/file_reference.py)): a benchmark raster on disk with the caller's declared origin (SYNTHETIC today). G3.1's `DigitizedTS6Reference` (Contract 6 v4, DERIVED) is still 0 — Checkpoint 3 |
 
 All five are Phase-0 pre-declared seams with test-only subclasses. Pre-declaring
 an interface for work that lands in two phases' time is a bet, and it should be
@@ -381,6 +381,19 @@ observer of that gate in the whole suite
 `Estimator` immediately with three implementations (§4), which is the strongest
 possible justification. Revisit `EconomicModel` and `TS6Reference` if Phase 3–4
 slips.
+
+**RESOLVED 2026-08-22 — all five rows now have a production implementation.**
+`EconomicModel` at E4.1 (one model, a scenario parameter). `TerrainSource` and
+`TS6Reference` at E5.5, and the way they were filled is the finding: the run
+harness (E5.5 commit 1, scoped as "an entry point, an output path, a registry
+choice and the manifest write") found that the composition's two input seams
+had ONLY test-fixture implementations, so the full pipeline could run only
+from inside a test. `FileTerrainSource` / `FileTS6Reference` are the thin
+production halves: a path plus the caller's DECLARED origin, hash and
+resolution read from the file, never a generated input and never a `tests.*`
+import — the rule `features/plot_stack.py` wrote at E1.4. The Checkpoint-1
+and Checkpoint-3 swaps are now a different `--dem-data-origin` /
+`--ts6-data-origin` on the same command, which is what a Strategy seam is for.
 
 ### 3.3 Not a finding, checked anyway
 

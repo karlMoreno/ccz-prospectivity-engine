@@ -97,9 +97,15 @@ digitization-error propagation are built (`1c159f3`, `1febedc`); the addition
 is Contract 6's `digitization_uncertainty` SLOT, found ABSENT where the
 prompt said null — a structural change that is Karl's, with its consumer
 already built (the C8.1 sequence, one contract over).
-**49 open items** (recounted from the boxes): §1 Track G 11, §2 Karl 6, §3
-Engineering 29, §4 Phase-2 risks 0 (both closed), §6 later phases 3. §5 is
-fully closed.
+1 ADDED-AND-CLOSED + 1 ADDED at E5.5 commit 2 (2026-08-22): the full-data
+variogram parameters existed only in E3.1-2.md's prose (E5.0 §3's finding;
+E5.0 was read-only and could not land the entry, so it is written here
+closed, with its commit) — and the honesty-surface inputs that are STILL
+prose-only after the three additions, for E5.4 to decide on. The count
+header was last recounted at E3.3 (49); recounted from the boxes now.
+**52 open items** (recounted from the boxes, 2026-08-22): §1 Track G 12, §2
+Karl 6, §3 Engineering 31, §4 Phase-2 risks 0 (both closed), §6 later phases
+3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -2003,6 +2009,45 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
     silently expired. Detail:
     [E2.0.md](walkthroughs/E2.0.md) §E2.0-1b "Other known single-observer
     cases"; P2.0.md mutation tables.
+
+- [x] **THE FULL-DATA VARIOGRAM PARAMETERS LIVED ONLY IN PROSE — CLOSED at
+  E5.5 commit 2 (2026-08-22), the entry written at the moment of closing
+  because E5.0 (read-only by instruction) found it and could not land it.**
+  E5.4's requirement 4 — mark the no-information region — needs the fitted
+  range the surface was predicted under, and no artifact carried it: the
+  run manifest's twenty `range_km` values were all PER-FOLD CV fits in
+  `cross_validation` (0.36 km, "range below first supported lag", etc.),
+  while the full-data fit (21.611 km, AT the candidate ceiling) existed
+  only in [E3.1-2.md](walkthroughs/E3.1-2.md) §2. The mechanism was already
+  there and dropped: `build_surfaces` records each estimator's `provenance()`
+  at the full-matrix fit in `SurfaceResult.provenance` (E3.1+2) and the
+  emitter's surfaces block took `summary()` only. Now `surfaces[est].full_data_fit`
+  carries it for every estimator (kriging's `KrigingReport` dict with the
+  ceiling and floor flags, `residual_dof`, the bin table and its exclusions,
+  the spherical alternative; RF's read-back hyperparameters; the baseline's
+  moments), verified by a FRESH refit in the test and separated from every
+  per-fold value. Detail: [E5.5.md](walkthroughs/E5.5.md) §2;
+  `provenance/emitter.py` (the surfaces block).
+- [ ] **HONESTY-SURFACE INPUTS STILL PROSE-ONLY AFTER E5.5's THREE ADDITIONS
+  — E5.4 decides derive-vs-record for each** (E5.5 commit 2, 2026-08-22;
+  the closing check the E5.5 prompt asked for). Checked against E5.0 §4's
+  inventory after `full_data_fit`, `sd_min/sd_max` and `training_stations`
+  landed: (i) **the 99.62 %-within-0.5-kg/m² fraction** (E3.1-2 §2) — not
+  recorded; derivable in the browser from the exported surface and
+  `full_data_fit.training_mean` (baseline) — a derivation downstream, which
+  E5.0 §3 flagged as a second source of truth; (ii) **the 34-cells-within-
+  one-range count** — derivable from `training_stations` + `full_data_fit.range_km`
+  + `prediction_grid`, the same way; (iii) **the two-cluster / 991-km
+  geometry** — carried as data (`cross_validation.designs[].assignment`,
+  the LOCO fold labels and `measured_min_separation_km`) but only as a
+  sentence in `purpose`; (iv) **the RF-registry dependence** (40 vs 500
+  trees changes the surface) — now verifiable from `full_data_fit.n_estimators`
+  but stated nowhere a reader meets. None blocks E5.4; each is a choice
+  between recording a number at the emitter (schema 5, under HASH.1's rule)
+  and deriving it in the viewer with the derivation named. Owner: E.
+  **Trigger: E5.4's specification pass.** Detail: [E5.5.md](walkthroughs/E5.5.md)
+  closing; E5.0 report §4 (chat, 2026-08-22 — the report itself is not in
+  the repo; its substance is in E5.5.md §0).
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

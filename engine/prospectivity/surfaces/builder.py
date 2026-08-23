@@ -85,6 +85,7 @@ class SurfaceResult:
     def summary(self) -> dict:
         """The per-surface facts a manifest or a tag block records."""
         finite = self.mu[np.isfinite(self.mu)]
+        finite_sd = self.sd[np.isfinite(self.sd)]
         return {
             "estimator_name": self.estimator_name,
             "input_kind": self.input_kind,
@@ -96,6 +97,10 @@ class SurfaceResult:
             "n_distinct_values": int(np.unique(finite).size),
             "mu_min": float(finite.min()) if finite.size else None,
             "mu_max": float(finite.max()) if finite.size else None,
+            # E5.5 commit 2: the UNCERTAINTY's range beside the prediction's —
+            # the legend needs both and nothing carried the sd's (E5.0 §3).
+            "sd_min": float(finite_sd.min()) if finite_sd.size else None,
+            "sd_max": float(finite_sd.max()) if finite_sd.size else None,
         }
 
 
