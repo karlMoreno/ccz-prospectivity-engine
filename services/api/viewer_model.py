@@ -75,6 +75,120 @@ MESSAGES = {
 }
 
 
+# ═══════════════════════════════ E5.4 — THE HONESTY SURFACE (Karl's decisions 3 and 4, 2026-08-23)
+#
+# Every banner string, reason list, failing set, expiry condition and
+# explanation below is SERVED BY THIS MODEL and rendered verbatim by the page.
+# E5.3's first draft composed option states in the page and shipped a wrong
+# label invisible to every test — at LABEL stakes; a page composing its own
+# verdict banner from raw manifest fields would repeat that at VERDICT stakes.
+VERDICT_PERSISTENCE_RULE = (
+    "visible without interaction and ACROSS RELOADS: no dismiss, no collapsed-by-default state, "
+    "no override, nothing persisted — shown on every load where the map is"
+)
+NO_INFORMATION_STYLE = {
+    "pattern": "diagonal-stripes",  # distinct from the mask's hatched grey: a stripe OVER the colour, not instead of it
+    "stroke": "rgba(0,0,0,0.55)",
+    "note": "drawn over the colour so the value is still visible under it; the mask replaces the colour, this overlays it",
+    "contour": "not stroked: the hatched region's own edge is the one-fitted-range boundary; a stroke would add a polygon derivation with no new value",
+}
+DERIVATION_NOTE = (
+    "shape-not-value (the bins precedent): a geometric function of RECORDED values — the training "
+    "stations and the fitted range, both from the manifest through the catalog — computed in this "
+    "tested model, never in the page, and never a measurement"
+)
+PAIRING_RULE = (
+    "the map pixels are univariate BY CHOICE (Karl's decision 3, option (c)+); the pairing is protected "
+    "by the single export file (E5.2), the readout that always carries the paired half with its "
+    "semantics, the legend that always carries the paired range, and the absence of any suppression "
+    "path in the page — nothing can hide it. Option (b), the paired spread as colour saturation, was "
+    "considered and DECLINED: it would encode three different KINDS of spread as one visual channel, "
+    "the cross-kind conflation the semantics string exists to prevent, made visual"
+)
+
+
+def _haversine_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    d = math.radians(lon2 - lon1)
+    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(d / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+
+def _range_source(entries: list[dict]) -> tuple[str | None, dict | None]:
+    """The first layer whose full-data fit records a range in km — generic:
+    the field name is the catalog's, the layer is whichever carries it."""
+    for e in entries:
+        fit = e.get("full_data_fit") or {}
+        if isinstance(fit.get("range_km"), (int, float)):
+            return e["key"], fit
+    return None, None
+
+
+def no_information(grid: dict, stations: dict | None, range_km: float | None, predictable: list[bool] | None = None) -> list[bool] | None:
+    """Per flat cell: True where the cell centre lies beyond `range_km` of
+    EVERY station — the region where a distance-based model carries no
+    information (E5.4 requirement 4). Masked cells (predictable False) are
+    never marked: the mask is a different fact. None when the catalog
+    carries no stations or no range."""
+    if not stations or not stations.get("coordinates") or range_km is None or not grid:
+        return None
+    a, _, c, _, e, f = grid["transform"][:6]
+    width, height = grid["width"], grid["height"]
+    points = list(stations["coordinates"].values())
+    out = []
+    for row in range(height):
+        lat = f + (row + 0.5) * e
+        for col in range(width):
+            i = row * width + col
+            if predictable is not None and not predictable[i]:
+                out.append(False)
+                continue
+            lon = c + (col + 0.5) * a
+            out.append(all(_haversine_km(lon, lat, x, y) > range_km for x, y in points))
+    return out
+
+
+def verdict_block(claim: dict | None) -> dict | None:
+    """The run banner's content: the CLAIM DESIGN's verdict with BOTH its
+    failing and its passing sets named, a headline that discriminates in
+    both directions, and every other design's verdict reachable."""
+    if not claim or not claim.get("verdicts"):
+        return None
+    design = claim.get("design")
+    v = (claim.get("verdicts") or {}).get(design) or {}
+    failing, passing = list(v.get("failing") or []), list(v.get("passing") or [])
+    n = len(failing) + len(passing)
+    eligible = bool(v.get("eligible"))
+    watermark = v.get("watermark")
+    if eligible:
+        headline = f"VALIDATED CLAIM on {design}: all {n} preconditions pass"
+        if watermark:
+            headline += f" — BUT the run is watermarked: {watermark}"
+    else:
+        headline = (f"NOT A VALIDATED CLAIM — {len(failing)} of {n} preconditions failed on {design}: "
+                    + ", ".join(failing))
+    return {
+        "design": design,
+        "eligible": eligible,
+        "is_scientific": bool(v.get("is_scientific")),
+        "headline": headline,
+        "failing": failing,
+        "passing": passing,
+        "n_preconditions": n,
+        "watermark": watermark,
+        "discrimination_note": (
+            "both halves are shown: a banner listing only failures cannot be told from a blanket refusal, "
+            "and the day the facts change the banner's CHANGE is the whole point"
+        ),
+        "other_designs": {
+            d: {"eligible": bool(x.get("eligible")), "failing": list(x.get("failing") or []), "passing": list(x.get("passing") or [])}
+            for d, x in (claim.get("verdicts") or {}).items() if d != design
+        },
+        "persistence": VERDICT_PERSISTENCE_RULE,
+        "applies_to": claim.get("applies_to"),
+    }
+
+
 def bin_edges(lo: float | None, hi: float | None, n: int = N_BINS) -> list[float]:
     if lo is None or hi is None:
         return []
@@ -190,8 +304,42 @@ def _layer(entry: dict, catalog: dict, value_labels: dict, by_key: dict[str, dic
                 "note": "always shown with the value: the pair is structural (one export file holds both)",
             }
     uniform = legend.get("uniform_today")
+    # THE LAYER'S OWN REASONS, in its own form (E5.1's asymmetry holds under pressure to normalise):
+    # a reason given as a string is served verbatim with "expiry: stated in the reason" — no
+    # parsing, no invented field; reasons given per reason carry their own lifted_by.
+    if entry.get("watermark_reasons") is not None:
+        reasons = [{"reason": r.get("reason"), "lifted": bool(r.get("lifted")), "lifted_by": r.get("lifted_by"), "cause": r.get("cause"), "expiry": r.get("lifted_by")}
+                   for r in entry["watermark_reasons"]]
+    elif entry.get("watermark"):
+        reasons = [{"reason": "terrain", "lifted": entry.get("data_origin") == "MEASURED", "text": entry["watermark"],
+                    "expiry": "stated in the reason text"}]
+    else:
+        reasons = []
+    fit = entry.get("full_data_fit")
+    fit_facts = {k: v for k, v in (fit or {}).items() if isinstance(v, (int, float, str, bool)) and not isinstance(v, bool) or isinstance(v, bool)} if fit else None
+    paired_legend = None
+    if paired is not None and other is not None:
+        ol = other.get("legend") or {}
+        paired_legend = {"label": paired["label"], "min": ol.get("min"), "max": ol.get("max"), "method": paired["method"],
+                         "semantics": paired["semantics"], "rule": "always shown beside the value's bins; no path hides it"}
     return {
         "key": entry["key"],
+        "full_data_fit": fit,  # E5.4: the pass-through the catalog carried and the model dropped
+        "honesty": {
+            "data_origin": entry.get("data_origin"),
+            "publishable": entry.get("publishable"),
+            "watermark_form": entry.get("watermark_form"),
+            "reasons": reasons,
+            "n_reasons": len(reasons),
+            "fit_facts": fit_facts,
+            "uniform": None if uniform is None else {
+                "flag": bool(uniform),
+                "statement": (catalog.get("uniformity_today") or {}).get("statement"),
+                "facts": {k: v for k, v in legend.items() if isinstance(v, (int, float)) and not isinstance(v, bool)},
+                "meaning": legend.get("meaning"),
+            },
+        },
+        "paired_legend": paired_legend,
         "title": _title(entry, value_labels),
         "kind": entry["kind"],
         "coordinates": entry["coordinates"],
@@ -227,7 +375,14 @@ def _layer(entry: dict, catalog: dict, value_labels: dict, by_key: dict[str, dic
     }
 
 
-def build_viewer_model(catalog: dict) -> dict:
+def range_source_key(catalog: dict) -> str | None:
+    """Which layer's export the API should read for the per-cell mask (E5.4):
+    the layer whose full-data fit records the range."""
+    key, _ = _range_source(catalog.get("layers") or [])
+    return key
+
+
+def build_viewer_model(catalog: dict, predictable: list[bool] | None = None, export_grid: dict | None = None) -> dict:
     """The presentation model for one run's catalog. Pure: reads the catalog,
     never mutates it, names every rendering rule it applies."""
     grid = catalog.get("grid") or {}
@@ -256,6 +411,66 @@ def build_viewer_model(catalog: dict) -> dict:
     by_key = {e["key"]: e for e in entries}
     layers = {e["key"]: _layer(e, catalog, value_labels, by_key) for e in entries}
     stations = catalog.get("training_stations")
+    # E5.4 requirement 4 — THE NO-INFORMATION REGION, derived from recorded values only
+    range_key, range_fit = _range_source(entries)
+    no_info = None
+    if range_key and range_fit and stations:
+        rk = float(range_fit["range_km"])
+        at_ceiling = bool(range_fit.get("range_at_candidate_ceiling"))
+        # the GRID (transform, width, height) and the per-cell MASK both come from the
+        # range-source layer's export — recorded values the API reads and hands in; the
+        # model names no catalog field for them. Without them nothing is derived.
+        ni_cells = no_information(export_grid, stations, rk, predictable) if export_grid and export_grid.get("transform") else None
+        if ni_cells is not None:
+            n_marked = sum(ni_cells)
+            n_pred = sum(predictable) if predictable is not None else None
+            bound = "; a LOWER BOUND — the fit sat at the candidate ceiling" if at_ceiling else ""
+            no_info = {
+                "cells": ni_cells,
+                "n_marked": n_marked,
+                "n_predictable": n_pred,
+                "n_cells": len(ni_cells),
+                "count_label": (f"{n_marked:,} of {n_pred:,} predictable cells" if n_pred is not None
+                                else f"{n_marked:,} of {len(ni_cells):,} grid cells (the mask not separated: no per-cell mask was supplied)"),
+                "range_km": rk,
+                "range_at_candidate_ceiling": at_ceiling,
+                "source": {"layer": range_key, "field": "full_data_fit.range_km", "from": "the manifest, through the catalog — never recomputed here"},
+                "direction": ("at the candidate ceiling the TRUE range is at least the fitted one, so the informed region is at least as large as "
+                              "drawn — marking beyond-fitted-range as no-information overstates ignorance, the CONSERVATIVE direction for claims")
+                             if at_ceiling else "the fitted range",
+                "label_range_layer": (f"beyond one fitted variogram range ({rk:.1f} km{bound}) of every station: this model carries no "
+                                      f"information here; {n_marked:,} of {n_pred:,} predictable cells. Drawn at its largest defensible extent."
+                                      if n_pred is not None else
+                                      f"beyond one fitted variogram range ({rk:.1f} km{bound}) of every station: this model carries no "
+                                      f"information here; {n_marked:,} of {len(ni_cells):,} grid cells. Drawn at its largest defensible extent."),
+                "label_other_layers": (f"no station within {rk:.1f} km (the fitted range of {_title(by_key[range_key], value_labels)}): "
+                                       "spatial support is absent here for any model — distance to data is not this layer's information measure, and no variogram is implied"),
+                "derivation": DERIVATION_NOTE,
+                "style": NO_INFORMATION_STYLE,
+                "default_on": True,
+                "rule": "default ON for every layer; the mask (null cells) is a different fact and is never marked here",
+            }
+    for key, layer in layers.items():
+        if no_info is None:
+            layer["no_information"] = None
+            continue
+        is_range_layer = (layer["coordinates"].get(next(iter(layer["coordinates"]), "")) is not None
+                          and by_key[key].get("full_data_fit", {}) is by_key[range_key].get("full_data_fit", {}))
+        same_fit = (by_key[key].get("full_data_fit") or {}).get("range_km") == range_fit["range_km"] and "range_km" in (by_key[key].get("full_data_fit") or {})
+        layer["no_information"] = {
+            "label": no_info["label_range_layer"] if same_fit else no_info["label_other_layers"],
+            "is_range_source": same_fit,
+            "n_marked": no_info["n_marked"],
+            "n_predictable": no_info["n_predictable"],
+            "count_label": no_info["count_label"],
+            "range_km": rk,
+            "range_at_candidate_ceiling": at_ceiling,
+            "direction": no_info["direction"],
+            "source": no_info["source"],
+            "derivation": DERIVATION_NOTE,
+            "style": NO_INFORMATION_STYLE,
+            "default_on": True,
+        }
     return {
         "run_id": catalog.get("run_id"),
         "content_hash": catalog.get("content_hash"),
@@ -266,6 +481,11 @@ def build_viewer_model(catalog: dict) -> dict:
         ),
         "binning_rule": BINNING_RULE,
         "controls": controls,
+        # E5.4 requirement 1: the run banner's content — the claim design's verdict, both halves
+        "verdict": verdict_block(catalog.get("claim")),
+        # E5.4 requirement 4: the per-cell no-information flags (one grid, every layer) and the rules
+        "no_information": no_info,
+        "pairing_rule": PAIRING_RULE,
         "applicable_axes": grid.get("applicable_axes") or {},
         "state_labels": dict(STATE_LABELS),
         "cells": cells,

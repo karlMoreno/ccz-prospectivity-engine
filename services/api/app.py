@@ -71,7 +71,7 @@ from engine.prospectivity.domain.results import RunManifest
 from engine.prospectivity.harness import STACK_DIR
 from services.api.catalog import build_catalog
 from services.api.context import STATES as CONTEXT_STATES, context_file, verify_context_layers
-from services.api.viewer_model import build_viewer_model
+from services.api.viewer_model import build_viewer_model, range_source_key
 from services.api.web import INDEX_HTML, STATIC_FILES, WEB_DIR, attribution
 
 MANIFEST_NAME = "run_manifest.json"
@@ -238,7 +238,17 @@ def create_app(runs_root: Path | str | None = None) -> FastAPI:
     def viewer(run_id: str) -> dict:
         """THE PRESENTATION MODEL (E5.3) — the named exception to rule 2: bins,
         labels and states are rendering decisions, not data (viewer_model.py)."""
-        model = build_viewer_model(_run(run_id).catalog)
+        run = _run(run_id)
+        # E5.4: the per-cell mask for the no-information region comes from the range-source
+        # layer's EXPORT (recorded values: null = masked), read here and handed to the model
+        predictable, grid = None, None
+        source_key = range_source_key(run.catalog)
+        if source_key:
+            entry = next(e for e in run.catalog["layers"] if e["key"] == source_key)
+            export = json.loads((run.directory / "export" / entry["export"]["file"]).read_bytes())
+            predictable = [v is not None for v in export[entry["data_field"]]]
+            grid = {k: export["grid"][k] for k in ("transform", "width", "height")}
+        model = build_viewer_model(run.catalog, predictable=predictable, export_grid=grid)
         model["attribution"] = attribution()
         return model
 

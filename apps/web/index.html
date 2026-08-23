@@ -42,11 +42,22 @@
   option.state-absent { color: #c98a8a; text-decoration: line-through; }
   .control.axis-not_applicable select { opacity: .55; }
   .control .axis-note { font-size: 11px; color: #6f7790; font-style: italic; }
-  #map { position: relative; }
+  #map { position: relative; display: flex; flex-direction: column; }
+  /* THE VERDICT BANNER: where the map is, on every load; there is no control in this page
+     that hides it, folds it or overrides it (E5.4 requirement 1) */
+  #verdict { flex: none; z-index: 6; background: #4a1a1a; color: #ffe3e3; border-bottom: 2px solid #c0504d; padding: 9px 14px; font-size: 13px; line-height: 1.35; }
+  #verdict.eligible { background: #163a22; color: #d9ffe3; border-bottom-color: #3fa35c; }
+  #verdict .sets { font-size: 11px; color: inherit; opacity: .9; margin-top: 3px; }
+  #verdict .sets b { font-weight: 600; }
+  #mapcanvas { position: relative; flex: 1; min-height: 0; }
+  #honesty .reason { margin: 4px 0; font-size: 11px; }
+  #honesty .reason.lifted { color: #9fe0b0; }
+  #honesty .reason.unlifted { color: #ffd27a; }
+  #legend .swatch.noinfo { background: repeating-linear-gradient(135deg, rgba(0,0,0,.55) 0 2px, transparent 2px 5px), #3b8a6a; }
   #banner { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 5; display: none; background: #5a1f1f; color: #ffd9d9; border: 1px solid #b04a4a; padding: 10px 12px; border-radius: 4px; font-size: 13px; white-space: pre-wrap; }
   #banner.info { background: #1f3a5a; color: #d9ecff; border-color: #4a7ab0; }
   #uniform { position: absolute; bottom: 54px; left: 10px; right: 10px; z-index: 5; display: none; background: #3a2f1f; color: #ffe9c2; border: 1px solid #9a7a3a; padding: 8px 12px; border-radius: 4px; font-size: 12px; }
-  #legend { position: absolute; right: 10px; top: 10px; z-index: 5; background: rgba(20,26,46,.92); border: 1px solid var(--line); padding: 10px 12px; border-radius: 4px; font-size: 12px; min-width: 180px; }
+  #legend { position: absolute; right: 10px; top: 10px; z-index: 5; background: rgba(20,26,46,.92); border: 1px solid var(--line); padding: 10px 12px; border-radius: 4px; font-size: 12px; min-width: 180px; max-width: 300px; max-height: 70%; overflow: auto; }
   #legend .row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
   #legend .swatch { width: 18px; height: 12px; border: 1px solid #000; flex: none; }
   #legend .swatch.masked { background: repeating-linear-gradient(45deg, #6e6e6e 0 3px, #2a2a2a 3px 6px); }
@@ -72,19 +83,24 @@
     <div id="run-meta" class="origin"></div>
     <h2>Layer</h2>
     <div id="controls"></div>
-    <h2>Layer facts</h2>
-    <div id="layer-facts" class="origin"></div>
+    <h2>Why this layer is not a claim</h2>
+    <div id="honesty" class="origin"></div>
+    <h2>Other designs' verdicts</h2>
+    <div id="other-designs" class="origin"></div>
     <h2>Stations</h2>
     <div id="stations" class="origin"></div>
     <h2>Context</h2>
     <div id="context" class="origin">loading context layers…</div>
   </aside>
   <div id="map">
-    <div id="banner"></div>
-    <div id="legend"></div>
-    <div id="uniform"></div>
-    <div id="readout">move over the map</div>
-    <div id="attrib"></div>
+    <div id="verdict">loading the claim verdict…</div>
+    <div id="mapcanvas">
+      <div id="banner"></div>
+      <div id="legend"></div>
+      <div id="uniform"></div>
+      <div id="readout">move over the map</div>
+      <div id="attrib"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -100,7 +116,7 @@
   for (let lon = -180; lon <= 180; lon += 5) graticule.features.push({ type: "Feature", properties: { v: lon }, geometry: { type: "LineString", coordinates: [[lon, -85], [lon, 85]] } });
   for (let lat = -80; lat <= 80; lat += 5) graticule.features.push({ type: "Feature", properties: { v: lat }, geometry: { type: "LineString", coordinates: [[-180, lat], [180, lat]] } });
   const map = new maplibregl.Map({
-    container: "map",
+    container: "mapcanvas",
     style: {
       version: 8,
       sources: { grat: { type: "geojson", data: graticule } },
@@ -171,6 +187,20 @@
     return;
   }
   if (!model.n_layers) { banner(model.messages.no_layers); return; }
+  // THE VERDICT, verbatim from the model — both halves; nothing in this page can hide it
+  (function renderVerdict() {
+    const v = model.verdict, el = $("verdict");
+    if (!v) { el.textContent = "No claim verdict is recorded for this run — not a validated claim."; return; }
+    el.className = v.eligible ? "eligible" : "";
+    el.innerHTML = `<div><b>${v.headline}</b></div>` +
+      `<div class="sets"><b>failing (${v.failing.length}):</b> ${v.failing.join(", ") || "none"} · <b>passing (${v.passing.length}):</b> ${v.passing.join(", ") || "none"}</div>` +
+      (v.watermark ? `<div class="sets">${v.watermark}</div>` : "") +
+      `<div class="sets">${v.discrimination_note}</div>`;
+    const od = $("other-designs"); od.innerHTML = "";
+    for (const [design, x] of Object.entries(v.other_designs || {})) {
+      const d = document.createElement("div"); d.textContent = `${design}: ${x.eligible ? "eligible" : "refused"} — failing ${x.failing.join(", ") || "none"}; passing ${x.passing.length}`; od.appendChild(d);
+    }
+  })();
   $("run-meta").textContent = `run ${model.run_id} · ${model.content_hash.slice(0, 19)}… · run origin ${model.run_data_origin}`;
   if (!$("attrib").textContent) $("attrib").textContent = model.attribution.libraries.join(" · ");  // context layers add their own citations when they load
 
@@ -249,7 +279,24 @@
         ctx.fillStyle = "#2a2a2a"; ctx.fillRect(col * 4, row * 4, 2, 2); ctx.fillRect(col * 4 + 2, row * 4 + 2, 2, 2);
       } else { ctx.fillStyle = c; ctx.fillRect(col * 4, row * 4, 4, 4); }
     }
+    // THE NO-INFORMATION REGION (E5.4 requirement 4): stripes OVER the colour where the model says
+    // no station lies within one fitted range — from the model's per-cell flags; masked cells are
+    // a different fact and are never marked. Default ON for every layer.
+    if (model.no_information && layer.no_information) {
+      ctx.strokeStyle = model.no_information.style.stroke; ctx.lineWidth = 1;
+      const flags = model.no_information.cells;
+      for (let i = 0; i < values.length; i++) {
+        if (!flags[i] || values[i] === null || values[i] === undefined) continue;
+        const row = Math.floor(i / W), col = i % W, x = col * 4, y = row * 4;
+        ctx.beginPath(); ctx.moveTo(x, y + 4); ctx.lineTo(x + 4, y); ctx.stroke();
+      }
+    }
     const [w, s, e, n] = g.extent;
+    if (!draw.fitted) {  // open on the grid, once (after the style has loaded, or fitBounds is ignored)
+      const fit = () => map.fitBounds([[w, s], [e, n]], { padding: { top: 40, bottom: 90, left: 40, right: 320 }, duration: 0 });
+      fit(); if (!map.loaded()) map.once("load", fit);  // a camera op needs no style; repeated after load in case the first was swallowed
+      draw.fitted = true;
+    }
     const layers = [new deck.BitmapLayer({ id: "surface", image: canvas, bounds: [w, s, e, n], opacity: 0.85 })];
     if (model.stations) layers.push(stationLayer());
     overlay.setProps({ layers });
@@ -283,7 +330,15 @@
       const text = layer.ramp === "categorical" ? `${b.value}: ${b.label}` : `${b.from.toFixed(layer.format.decimals)} – ${b.to.toFixed(layer.format.decimals)} ${layer.format.unit_label}`;
       row.innerHTML = `<span class="swatch" style="background:${b.color}"></span><span>${text}</span>`; L.appendChild(row);
     }
+    if (layer.paired_legend) {  // ALWAYS: the paired half's range and method beside the value's bins (decision 3, (c)+)
+      const pl = layer.paired_legend, prow = document.createElement("div"); prow.className = "row";
+      prow.innerHTML = `<span class="swatch" style="background:linear-gradient(90deg,#222,#ddd)"></span><span>${pl.label}: ${pl.min.toFixed(layer.format.decimals)} – ${pl.max.toFixed(layer.format.decimals)} ${layer.format.unit_label}</span>`;
+      L.appendChild(prow);
+    }
     const m = document.createElement("div"); m.className = "row"; m.innerHTML = `<span class="swatch masked"></span><span>${model.masked.label}</span>`; L.appendChild(m);
+    if (layer.no_information) {  // the no-information region, with the LAYER's label (the range layer's vs the others')
+      const n = document.createElement("div"); n.className = "row"; n.innerHTML = `<span class="swatch noinfo"></span><span>${layer.no_information.label}</span>`; L.appendChild(n);
+    }
     if (model.stations) {  // the stations in the legend with BOTH origins: the asymmetry is in the legend, not only the panel
       const srow = document.createElement("div"); srow.className = "row";
       srow.innerHTML = `<span class="swatch" style="background:${model.stations.style.fill}; border-radius:50%; width:12px"></span><span>${model.stations.legend_label}</span>`;
@@ -294,13 +349,20 @@
     L.appendChild(wm);
     const rule = document.createElement("div"); rule.className = "origin"; rule.textContent = `bins: ${model.binning_rule.split(";")[0]}`; L.appendChild(rule);
   }
-  function drawFacts(layer) {
-    const f = $("layer-facts");
-    f.textContent = `origin ${layer.data_origin} · publishable ${layer.publishable} · ${layer.watermark_form}`;
+  function drawFacts(layer) {  // THE LAYER'S OWN REASONS in its own form, verbatim from the model (requirement 2)
+    const h = layer.honesty, f = $("honesty"); f.innerHTML = "";
+    const head = document.createElement("div"); head.textContent = `origin ${h.data_origin} · publishable ${h.publishable} · ${h.watermark_form}`; f.appendChild(head);
+    for (const r of h.reasons) {
+      const d = document.createElement("div"); d.className = `reason ${r.lifted ? "lifted" : "unlifted"}`;
+      d.textContent = `${r.reason}: ${r.lifted ? "lifted" : "UNLIFTED"} — ${r.text || r.cause || ""}${r.text ? "" : " — lifts at " + (r.lifted_by || "?")} · expiry: ${r.expiry}`;
+      f.appendChild(d);
+    }
+    if (h.fit_facts) { const ff = document.createElement("div"); ff.textContent = "full-data fit: " + Object.entries(h.fit_facts).filter(([k, v]) => typeof v !== "string" || v.length < 40).map(([k, v]) => `${k} ${typeof v === "number" ? Number(v.toFixed(3)) : v}`).join(" · "); f.appendChild(ff); }
+    if (h.uniform && h.uniform.flag) { const u = document.createElement("div"); u.textContent = `uniform today — ${Object.entries(h.uniform.facts).map(([k, v]) => `${k} ${v}`).join(", ")}. ${h.uniform.statement || ""}`; f.appendChild(u); }
   }
   function drawUniform(layer) {
     const u = $("uniform");
-    if (layer.uniform_today && layer.uniform_today.flag) { u.style.display = "block"; u.textContent = `This layer is UNIFORM today — every switch on this kind of layer produces the same picture. ${layer.uniform_today.note || ""} ${layer.uniform_today.meaning || ""}`; }
+    if (layer.uniform_today && layer.uniform_today.flag) { u.style.display = "block"; u.textContent = `This layer is UNIFORM today — every switch on this kind of layer produces the same picture. ${Object.entries(layer.uniform_today.facts || {}).map(([k, v]) => `${k} ${v}`).join(", ")}. ${layer.uniform_today.note || ""} ${layer.uniform_today.meaning || ""}`; }
     else u.style.display = "none";
   }
   function drawStations() {

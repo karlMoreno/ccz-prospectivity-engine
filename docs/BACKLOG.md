@@ -110,8 +110,10 @@ declaration reads as a new use).
 1 ADDED at E5.3 commit 2 (2026-08-23): the context-layer data task with its
 two riding decisions (the AOI; the APEIs and exclusions.geojson). 1 ADDED at
 E5.3 commit 3: the catalog is not yet data-driven (trigger: a second dataset).
-**55 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
-Karl 6, §3 Engineering 34, §4 Phase-2 risks 0 (both closed), §6 later phases
+1 CLOSED at E5.4 (2026-08-23): the honesty inputs still prose-only, each
+decided; E5.4's disposition table added no deferral.
+**54 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
+Karl 6, §3 Engineering 33, §4 Phase-2 risks 0 (both closed), §6 later phases
 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -2035,8 +2037,17 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   moments), verified by a FRESH refit in the test and separated from every
   per-fold value. Detail: [E5.5.md](walkthroughs/E5.5.md) §2;
   `provenance/emitter.py` (the surfaces block).
-- [ ] **HONESTY-SURFACE INPUTS STILL PROSE-ONLY AFTER E5.5's THREE ADDITIONS
-  — E5.4 decides derive-vs-record for each** (E5.5 commit 2, 2026-08-22;
+- [x] **HONESTY-SURFACE INPUTS STILL PROSE-ONLY AFTER E5.5's THREE ADDITIONS
+  — CLOSED at E5.4 (2026-08-23), each decided:** (i) the 0.5 kg/m² fraction is
+  NOT displayed by decision — the no-information count (2,846 of 2,880
+  predictable cells) is the viewer's statement of the same fact; (ii) the
+  34-cell count is DERIVED in the presentation model (shape-not-value) from
+  the stations and the fitted range, never recomputed in the page; (iii) the
+  cluster geometry is visible as drawn points, the stripes clearing only
+  around the two clusters; (iv) the registry dependence is shown via the
+  layer's `fit_facts` (n_estimators 500, read back). Detail:
+  [E5.4.md](walkthroughs/E5.4.md) §2. *(original entry)* **E5.4 decides
+  derive-vs-record for each** (E5.5 commit 2, 2026-08-22;
   the closing check the E5.5 prompt asked for). Checked against E5.0 §4's
   inventory after `full_data_fit`, `sd_min/sd_max` and `training_stations`
   landed: (i) **the 99.62 %-within-0.5-kg/m² fraction** (E3.1-2 §2) — not

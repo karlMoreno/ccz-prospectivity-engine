@@ -489,8 +489,15 @@ ccz-prospectivity-engine/
   their own origin and a FIXTURE rectangle; the 35 stations from the manifest.
   The page names no layer, model, axis or unit of this project (grepped); the
   DOM, rendering and interaction are UNTESTED and the walkthrough says so. First
-  non-Python files in the repo, outside the audit's walk (confirmed). Suite 665.
-  Next: E5.4, the honesty surface — awaiting Karl's review of E5.3.**
+  non-Python files in the repo, outside the audit's walk (confirmed). E5.4
+  LANDED 2026-08-23: the honesty surface — the claim verdict where the map is
+  on every load with its failing AND passing sets, each layer's own reasons with
+  their expiry in the layer's own form, the paired σ always in the legend and
+  readout (Karl: (c)+; σ-as-saturation declined), the no-information region
+  hatched on every layer from recorded values (2,846 of 2,880 cells beyond the
+  21.6 km fitted range, a lower bound), the uniform rasters explained; all 13
+  of E5.0 §4's rows dispositioned, none left LOOKING. Suite 672. Next: E5.6 (CI)
+  and E5.7 (deploy) — awaiting Karl's review of E5.4.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
@@ -548,10 +555,9 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **E5.4** — the honesty surface, whose specification is E5.0 §4's
-  thirteen-row inventory (every row LOOKING today): the claim verdict visible without
-  interaction with its failing preconditions named, both watermark reasons with their
-  expiry, the uncertainty not optional, the 99 %-no-information region marked. The
+- **Next task:** **E5.6** — CI end-to-end on fixtures, partly built (`ci.yml` runs the
+  whole suite; what is missing is a named, artifact-producing job running the harness);
+  then **E5.7**, deploy, where the verdict travels with the deployment. The
   Phase-2/3/4 closeout facts this bullet used to carry live in their walkthroughs
   and `docs/BACKLOG.md` (corrected 2026-08-22, E5.1 commit 0: it had said
   "Phase 3 planning" two phases late — found by E5.0).
