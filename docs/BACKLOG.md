@@ -2081,6 +2081,11 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   **Trigger: before any run output is committed under `data/` — the same
   moment as the E3.1+2 entry and the `author_inherited_from` entry above.**
   Detail: [E5.5.md](walkthroughs/E5.5.md) §3; `harness.py` `RUN_LAYOUT`.
+  *Confirmed at E5.1 (2026-08-22): SERVING a run directory over HTTP is not
+  committing it — the audit walks `git ls-files -- data tests/fixtures`, the
+  API's runs root is wherever the operator points it, and nothing served
+  enters git; an E5.7 deployment that copies a run INTO `data/` would trip
+  this entry, one that serves from outside does not.*
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

@@ -16,6 +16,8 @@
     GET /runs/{run_id}/ts6-agreement   the per-estimator mapping + the chain's benchmark link
     GET /runs/{run_id}/economics       the E4.3 block + economic_results + economic_differences
     GET /runs/{run_id}/claim           E2.5's verdicts as data, the design, the origin
+    GET /runs/{run_id}/layers          THE LAYER CATALOG (commit 2; catalog.py) — 24 layers, the
+                                       72-cell control grid, the verdict, the watermark forms
     GET /runs/{run_id}/files/{key}     ONLY a key in output_hashes; ETag = the recorded sha256
 
 THREE RULES, each structural rather than a convention:
@@ -64,6 +66,7 @@ from fastapi.responses import FileResponse, Response
 
 from engine.prospectivity.domain.results import RunManifest
 from engine.prospectivity.harness import STACK_DIR
+from services.api.catalog import build_catalog
 
 MANIFEST_NAME = "run_manifest.json"
 RUNS_ROOT_ENV = "CCZ_RUNS_ROOT"
@@ -81,6 +84,7 @@ class LoadedRun:
     raw_bytes: bytes  # the manifest's bytes, served verbatim
     raw: dict  # the same, parsed — every endpoint below is a field of this
     manifest: RunManifest
+    catalog: dict  # E5.1 commit 2: built once at load, from the manifest and the record it names
 
 
 def load_run(directory: Path) -> LoadedRun:
@@ -108,7 +112,7 @@ def load_run(directory: Path) -> LoadedRun:
             f"{directory}: the manifest names {len(missing)} output file(s) that do not exist: "
             f"{missing[:5]} — a run directory is served whole or not at all"
         )
-    return LoadedRun(directory=directory, raw_bytes=raw_bytes, raw=raw, manifest=manifest)
+    return LoadedRun(directory=directory, raw_bytes=raw_bytes, raw=raw, manifest=manifest, catalog=build_catalog(raw, directory))
 
 
 def load_runs(runs_root: Path) -> dict[str, LoadedRun]:
@@ -152,7 +156,7 @@ def _summary(run: LoadedRun) -> dict:
         "n_output_files": len(m.output_hashes),
         "endpoints": [
             f"/runs/{m.run_id}/{part}"
-            for part in ("manifest", "cv-scores", "ts6-agreement", "economics", "claim", "files/{key}")
+            for part in ("manifest", "layers", "cv-scores", "ts6-agreement", "economics", "claim", "files/{key}")
         ],
     }
 
@@ -217,6 +221,11 @@ def create_app(runs_root: Path | str | None = None) -> FastAPI:
     def claim(run_id: str) -> dict:
         raw = _run(run_id).raw
         return {key: raw.get(key) for key in ("claim", "claim_eligible_designs", "data_origin")}
+
+    @app.get("/runs/{run_id}/layers")
+    def layers(run_id: str) -> dict:
+        """THE LAYER CATALOG (commit 2) — see services/api/catalog.py."""
+        return _run(run_id).catalog
 
     @app.get("/runs/{run_id}/files/{key:path}")
     def recorded_file(run_id: str, key: str) -> FileResponse:
