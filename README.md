@@ -13,13 +13,19 @@ for the full build plan. The seven frozen contracts live in
 
 ## Status
 
-**Phase 2, Track E complete.** Phase 0's scaffold + eight contracts, real
-ingestion (E1.1–E1.3: source adapters, per-evidence-class normalizers,
-`DuplicateResolutionPolicy` dedup, corpus build), terrain feature recipes
-(E1.4), the training matrix, three estimators behind one `Estimator` ABC
-(mean baseline, ordinary kriging, quantile random forest), spatially-blocked
-cross-validation, and the refuse-to-validate claim guard are built and
-reviewed. The suite is **471 passed, 2 skipped**.
+**Phases 0–4, Track E complete; Phase 5 in progress** (status corrected
+2026-08-22 — this said "Phase 2" two phases late). Phase 0's scaffold + eight
+contracts, real ingestion (E1.1–E1.3: source adapters, per-evidence-class
+normalizers, `DuplicateResolutionPolicy` dedup, corpus build), terrain feature
+recipes (E1.4), the training matrix, three estimators behind one `Estimator`
+ABC (mean baseline, ordinary kriging, quantile random forest), spatially-blocked
+cross-validation, the refuse-to-validate claim guard (Phase 2), paired
+prediction/uncertainty surfaces, the TS-6 comparison and the extended run
+manifest (Phase 3), the economic footprints and difference maps (Phase 4), and
+the one-command run harness (E5.5) are built and reviewed. Every output is
+watermarked SYNTHETIC / ILLUSTRATIVE until Checkpoints 1, 3 and 4, and the claim
+guard refuses every run — by design. The suite is **624 passed, 2 skipped**.
+The viewer (E5.3) is one static page on MapLibre GL JS + deck.gl from a CDN.
 
 The corpus ([`data/corpus/master_observations.csv`](data/corpus/master_observations.csv))
 holds **108 rows** (36 SO268 box-core events × MASS/COUNT/COVER), of which

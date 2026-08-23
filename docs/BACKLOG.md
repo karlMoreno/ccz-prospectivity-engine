@@ -2154,6 +2154,28 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
 
 ## 7. Closed decisions, recorded for reference (not open items)
 
+- **THE VIEWER STACK — MapLibre GL JS + deck.gl from a CDN; Next.js DECLINED
+  (Karl, 2026-08-22; recorded at E5.1 commit 0).** The Phase-0 lane's E5.2
+  "thin Next.js viewer" is replaced by ONE static HTML page: MapLibre GL JS +
+  deck.gl loaded from a CDN with pinned versions and SRI hashes, no npm, no
+  node, no build step. BOTH HALVES: Next.js is declined because Global Fishing
+  Watch needs React for a product team and a component library, while this
+  needs one page — and MapLibre + deck.gl is the same rendering engine GFW
+  uses, with no second toolchain in a solo project; 4wings is declined because
+  its tile format packs a time series per cell and this data has no time axis
+  (the switching axis is layer × estimator × z × scenario). Measured at E5.0 §5
+  (2026-08-22): MapLibre GL JS 6.5.0 BSD-3-Clause, ESM-only from the CDN
+  (5.24.0 is the last UMD build); deck.gl 9.3.10 MIT, UMD `dist.min.js`
+  1,648,135 B; a library is a TOOL the origin taxonomy does not classify
+  (the quantile-forest precedent, E2.3); `apps/web/*.html` is outside the
+  audit's walk. A build step, if one ever becomes unavoidable, is a stack
+  decision to STOP on, not an implementation detail. **Still open inside this
+  decision:** the basemap tile source — a third external dependency with its
+  own licence, attribution and uptime (E5.3 names it). Where the decision
+  lives: the alpha proposal's Phase-5 lane (revised 2026-08-22, tracked at
+  E5.1 commit 0), CLAUDE.md's stack list and status line, `apps/web/README.md`.
+  Detail: E5.0's §5 report (chat, 2026-08-22; substance in
+  [E5.1.md](walkthroughs/E5.1.md) §0).
 - **Window anisotropy (≤~3%) — accepted, not corrected.** Metre windows
   resolve from the N-S cell size; the E-W physical span deviates ≤~3% at
   study latitudes. Recorded in every layer's provenance (`crs_strategy`).

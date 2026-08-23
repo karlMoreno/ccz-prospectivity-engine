@@ -477,32 +477,105 @@ Swap placeholder scenarios.yaml → real config. Economic maps reflect real cuto
 ```
 
 ---
-
 ## Phase 5 — Delivery: API, viewer, docs, release
+
+**Revised 2026-08-22.** E5.2's "thin Next.js viewer" is replaced by a static
+MapLibre + deck.gl page in the Global Fishing Watch pattern; the viewer splits
+into three tasks (export, map, honesty surface); a preflight is added; and
+Checkpoint 5 splits into a Track-E-reachable half and a Track-G-gated half.
+Original preserved in git history.
+
+**Resequenced 2026-08-22 (E5.0's finding).** No viewer layer existed on disk:
+every surface, footprint and difference raster was produced into a pytest tmp
+dir by `test_engine_run.py`'s composition and deleted with it, so E5.1's API
+had nothing to serve. The run harness (E5.5) therefore moves FIRST. The
+execution order is **E5.5 → E5.1 → E5.2 → E5.3 → E5.4 → E5.6 → E5.7**; the
+task numbers below are kept as names. E5.5's "Papermill" was also dropped:
+Jupyter is outside the approved stack, and the harness is a plain CLI
+(`python -m engine.prospectivity.harness`).
+
 ### Track E lane
 ```
-E5.1  Read-only FastAPI (runs, manifest, rasters, CV scores, TS-6 agreement)
-E5.2  Thin Next.js viewer: prediction, uncertainty toggle, scenario switch +
-      difference, TS-6 comparison view, manifest link
-E5.3  Papermill / one-command run harness
-E5.4  CI end-to-end on fixture data green
-E5.5  Deploy (static COGs + small API host); Sentry on
+E5.0  Preflight: control-axis inventory (which layer combinations actually
+      exist), serving strategy (GeoJSON now vs tiles at CP1), what the API
+      must expose, the honesty inventory, stack verified from CDN
+E5.1  Read-only FastAPI (runs, manifest, CV scores, TS-6 agreement, economics)
+      + the LAYER CATALOG the viewer reads — resolved from the manifest, never
+      from a directory listing and never by parsing a filename
+E5.2  Layer export: rasters → web-renderable form. Carries the computed origin
+      and both watermark reasons; the mask survives the export (undefined must
+      not become zero, and must not vanish)
+E5.3  The viewer: ONE STATIC HTML PAGE, MapLibre GL JS + deck.gl from CDN, no
+      npm and no build step. Dark basemap, gridded heatmap, binned legend,
+      left control panel (layer × estimator × z × scenario), hover readout
+      showing value AND its paired uncertainty, and the 35 stations drawn over
+      the surface — their clustering is the most important fact in the data
+E5.4  The honesty surface: the claim verdict visible WITHOUT interaction with
+      its failing preconditions named; both watermark reasons separately with
+      their expiry conditions; the uncertainty not optional; the
+      99%-no-information region marked on the map. Each mutation-verified
+E5.5  One-command run harness (RUNS FIRST — see the resequencing note above)
+E5.6  CI end-to-end on fixture data green — partly built already: ci.yml runs
+      the whole suite and test_engine_run.py runs the real composition inside
+      it; what is missing is a named, artifact-producing job
+E5.7  Deploy (static viewer + small API host); Sentry optional
 ```
+
+**Why not Next.js.** GFW needs React because they have a product team and a
+component library. This needs one page. MapLibre GL JS + deck.gl from a CDN is
+the same rendering engine GFW uses, with no second toolchain in a solo project.
+
+**Why not 4wings.** GFW's tile format packs a time series into every cell —
+a solution to a problem this data does not have. There is no time axis here.
+The switching axis is estimator × z-level × scenario × layer type: the same
+interaction pattern on different coordinates. The whole prediction surface is
+3,400 cells, which is a GeoJSON file rendered client-side with no tile server
+at all. At CP1, real GEBCO makes the same region ~1.9M cells and does need
+tiles — and TiTiler is built on FastAPI, so it merges into E5.1 rather than
+becoming a second service. Design the layer catalog so that swap is a
+substitution, not a rewrite.
+
+**Attribution.** Use GFW's openly licensed packages where they fit, check each
+license rather than assuming, credit the design pattern in the footer, and do
+not copy their branding, logo, or name.
+
 ### Track G lane
 ```
-G5.1  Finalize methodology + data-source docs (incl. the Phase-A corpus provenance
-      + the "modernizing TS-6" chapter)
+G5.1  Finalize methodology + data-source docs (incl. the Phase-A corpus
+      provenance + the "modernizing TS-6" chapter)
 G5.2  Geological interpretation of the prediction (vs known geology AND vs TS-6)
 G5.3  Advise which results are appropriate to show publicly
 G5.4  Draft the impact narrative for grants ("open, evidence-typed CCZ corpus +
       living modernization of ISA TS-6")
 ```
-### Integration checkpoint 5 (= alpha launch)
+
+### Integration checkpoint 5 — SPLIT
 ```
-The viewer shows the REAL prediction + uncertainty + real economic scenarios + the
-TS-6 comparison, linked to a real manifest, with the Phase-A corpus provenance and
-methodology published alongside. Alpha is live.
+CP5a  TRACK E ALONE — reachable now. The viewer shows every layer that exists,
+      correctly, with the claim verdict and both watermark reasons visible
+      without interaction. A working, honest viewer over non-scientific data,
+      which is exactly what the project is.
+
+CP5b  = ALPHA LAUNCH. Needs CP1 (real GEBCO) + CP3 (digitized TS-6) + CP4
+      (real economics). The same viewer over real terrain, real economics and
+      the real digitized TS-6, with the verdict changed because the underlying
+      facts changed, and the corpus provenance + methodology published
+      alongside.
 ```
+
+The original Checkpoint 5 assumed a Track-G-complete world; it cannot be
+reached while the DEM is synthetic, the economics are placeholders and TS-6 is
+a fixture. Stating what is reachable without Track G is what has kept every
+previous phase moving.
+
+**The risk this phase introduces.** A GFW-styled map is an authority artifact —
+the aesthetic says measured, operational, real. This surface is the training
+mean over 99% of its domain, on synthetic terrain, with placeholder economics,
+and E2.5's guard currently REFUSES to call any of it a claim. Every other
+honesty mechanism in this project lives where a machine reads it: tags,
+sidecars, manifests. The viewer is the first artifact a human meets directly,
+and the one most capable of overriding all of them. That is why E5.4 is its own
+task with its own tests rather than a requirement inside E5.3.
 
 ---
 

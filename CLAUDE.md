@@ -173,7 +173,10 @@ guard checks the proof and not the claim.
 - **Minimal dependencies.** This runs on a laptop in minutes. Approved stack only:
   Python 3.11+, `rasterio`, `numpy`, `pandas`, `geopandas`/`shapely`, `scikit-learn`,
   `scikit-gstat`/`pykrige`, `richdem`/`xarray-spatial`, `pydantic`, `pytest`,
-  `pangaeapy` (ingestion), `fastapi` (read-only API later). Ask before adding anything else.
+  `pangaeapy` (ingestion), `fastapi` (read-only API, E5.1). **The viewer (E5.3) is ONE
+  static HTML page on MapLibre GL JS + deck.gl, loaded from a CDN with pinned versions
+  and SRI hashes — no npm, no node, no build step (decided 2026-08-22; BACKLOG §7).**
+  Ask before adding anything else.
 - **No** Kubernetes, task queues, Redis, clusters, or an upload-and-compute web backend.
 - **Do not bulk-install agent/skill harnesses or plugins.** Add tooling deliberately, one
   piece at a time, only when a concrete need appears.
@@ -465,8 +468,12 @@ ccz-prospectivity-engine/
   → E5.4 → E5.6 → E5.7. One command produces a run directory
   (`python -m engine.prospectivity.harness`, `docs/walkthroughs/E5.5.md`
   §3 for the layout); the manifest is at schema 4 with the full-data fit,
-  the sd ranges and the training stations; suite 611 → 624. Next: E5.1,
-  the read-only API + layer catalog, awaiting Karl's review of E5.5.**
+  the sd ranges and the training stations; suite 611 → 624. **The E5.2/E5.3
+  stack decision is SETTLED (Karl, 2026-08-22): MapLibre GL JS + deck.gl from a
+  CDN, one static page; Next.js DECLINED — GFW needs React for a product team
+  and a component library, this needs one page (BACKLOG §7). Lane order
+  E5.5 → E5.1 → E5.2 → E5.3 → E5.4 → E5.6 → E5.7.** Next: E5.1, the read-only
+  API + layer catalog.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
@@ -524,19 +531,11 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **E5.1** (Phase 5; see the status line above — this bullet's remainder is the Phase-2-era text, kept for the record). *Was:* **Phase 3 planning**, which needs the **AOI decision** (`docs/BACKLOG.md`
-  §1) — the point where Track G becomes load-bearing again; and **Checkpoint 2** (Karl +
-  Isaac). The Phase-2 closeout batch is DONE (P2.CLOSE, 2026-08-20, four commits;
-  `docs/walkthroughs/P2-closeout.md`). E2.4 (spatial CV + the comparison report, audited and approved), E2.5
-  (the refuse-to-validate guard) and C8.1 (Contract 8's `acceptance_thresholds`
-  slot, `model_config_version` 2) are done, and the guard's honest verdict on
-  today's data is a REFUSAL for three correct reasons (`docs/walkthroughs/E2.5.md`
-  §2) — unchanged by C8.1, which moved the refusal's route from ABSENT to NULL
-  without moving the verdict.
-  The training target is SETTLED as a Contract 8 slot
-  (`data/config/model_config.yaml` `target_definition`, provisional AUTHORED default,
-  P2.B → P2.A) — it does not block Track E; Isaac's citation arrives as the
-  AUTHORED→LITERATURE promotion (`docs/BACKLOG.md` §1).
+- **Next task:** **E5.1** — the read-only FastAPI + the layer catalog, served from a
+  run directory `python -m engine.prospectivity.harness` produces (E5.5). The
+  Phase-2/3/4 closeout facts this bullet used to carry live in their walkthroughs
+  and `docs/BACKLOG.md` (corrected 2026-08-22, E5.1 commit 0: it had said
+  "Phase 3 planning" two phases late — found by E5.0).
 - **Open items live in `docs/BACKLOG.md`** — the single source of truth, grouped by who is
   blocked. Read it before proposing work; add an entry whenever something is deliberately
   deferred.
