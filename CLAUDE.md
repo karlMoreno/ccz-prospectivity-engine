@@ -472,8 +472,11 @@ ccz-prospectivity-engine/
   stack decision is SETTLED (Karl, 2026-08-22): MapLibre GL JS + deck.gl from a
   CDN, one static page; Next.js DECLINED — GFW needs React for a product team
   and a component library, this needs one page (BACKLOG §7). Lane order
-  E5.5 → E5.1 → E5.2 → E5.3 → E5.4 → E5.6 → E5.7.** Next: E5.1, the read-only
-  API + layer catalog.**
+  E5.5 → E5.1 → E5.2 → E5.3 → E5.4 → E5.6 → E5.7.** E5.1 LANDED 2026-08-22:
+  the read-only FastAPI (`services/api/`, `python -m services.api.app <runs_root>`)
+  and the layer catalog (`/runs/{id}/layers`: 24 layers, the 72-cell grid with
+  three states, the watermark forms kept apart, the verdict once); suite 635.
+  Next: E5.2, the layer export — awaiting Karl's review of E5.1.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
@@ -531,8 +534,9 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **E5.1** — the read-only FastAPI + the layer catalog, served from a
-  run directory `python -m engine.prospectivity.harness` produces (E5.5). The
+- **Next task:** **E5.2** — the layer export (rasters → the web-renderable form E5.0 §2
+  chose, with the mask surviving and the origin and both watermark reasons travelling),
+  read by the catalog E5.1 serves from a run directory the harness produces (E5.5). The
   Phase-2/3/4 closeout facts this bullet used to carry live in their walkthroughs
   and `docs/BACKLOG.md` (corrected 2026-08-22, E5.1 commit 0: it had said
   "Phase 3 planning" two phases late — found by E5.0).
