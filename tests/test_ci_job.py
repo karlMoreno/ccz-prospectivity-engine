@@ -84,3 +84,35 @@ def test_the_two_tree_claim_holds_for_a_copied_run_and_a_tampered_file_or_a_move
     from engine.prospectivity.domain.results import RunManifest
     (copy / "run_manifest.json").write_text(RunManifest(**other).to_json())
     assert verify(production_run["out"], same_as=copy)["same_as"] == {"run_id": "another-id", "identical": True}
+
+
+# ═══════════════════════════════ E5.7 — the deployment's verification, run in-process
+
+def test_the_deployment_checks_pass_against_the_app_and_the_page_carries_its_standing_status(production_run: dict) -> None:
+    """The same functions `deploy/verify_deployment.py` runs through a URL,
+    run here against the TestClient — so the script is not a CI-only code
+    path and its checks are exercised by the suite. The fresh-run look
+    through the deployed URL is the other half and is reported by hand."""
+    import sys
+    sys.path.insert(0, str(REPO_ROOT))
+    from fastapi.testclient import TestClient
+    from deploy.verify_deployment import DeploymentCheckFailed, checks
+    from services.api.app import create_app
+    client = TestClient(create_app(production_run["runs_root"]))
+    report = checks(client.get, client.post)
+    assert report["run"]["run_id"] == production_run["manifest"].run_id and report["layers"] == {"n": 24, "surface": 6, "economics": 18, "no_information": "2,846 of 2,880 predictable cells", "stations": "35 (MEASURED)"}
+    assert report["verdict"]["failing"] == ["an_acceptance_threshold_existed_before_the_scores"] and report["verdict"]["n_passing"] == 5
+    assert report["context"] == ["coastline", "ccz_management_area"] and report["refusals"].endswith("through the URL")
+    page = (REPO_ROOT / "apps" / "web" / "index.html").read_text()
+    assert "non-scientific" in page.lower() and 'property="og:description"' in page and "Checkpoints 1/3/4" in page
+    # a page whose pins were swapped fails the check by name
+    class Swapped:
+        def __init__(self, real): self.real = real
+        def get(self, path):
+            r = self.real.get(path)
+            if path == "/":
+                class R: status_code = 200; headers = r.headers; content = r.content.replace(b"sha384-ShkZCI1SsjyiuEQSfDaj9OLN9xhntMrIMZsOcAEp1kQhFz1vqAGjN/IhnDY3EZ0I", b"sha384-swapped")
+                return R()
+            return r
+    with pytest.raises(DeploymentCheckFailed, match="CDN pins differ"):
+        checks(Swapped(client).get, client.post)

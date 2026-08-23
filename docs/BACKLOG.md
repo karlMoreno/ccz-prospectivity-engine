@@ -111,9 +111,11 @@ declaration reads as a new use).
 two riding decisions (the AOI; the APEIs and exclusions.geojson). 1 ADDED at
 E5.3 commit 3: the catalog is not yet data-driven (trigger: a second dataset).
 1 CLOSED at E5.4 (2026-08-23): the honesty inputs still prose-only, each
-decided; E5.4's disposition table added no deferral.
-**54 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
-Karl 6, §3 Engineering 33, §4 Phase-2 risks 0 (both closed), §6 later phases
+decided; E5.4's disposition table added no deferral. 1 ADDED at E5.7
+(2026-08-23): the page's standing status must change with the facts (CP5b);
+the context-layer entry's public-URL trigger reported FIRED.
+**55 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
+Karl 6, §3 Engineering 34, §4 Phase-2 risks 0 (both closed), §6 later phases
 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -2134,7 +2136,10 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   area is, which is honest and is not to be hidden by adjusting the view.
   Owner: Karl (acquire + decide) + E (wire). **Trigger: whenever the files
   are downloaded; before E5.7 ships a public URL with the fixture rectangle
-  still drawn.** Detail: [E5.3.md](walkthroughs/E5.3.md) §3;
+  still drawn.** *Reported FIRED at E5.7 (2026-08-23): the deployment is
+  built and verified at the rehearsal URL with the rectangle still drawn and
+  labelled FIXTURE where a user sees it; whether the public URL waits for the
+  real layer is Karl's call.* Detail: [E5.3.md](walkthroughs/E5.3.md) §3;
   `services/api/context.py`; `apps/web/context/ccz_management_area_FIXTURE.geojson`.
 
 - [ ] **THE VIEWER IS CATALOG-DRIVEN; THE CATALOG IS NOT YET DATA-DRIVEN**
@@ -2155,6 +2160,17 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   the catalog reading them) is not made speculatively. Owner: E.
   **Trigger: the first second dataset.** Detail: [E5.3.md](walkthroughs/E5.3.md)
   §1; `catalog.py` header.
+
+- [ ] **CP5b: THE PAGE'S STANDING STATUS MUST CHANGE WITH THE FACTS** (E5.7,
+  2026-08-23). A shared link renders a preview card from `<title>` and the
+  `description` / `og:` tags with no JavaScript, so the verdict banner cannot
+  survive into it; `apps/web/index.html` therefore carries the STANDING status
+  in plain text — "non-scientific until Checkpoints 1/3/4 … the claim guard
+  refuses … the verdict is on the page" — asserted by
+  `deploy/verify_deployment.py`. That text is true today and becomes false
+  the day the facts change. Owner: E. **Trigger: CP1, CP3 or CP4 landing —
+  any checkpoint that lifts a reason — and CP5b before the launch URL is
+  shared.** Detail: [E5.6-7.md](walkthroughs/E5.6-7.md) §2; `deploy/README.md`.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

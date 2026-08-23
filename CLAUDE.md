@@ -508,12 +508,18 @@ ccz-prospectivity-engine/
   readout (Karl: (c)+; σ-as-saturation declined), the no-information region
   hatched on every layer from recorded values (2,846 of 2,880 cells beyond the
   21.6 km fitted range, a lower bound), the uniform rasters explained; all 13
-  of E5.0 §4's rows dispositioned, none left LOOKING. Suite 672. **E5.4 APPROVED
-  2026-08-23. THE VIEWER IS COMPLETE AND THE HONESTY SURFACE HAS LANDED; CP5a IS
-  THE NEXT BOUNDARY, and E5.6 (CI: a named, artifact-producing job around the
-  harness) and E5.7 (deploy: the verdict travels with the URL) are what remain.
-  The proposal's CP5a criteria — every layer that exists, correctly, the verdict
-  and both reasons visible without interaction — read as MET PENDING DEPLOY.**
+  of E5.0 §4's rows dispositioned, none left LOOKING. E5.4 APPROVED 2026-08-23.
+  **E5.6 + E5.7 LANDED 2026-08-23: the `run-artifact` CI job (the harness twice,
+  verified by recomputation, uploaded by SHA; not a gate on the verdict) and the
+  deployment (a provider-agnostic image serving one pinned CI-built run;
+  `deploy/verify_deployment.py` through the URL; Sentry declined). Verified at the
+  rehearsal URL; suite 676. CP5a IS PENDING THE DEPLOYMENT, WHICH IS KARL'S:
+  `origin/main` is 62 commits behind (no CI artifact exists yet), no host account,
+  Docker not running here (the image build untested). Gate: push → the job's first
+  run → the image on a host → the verification and the fresh-run look THROUGH
+  THE PUBLIC URL. CP5b needs CP1 (real GEBCO — a public download, E-side
+  unblocked), CP3 (digitized TS-6), CP4 (real economics): the deployed URL is
+  the alpha of the MACHINERY; the launch is CP5b.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
@@ -571,9 +577,11 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **E5.6** — CI end-to-end on fixtures, partly built (`ci.yml` runs the
-  whole suite; what is missing is a named, artifact-producing job running the harness);
-  then **E5.7**, deploy, where the verdict travels with the deployment. The
+- **Next task:** KARL'S — push `main` (CI's first run of Phases 3–5 and the first
+  `run-<sha>` artifact), choose the host, deploy the image from that artifact, run
+  `deploy/verify_deployment.py <url>` and the fresh-run look through it; then CP5a
+  closes in the ledger. Track E's next G-free work: the context-layer data task's
+  wiring once Karl acquires the layers. The
   Phase-2/3/4 closeout facts this bullet used to carry live in their walkthroughs
   and `docs/BACKLOG.md` (corrected 2026-08-22, E5.1 commit 0: it had said
   "Phase 3 planning" two phases late — found by E5.0).
