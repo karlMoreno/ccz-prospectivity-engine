@@ -27,6 +27,10 @@ watermarked SYNTHETIC / ILLUSTRATIVE until Checkpoints 1, 3 and 4, and the claim
 guard refuses every run — by design. The suite is **624 passed, 2 skipped**.
 The viewer (E5.3) is one static page on MapLibre GL JS + deck.gl from a CDN.
 
+**Demo:** `python demo_alpha.py` walks every phase with its input and output and
+ends with the viewer served locally; the copy-paste version is
+[docs/DEMO.md](docs/DEMO.md). `python demo.py` is the Phase-1 ingestion deep dive.
+
 The corpus ([`data/corpus/master_observations.csv`](data/corpus/master_observations.csv))
 holds **108 rows** (36 SO268 box-core events × MASS/COUNT/COVER), of which
 **35 are training-eligible**. It draws on **2 real open sources**, both
