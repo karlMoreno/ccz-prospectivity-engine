@@ -249,6 +249,10 @@ def test_the_control_grid_has_three_states_and_a_consistently_dropped_artifact_i
     assert g["n_cells"] == 72 == 4 * 3 * 2 * 3 and g["counts"] == {"present": 18, "not_applicable": 54, "absent": 0}
     assert g["canonical"]["n_cells"] == 24 == 3 + 3 + 12 + 6 and g["canonical"]["counts"] == {"present": 24, "absent": 0}
     assert g["applicable_axes"] == {k: list(v) for k, v in APPLICABLE_AXES.items()}
+    # E5.3 §0.4: the labels are data, one per axis and one per value, never inferred by a viewer
+    assert set(g["axis_labels"]) == set(g["axes"]) and all(g["axis_labels"].values())
+    assert {axis: set(labels) for axis, labels in g["value_labels"].items()} == {axis: {str(v) for v in vs} for axis, vs in g["axes"].items()}
+    assert g["value_labels"]["z"]["1.0"] == "z = 1 (μ − σ)" and g["value_labels"]["pair"]["['MARKET_STANDARD', 'STRATEGIC_SUBSIDIZED']"] == "MARKET_STANDARD → STRATEGIC_SUBSIDIZED"
     assert g["axes"] == {"kind": ["prediction", "uncertainty", "footprint", "difference"],
                          "estimator": ["mean_baseline", "ordinary_kriging", "random_forest"], "z": [0.0, 1.0],
                          "scenario": ["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"], "pair": [["MARKET_STANDARD", "STRATEGIC_SUBSIDIZED"]]}
@@ -390,10 +394,12 @@ def test_legend_statistics_match_the_rasters_computed_independently_and_the_unif
         if e["kind"] in ("prediction", "uncertainty"):
             assert e["legend"]["min"] == pytest.approx(float(finite.min()), rel=1e-6) and e["legend"]["max"] == pytest.approx(float(finite.max()), rel=1e-6)
             assert e["legend"]["n_predicted"] == finite.size == 2880 and e["legend"]["n_masked"] == 520 and e["legend"]["binning"] is None
+            assert e["legend"]["ramp"] == "sequential" and e["legend"]["format"] == {"kind": "number", "decimals": 2, "unit_label": "kg/m²"}
             if e["kind"] == "uncertainty":
                 assert "sd" in e["legend"]["quantity"] and e["legend"]["max"] < 6.0
         elif e["kind"] == "footprint":
             assert e["legend"]["n_minable"] == int((finite == 1.0).sum()) == 2880 == e["legend"]["n_predictable"] and e["legend"]["uniform_today"] is True
+            assert e["legend"]["ramp"] == "categorical" and set(e["legend"]["format"]["labels"]) == {"0", "1", "null"}
             assert e["cutoff"]["value"] in (10.0, 5.5) and e["cutoff"]["data_origin"] == "AUTHORED"
         else:
             assert e["legend"]["both"] == int((finite == 1.0).sum()) == 2880 and e["legend"]["only_b"] == int((finite == 2.0).sum()) == 0

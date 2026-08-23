@@ -73,6 +73,33 @@ WATERMARK_ASYMMETRY = (
     "Checkpoint 1; economic_parameters ↔ Checkpoint 4) because fixing one leaves the other. "
     "A second reason for surfaces would be invented; one reason for economics would be lossy."
 )
+# E5.3 §0.4 (Karl's decision 4, 2026-08-23): RENDERING HINTS ARE CATALOG DATA.
+# Without them a generic viewer's "default and say so" is the per-layer-hint
+# limit relocated to a place with no observer; a hint here is testable. They
+# are hints about PRESENTATION — never a value, never a measurement.
+RAMP_BY_KIND = {"prediction": "sequential", "uncertainty": "sequential", "footprint": "categorical", "difference": "categorical"}
+FORMAT_BY_KIND = {
+    "prediction": {"kind": "number", "decimals": 2, "unit_label": "kg/m²"},
+    "uncertainty": {"kind": "number", "decimals": 2, "unit_label": "kg/m²"},
+    "footprint": {"kind": "code", "labels": {"0": "not minable", "1": "minable", "null": "undefined (no covariates)"}},
+    "difference": {"kind": "code", "labels": {"0": "minable under neither", "1": "minable under both", "2": "minable under the second only (the difference)", "3": "minable under the first only", "null": "undefined (no covariates)"}},
+}
+AXIS_LABELS = {"kind": "Layer", "estimator": "Estimator", "z": "Confidence level (z)", "scenario": "Scenario", "pair": "Scenario pair"}
+VALUE_LABELS = {
+    "kind": {"prediction": "Prediction (μ)", "uncertainty": "Uncertainty (σ, paired)", "footprint": "Minable footprint", "difference": "Scenario difference (sensitivity)"},
+    "estimator": {"mean_baseline": "Mean baseline", "ordinary_kriging": "Ordinary kriging", "random_forest": "Quantile random forest"},
+    "z": {"0.0": "z = 0 (μ)", "1.0": "z = 1 (μ − σ)"},
+}
+
+
+def _value_label(axis: str, value) -> str:
+    """A display label for an axis value: the declared one, else the value's
+    own text — a hint, never an inference about what the value IS."""
+    if isinstance(value, (list, tuple)):
+        return " → ".join(str(v) for v in value)
+    return VALUE_LABELS.get(axis, {}).get(str(value), str(value))
+
+
 EXCLUSIONS: tuple[dict[str, str], ...] = (
     {"pattern": "run_manifest.json", "reason": "the root record, served at /manifest — not a layer"},
     {"pattern": "<estimator>.provenance.json", "reason": "carrier 2 of a surface (its sidecar) — served at /files/<key>, not a layer"},
@@ -117,7 +144,8 @@ def _surface_entries(manifest: dict) -> list[dict]:
                 "uncertainty_semantics": block.get("uncertainty_semantics"),
                 "legend": {**legend, "units": "kg_m2", "n_predicted": block.get("n_predicted"), "n_masked": block.get("n_masked"),
                            "n_distinct_values": block.get("n_distinct_values"), "binning": None,
-                           "binning_note": "a viewer choice, not recorded (E5.0 §3) — E5.3 states its rule"},
+                           "binning_note": "a viewer choice, not recorded (E5.0 §3) — E5.3 states its rule",
+                           "ramp": RAMP_BY_KIND[kind], "format": FORMAT_BY_KIND[kind]},
                 "full_data_fit": block.get("full_data_fit"),
                 "sidecar": block.get("sidecar"),
                 # E5.2: the layer's DATA — the paired flat-array export the manifest records
@@ -177,7 +205,8 @@ def _economics_entries(manifest: dict, record: dict) -> list[dict]:
             "watermark": None,
             "watermark_reasons": reasons,
             "cutoff": cutoff,
-            "legend": {**legend, "units": "kg_m2 cutoff; raster values are codes", "binning": None, "binning_note": "categorical — the encoding IS the legend"},
+            "legend": {**legend, "units": "kg_m2 cutoff; raster values are codes", "binning": None, "binning_note": "categorical — the encoding IS the legend",
+                       "ramp": RAMP_BY_KIND[kind], "format": FORMAT_BY_KIND[kind]},
             "export": r.get("export"),  # E5.2
             "data_url": f"/runs/{manifest.get('run_id')}/files/export/{r['export']['file']}" if r.get("export") else None,
             "data_field": "values",
@@ -241,8 +270,13 @@ def _grid(manifest: dict, entries: list[dict]) -> dict:
                                                       "pair": list(axis_value) if axis_name == "pair" else None},
                                       "state": "present" if key else "absent", "key": key})
     canonical_counts = {s: sum(1 for c in canonical if c["state"] == s) for s in ("present", "absent")}
+    axes = {"kind": list(KINDS), "estimator": registry, "z": z_levels, "scenario": scenarios, "pair": pairs}
     return {
-        "axes": {"kind": list(KINDS), "estimator": registry, "z": z_levels, "scenario": scenarios, "pair": pairs},
+        "axes": axes,
+        # E5.3 §0.4: labels as DATA — an axis's label and each value's label, declared
+        # (or the value's own text), so a viewer never infers a label from a name
+        "axis_labels": {axis: AXIS_LABELS.get(axis, axis) for axis in axes},
+        "value_labels": {axis: {str(v): _value_label(axis, v) for v in values} for axis, values in axes.items()},
         "applicable_axes": {k: list(v) for k, v in APPLICABLE_AXES.items()},
         "rule": STATE_RULE,
         "n_cells": len(cells),
