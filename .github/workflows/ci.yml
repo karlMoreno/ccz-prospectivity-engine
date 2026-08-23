@@ -10,10 +10,25 @@ name: CI
 #     matrix, assembled over a SYNTHETIC DEM (covariates are synthetic until
 #     Checkpoint 1 — see the data-origin taxonomy in CLAUDE.md);
 #   * the estimators, spatially-blocked cross-validation, and the
-#     refuse-to-validate claim guard.
+#     refuse-to-validate claim guard;
+#   * (E5.5 on) the run harness end to end, the read-only API, the catalog,
+#     the exports and the viewer's presentation model.
 # CLAUDE.md's reproducibility line ("CI runs the full pipeline end-to-end on
 # synthetic fixtures every push") is corrected in the same commit: the
 # FIXTURES are the concurrency safety net, but they are not all that runs.
+#
+# E5.6 (2026-08-23): a SECOND, NAMED, ARTIFACT-PRODUCING JOB — `run-artifact`
+# — runs the harness with its own defaults (the PRODUCTION registry, 500
+# trees, all four designs; a CI artifact is downloadable, so a light
+# configuration would be a fixture leaking into a deliverable), twice in two
+# directories, verifies both by recomputation (engine/prospectivity/verify_run:
+# the manifest's self-hash, every output file's bytes, the corpus and stack
+# links, the verdict's failing AND passing sets against the committed
+# expectation, and the two-tree identity), prints the environment block, and
+# uploads the run directory named by the commit SHA. The job is NOT a gate on
+# the verdict: the guard refuses today and the job succeeds on a refusing run;
+# it fails only if the sets MOVE. Measured cost (E5.5): ~150 s wall per
+# production run on the dev machine, so ~5 min for two plus install.
 on:
   push:
   pull_request:
@@ -31,7 +46,58 @@ jobs:
       - name: Install project (incl. dev/test deps)
         # --only-binary avoids rasterio falling back to a source build, which
         # needs a local GDAL toolchain (gdal-config) we don't want to require.
-        run: pip install -e ".[dev]" --only-binary=:all:
+        # (a block scalar: the trailing `:all:` is not a YAML mapping to PyYAML,
+        # which tests/test_ci_job.py parses this file with — E5.6)
+        run: |
+          pip install -e ".[dev]" --only-binary=:all:
 
       - name: Run pytest
         run: pytest -v
+
+  run-artifact:
+    # E5.6: the named, artifact-producing job. Independent of `test` so the
+    # artifact exists even while a test is red; the artifact's own checks are
+    # the verify step below.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project (incl. dev/test deps)
+        run: |
+          pip install -e ".[dev]" --only-binary=:all:
+
+      - name: Report the environment the run will record (the by-design hash-bearing limit)
+        run: |
+          python -c "import rasterio, numpy, sklearn; print('rasterio', rasterio.__version__, 'GDAL', rasterio.__gdal_version__, 'numpy', numpy.__version__, 'scikit-learn', sklearn.__version__)"
+
+      - name: Write the synthetic inputs (the test generator's rasters, declared SYNTHETIC below)
+        # The harness never generates inputs and never imports tests.* (E5.5);
+        # the inputs are written here by the same generator the suite uses and
+        # passed in with their DECLARED origin.
+        run: |
+          mkdir -p inputs
+          python -c "from pathlib import Path; from tests.fixtures.rasters import write_synthetic_bathymetry, write_synthetic_ts6_raster; write_synthetic_bathymetry(Path('inputs/dem.tif')); write_synthetic_ts6_raster(Path('inputs/ts6.tif'))"
+
+      - name: Run the harness — the PRODUCTION registry, all four designs (tree A)
+        run: |
+          python -m engine.prospectivity.harness --dem inputs/dem.tif --dem-data-origin SYNTHETIC --ts6 inputs/ts6.tif --ts6-data-origin SYNTHETIC --out runs-a/run --run-id ci-${{ github.sha }}
+
+      - name: Run the harness again in a second tree (the two-tree claim on this machine)
+        run: |
+          python -m engine.prospectivity.harness --dem inputs/dem.tif --dem-data-origin SYNTHETIC --ts6 inputs/ts6.tif --ts6-data-origin SYNTHETIC --out runs-b/run --run-id ci-${{ github.sha }}
+
+      - name: Verify by recomputation — self-hash, every output file, the links, the verdict sets, two-tree identity
+        run: |
+          python -m engine.prospectivity.verify_run runs-a/run --same-as runs-b/run --environment
+
+      - name: Upload the run directory (the whole directory, nothing curated; retained 30 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-${{ github.sha }}
+          path: runs-a/run
+          retention-days: 30
+          if-no-files-found: error
