@@ -26,3 +26,7 @@ outputs/
 
 # Large reference PDFs (keep locally, don't version)
 *.pdf
+
+# E5.7: the pinned run directory an image is built from — a downloaded CI artifact;
+# SERVING IS NOT COMMITTING, and a run never enters data/
+deploy/run/

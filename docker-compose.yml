@@ -2,6 +2,20 @@
 # (provenance metadata, corpus/raster storage) have somewhere to land. Nothing
 # in the Phase 0 code connects to these yet — they are infrastructure only.
 services:
+  # E5.7: the deployable — the read-only API serving the pinned run in deploy/run/
+  # and the static viewer, one process (see ../Dockerfile and deploy/README.md).
+  # `docker compose up viewer`, then http://localhost:8000/ and
+  # `python deploy/verify_deployment.py http://localhost:8000`.
+  viewer:
+    build:
+      context: .
+      args:
+        GIT_SHA: "${GIT_SHA:-unknown}"
+    ports:
+      - "8000:8000"
+
+  # Phase 0 (E0.1) infrastructure, still unconnected (BACKLOG §6: Postgres/PostGIS
+  # parked); not needed by the viewer service above.
   postgres:
     image: postgis/postgis:16-3.4
     environment:
