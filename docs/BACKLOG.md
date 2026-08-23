@@ -114,15 +114,105 @@ E5.3 commit 3: the catalog is not yet data-driven (trigger: a second dataset).
 decided; E5.4's disposition table added no deferral. 1 ADDED at E5.7
 (2026-08-23): the page's standing status must change with the facts (CP5b);
 the context-layer entry's public-URL trigger reported FIRED.
-**55 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
-Karl 6, §3 Engineering 34, §4 Phase-2 risks 0 (both closed), §6 later phases
-3. §5 is fully closed.
+6 ADDED at G.0 (2026-08-23): the acquisition-sequence entries (step 0 +
+datasets 1–5) at the top of §1, each a POINTER to
+[docs/plans/TRACK-G.md](plans/TRACK-G.md) consolidating existing entries and
+closing NONE — closes land on the ORIGINAL boxes in their closing commits.
+§1 RE-TITLED AND RE-OWNED in the same commit: Isaac delivers nothing; Karl
+is doing Track G himself (the [GEOLOGY — ISAAC] tags inside contracts are
+untouched — a tag edit is a version bump; they now read as "geology
+judgment, Karl's", cleanup riding each contract's next legitimate bump).
+Two stale detail refs corrected against the files, scoped to the claims
+verified: the normalization.yaml slots are at :67/:103/:123 (the entry said
+:50/:86/:101) and the [18] guard anchor is corpus_builder.py:256–291 (the
+entry said #L200, which now lands in [05]'s docstring).
+**61 open items** (recounted from the boxes, 2026-08-23, G.0): §1 Track G
+18 (12 + the 6 sequence entries), §2 Karl 6, §3 Engineering 34, §4 Phase-2
+risks 0 (both closed), §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
 ---
 
-## 1. Blocked on Track G (Isaac)
+## 1. Track G acquisition queue (Karl-as-G)
+
+*Re-titled and re-owned at G.0 (2026-08-23); was "Blocked on Track G
+(Isaac)". Isaac delivers nothing — Karl is doing Track G himself, so
+nothing in this section is "blocked on" anyone: it is the acquisition
+queue, sequenced by [docs/plans/TRACK-G.md](plans/TRACK-G.md). Owner lines
+below read "Karl (as G)" — the as-G marks work that is geology judgment or
+data labor, as distinct from Karl's §2 engineering-side decisions.*
+
+**THE G.0 ACQUISITION SEQUENCE** — six sequence entries; each consolidates
+existing entries BY POINTER and closes none (constituent boxes close on
+themselves, in the commits that close them). The one hard rule: **step 0
+precedes ANY real-data run** — the pre-registration clock
+([TRACK-G.md](plans/TRACK-G.md) §4).
+
+- [ ] **G.0-step0 — pre-register the thresholds, before anything else.**
+  Contract 8 `acceptance_thresholds` + Contract 6
+  `acceptable_spatial_correlation` (G3.2), filled with an admissible
+  origin BEFORE the harness ever runs on real data — after that, the
+  precondition goes from unfilled to unfixable. Candidate FORMS (not
+  numbers): TRACK-G.md §4. Paired Track-E step: the LITERATURE-observer
+  fixture (§3 entry; its trigger "before Track G supplies any cited value"
+  fires at this step's own citation). Consolidates by pointer: the §2
+  pre-registration entry (which stays open — a slot is not a threshold).
+  Owner: Karl (as G) [judgment]. Trigger: NOW; hard-before G.0-2.
+- [ ] **G.0-1 — CCZ geometry + APEIs/exclusions.** Marine Regions MRGID
+  64222 (CC-BY 4.0) + the ISA shapefiles (ISA copyright — read the
+  redistribution terms per source, commit vs fetch-at-build). Fills
+  Contract 2 (both files' content decisions) and the
+  `src_deepdata_public_context` row. Riding decisions (Karl): the AOI, its
+  origin class, whether APEIs populate `exclusions.geojson` (the first
+  polygon needs the not-yet-built rasterisation path in
+  `CutoffEconomicModel`, not just the E4.1 test updates — TRACK-G.md
+  §0.4). Consolidates by pointer: the AOI entry below, the §3
+  context-layer entry, half the §2 classify-context-sources entry. Owner:
+  Karl (as G) [mechanical + judgment]. Trigger: fired (the public-URL
+  fixture-rectangle trigger); sequence position 1.
+- [ ] **G.0-2 — GEBCO + TID → Checkpoint 1.** The current GEBCO release +
+  its companion TID grid, one session, both hashed into
+  `src_bathymetry_primary`; subset extent = the G.0-1 AOI; TID per-cell
+  accounting BEFORE any covariate is interpreted. The CP1 re-run's
+  expectations are STATED in TRACK-G.md §3.2 so results are confirmations
+  (pins red by design; terrain reason lifts; `EXPECTED_VERDICT_SETS`
+  moves deliberately, in the same change as the data). `DemGrid` south-up
+  fix (§3) lands BEFORE the DEM enters. Consolidates by pointer: the
+  GEBCO entry below, the §2 GEBCO-TID entry, the covariates.yaml
+  questions below. Owner: Karl (as G) [mechanical; the classification
+  judgment]. Trigger: after G.0-0 and G.0-1.
+- [ ] **G.0-3 — the digitized TS-6 surface → Checkpoint 3.** Contract 6
+  v4's six nulls as a procedure: product choice, a re-runnable
+  `digitization_method` (DERIVED's evidence), `digitization_uncertainty`
+  by repeat-digitization spread (E3.3's real path refuses while null),
+  `role_note` decided on what G.0-4 actually ingested. Paired Track-E:
+  [18] re-wiring (+ the LITERATURE-admission decision its builder
+  docstring names); `test_grid_rows_are_never_flagged_observed`
+  self-reactivates. Consolidates by pointer: the [18] entry below.
+  Owner: Karl (as G) [labor + two judgments; ~6–12 h + 2–4 h repeat
+  pass]. Trigger: after G.0-0; independent of G.0-4.
+- [ ] **G.0-4 — the Phase-A open corpus.** Target definition FIRST (the
+  [05]-vs-[01] burial contradiction — the one question a geologist can
+  settle without new data, and that geologist is now Karl; the Depth-sed
+  parsing hazard fires the moment the analysis is re-run). Then
+  per-source screening of [02][03][04] and [06] (guard-blocked until a
+  real file + hash lands), with the spread-over-count rule sharpened to
+  the 13–986 km zero-pair window. Wet/dry basis per source at ingest
+  (Contract 1 `abundance_basis` ⊕ required — Karl's bump). Consolidates
+  by pointer: the training-target, Dryad, spread, normalization-params
+  and download-hygiene entries below. Owner: Karl (as G)
+  [labor + judgment]. Trigger: after G.0-0; independent of G.0-3.
+- [ ] **G.0-5 — real economics → Checkpoint 4 → CP5b.** G4.1's sharpened
+  ask (the Contract-4 entry below — not duplicated here) + the five ⊕
+  slots + `cutoff_basis`; the BRACKET REQUIREMENT stated in advance (real
+  cutoffs must let the scenarios disagree somewhere, or 100% coverage is
+  a stated finding about grade). Before the first cited value: the
+  LITERATURE-observer fixture (G.0-step0's paired step) and the §2
+  uncited-README-numbers entry. Consolidates by pointer: the Contract-4
+  and wet/dry entries below, the §2 uncited-README entry. Owner: Karl
+  (as G) [judgment]. Trigger: last — needs G.0-4's basis answer and the
+  expanded corpus's distribution.
 
 - [ ] **Training target: awaiting Track G — contract slot exists, does NOT
   block Track E** (reframed 2026-08-09, P2.B + P2.A). Contract 8
@@ -149,7 +239,8 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   notation. Working hypothesis: a per-leg (or per-team) recording-protocol
   difference — **the one question in this project a geologist can settle
   without new data**. If resolved, `surface_only` enters the enum as a new
-  admissible value. Owner: G (with Karl for the definition). Trigger: any
+  admissible value. Owner: Karl (as G; the definition too — G.0-4's first
+  step). Trigger: any
   time; also feeds Contract 4. Detail:
   [P2.B-and-P2.A.md](walkthroughs/P2.B-and-P2.A.md);
   [model_config.yaml](../data/config/model_config.yaml) header; the parsing
@@ -198,13 +289,14 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   the data actually sits. **Note before choosing: 99.00% of the CURRENT
   domain already lies beyond one fitted variogram range of any station**
   (E3.0 §4b) — an AOI larger than the data is a choice to publish mostly-mean
-  cells. Owner: **G + Karl. Trigger: Checkpoint 1** (or any earlier moment a
+  cells. Owner: **Karl (as G; G.0-1). Trigger: Checkpoint 1** (or any earlier moment a
   non-fixture DEM enters a run). Detail:
   [data/aoi/study_area.geojson](../data/aoi/study_area.geojson); E1.4.md §1;
   [PHASE3-track-E-prompts.md](prompts/PHASE3-track-E-prompts.md) §2.
 - [ ] **Real Dryad `[06]` data.** Removed from `REAL_ADAPTER_BUILDERS` in P1
   as fabricated; `_require_proven_measured()` blocks re-wiring until a real
-  file exists under `data/`. Owner: G downloads, E re-wires. Trigger: real
+  file exists under `data/`. Owner: Karl (as G) downloads, E re-wires
+  (G.0-4). Trigger: real
   Dryad file delivered. Detail:
   [corpus_builder.py:234](../engine/prospectivity/ingestion/corpus_builder.py#L234);
   E1.3.md §13.
@@ -212,37 +304,46 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   `[06]`; `ts6_reference.yaml`'s method/figure/role_note/metrics fields are
   all `null` awaiting the digitization decisions. **The corpus is
   single-source until this or `[06]` lands.** One test re-activates itself
-  when wired (`test_grid_rows_are_never_flagged_observed`). Owner: G.
-  Trigger: Checkpoint 3. Detail:
-  [corpus_builder.py:200](../engine/prospectivity/ingestion/corpus_builder.py#L200);
+  when wired (`test_grid_rows_are_never_flagged_observed`). Owner: Karl
+  (as G; G.0-3). Trigger: Checkpoint 3. Detail:
+  [corpus_builder.py:256](../engine/prospectivity/ingestion/corpus_builder.py#L256)–291
+  *(ref corrected at G.0, 2026-08-23: the old #L200 anchor now lands in
+  [05]'s docstring)*;
   [ts6_reference.yaml:51](../data/ts6/ts6_reference.yaml#L51)–82; E1.3.md §15.
 - [ ] **Real GEBCO bathymetry (G1.1).** Synthetic DEM everywhere until
   Checkpoint 1; `src_bathymetry_primary`'s title/license are `null`. The
   metre-based windows (Contract 3 v3) only resolve unclamped on the real
-  DEM. Owner: G. Trigger: Checkpoint 1. Detail:
+  DEM. Owner: Karl (as G; G.0-2 — a public download, mislabelled a
+  deliverable since Phase 0). Trigger: Checkpoint 1. Detail:
   [data/bathymetry/README.md](../data/bathymetry/README.md);
   [source_queue.yaml:205](../data/sources/source_queue.yaml#L205), :227.
 - [ ] **Geographic spread over row count.** The corpus is two clusters of
   ~12 km extent separated by ~991 km. When queueing further Phase-A sources,
   prioritise stations BETWEEN the clusters over more stations inside them —
-  spread constrains the model more than n does. Owner: G. Trigger: next
+  spread constrains the model more than n does. Owner: Karl (as G;
+  G.0-4's queueing rule, sharpened there to the 13–986 km zero-pair
+  window). Trigger: next
   source-queue pass. Detail: review discussion 2026-07-28; cluster geometry
   visible in `outputs/e1.4/covariate_stack_synthetic_dem.png`.
 - [ ] **normalization.yaml geology parameters.** `mean_nodule_mass_g_source`
-  ([normalization.yaml:50](../data/config/normalization.yaml#L50)),
-  `join_tolerance_km` (:86, blocks the GRADE join), and the
-  `coordinate_tolerance_deg` tune flag (:101). Owner: G. Trigger: :50/:101
-  any time; :86 before `[19]` wiring.
+  ([normalization.yaml:67](../data/config/normalization.yaml#L67)),
+  `join_tolerance_km` (:103, blocks the GRADE join), and the
+  `coordinate_tolerance_deg` tune flag (:123) *(refs corrected at G.0,
+  2026-08-23: the entry said :50/:86/:101, drifted)*. Owner: Karl (as G;
+  G.0-4). Trigger: :67/:123
+  any time; :103 before `[19]` wiring.
 - [ ] **covariates.yaml geology questions — now in real distances.** The
   physically meaningful neighborhood scale(s) for nodule formation
   ([covariates.yaml:54](../docs/contracts/covariates.yaml#L54), metres/km
   since v3, not cells) and absolute depth vs relative relief (:71). Safe
-  defaults stand. Owner: G. Trigger: any time before Phase-2 modeling
+  defaults stand. Owner: Karl (as G; due at G.0-2 — the moment the
+  answers change covariates). Trigger: any time before Phase-2 modeling
   hardens. 
 - [ ] **source_queue.yaml download hygiene.** `license`, `accessed_date`,
   `content_hash`, `sampled_area_m2` are `null` across most entries — filled
   on download per the contract's own header. Only `is_open=true` sources may
-  enter a published run, so licenses gate publication. Owner: G. Trigger:
+  enter a published run, so licenses gate publication. Owner: Karl (as G;
+  every G.0 download). Trigger:
   each download. Detail:
   [source_queue.yaml:42](../data/sources/source_queue.yaml#L42)–227 (tagged
   inline). **P2.0c addendum, NARROWED by P2.0d-2 (2026-08-09):** the
@@ -256,7 +357,7 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
 - [ ] **Contract 4 real economics.** `scenarios.yaml` is entirely
   `illustrative_only: true` with `[GEOLOGY — ISAAC]` tags on cutoffs,
   composition, and price sources; the engine watermarks output until
-  flipped. Owner: G. Trigger: Checkpoint 4. Detail:
+  flipped. Owner: Karl (as G; G.0-5). Trigger: Checkpoint 4. Detail:
   [scenarios.yaml:10](../data/economics/scenarios.yaml#L10)–78.
   **G4.1's ASK, SHARPENED by E4.1 (2026-08-22) — what the consumer actually
   needs, now that it exists** (`economics/cutoff.py`; the
@@ -283,8 +384,9 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
     (c) a PRICE SOURCE — `price_usd_per_tonne: 0` with nowhere to cite
     from, so `dollar_value` refuses by name; (d) the WET/DRY BASIS the
     cutoff is on (the separate entry below — a Contract 1 gap too);
-    (e) the difference's semantics, today a comment. Owner: G (values) +
-    Karl (slots). Trigger: Checkpoint 4, and (d) before any published run.
+    (e) the difference's semantics, today a comment. Owner: Karl (as G:
+    values; the slots his engineering-side call). Trigger: Checkpoint 4,
+    and (d) before any published run.
 - [ ] **THE WET/DRY BASIS IS RECORDED NOWHERE, AND IT NOW HAS A LIVE
   CONSUMER** (found at E4.0 §1, confirmed at E4.1 commit 2, 2026-08-22;
   deferred rather than invented — a basis picked here would be an AUTHORED
@@ -303,8 +405,9 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   contracts, one gap:** Contract 1 should REQUIRE `abundance_basis`
   ("unknown" is an admissible answer; empty is not) and the `[01]` adapter
   should write what the source states; Contract 4 needs a `cutoff_basis`
-  beside `grade_units`. Owner: G (the [01] basis; TS-6's) + Karl (both
-  slots). **Trigger: before any published run; before Checkpoint 4.**
+  beside `grade_units`. Owner: Karl (as G: the [01] basis and TS-6's;
+  both slots his engineering-side call — G.0-4 + G.0-5).
+  **Trigger: before any published run; before Checkpoint 4.**
   Detail: [E4.1.md](walkthroughs/E4.1.md) §2.
 - [ ] **LITERATURE citations that fail the locate-the-number bar** (P2.0c;
   the bar: document + table/section/page — "TS-6" alone is insufficient).
@@ -314,7 +417,8 @@ All three E1.5 reverse-audit findings are now closed (combinators deleted,
   each now says "table/page NOT LOCATED"); depth's `geology_note` 4,100–4,200 m
   claim (:71); the TS-6 anchors quoted in
   [scenarios.yaml](../data/economics/scenarios.yaml) comments (baseline
-  grades, abundance distribution). Owner: G (locate in TS-6), with Karl.
+  grades, abundance distribution). Owner: Karl (as G — locate in TS-6;
+  fires before G.0-5's first cited value).
   Trigger: any time; before a published run. Detail:
   [2026-08-08-origin-vocabulary-audit.md](audits/2026-08-08-origin-vocabulary-audit.md)
   §4; walkthrough P2.0.md §c.
