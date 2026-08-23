@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCZ prospectivity engine — run viewer</title>
+<!--
+  ONE STATIC PAGE (E5.3). No npm, no node, no build step, no framework.
+  Everything this page shows comes from the API's PRESENTATION MODEL
+  (GET /runs/{id}/viewer, services/api/viewer_model.py — tested in Python):
+  the controls, the cells and their three states, the bins and colours, the
+  readout spec, the masked treatment, the stations, the messages. This file
+  only fetches, builds DOM and draws. It names NO layer type, NO model name,
+  NO axis and NO unit of this project — tests/test_viewer_model.py greps it
+  for those names and fails if one appears. The one formula it repeats from
+  the Python model is cell_index (a hovered lon/lat to a flat index): three
+  lines that must run on mouse events.
+
+  CDN pins: exact versions with Subresource Integrity, recorded in
+  services/api/web.py and asserted against this file without a network.
+  Basemap: none (E5.3 §0.5) — a dark background, a graticule and the vendored
+  public-domain Natural Earth coastline served at /web/ne_110m_coastline.geojson.
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css"
+      integrity="sha384-uTttxo/aOKbdE5RlD/SPzSDoDmNvGlUYPjONi2MN/b7c9HPSvW07OIuyP7uL6jxK" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"
+        integrity="sha384-5+cfbwT0iiub6VsQAdn6yz16nr6sDiQoHx6tm4O8OVYXHYOxcffFmCJBL0dgdvGp" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/deck.gl@9.3.10/dist.min.js"
+        integrity="sha384-ShkZCI1SsjyiuEQSfDaj9OLN9xhntMrIMZsOcAEp1kQhFz1vqAGjN/IhnDY3EZ0I" crossorigin="anonymous"></script>
+<style>
+  :root { --bg: #0b1020; --panel: #141a2e; --ink: #e6e9f2; --muted: #9aa3b8; --line: #2a3350; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+  #app { display: grid; grid-template-columns: minmax(240px, 24%) 1fr; height: 100%; }
+  #panel { background: var(--panel); border-right: 1px solid var(--line); padding: 14px; overflow: auto; }
+  #panel h1 { font-size: 15px; margin: 0 0 10px; }
+  #panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
+  .control label { display: block; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .control select { width: 100%; margin-top: 3px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); padding: 5px; }
+  /* THREE STATES, THREE TREATMENTS — a test asserts all three class names exist here */
+  option.state-present { color: var(--ink); }
+  option.state-not_applicable { color: #6f7790; font-style: italic; }
+  option.state-absent { color: #c98a8a; text-decoration: line-through; }
+  .control.axis-not_applicable select { opacity: .55; }
+  .control .axis-note { font-size: 11px; color: #6f7790; font-style: italic; }
+  #map { position: relative; }
+  #banner { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 5; display: none; background: #5a1f1f; color: #ffd9d9; border: 1px solid #b04a4a; padding: 10px 12px; border-radius: 4px; font-size: 13px; white-space: pre-wrap; }
+  #banner.info { background: #1f3a5a; color: #d9ecff; border-color: #4a7ab0; }
+  #uniform { position: absolute; bottom: 54px; left: 10px; right: 10px; z-index: 5; display: none; background: #3a2f1f; color: #ffe9c2; border: 1px solid #9a7a3a; padding: 8px 12px; border-radius: 4px; font-size: 12px; }
+  #legend { position: absolute; right: 10px; top: 10px; z-index: 5; background: rgba(20,26,46,.92); border: 1px solid var(--line); padding: 10px 12px; border-radius: 4px; font-size: 12px; min-width: 180px; }
+  #legend .row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+  #legend .swatch { width: 18px; height: 12px; border: 1px solid #000; flex: none; }
+  #legend .swatch.masked { background: repeating-linear-gradient(45deg, #6e6e6e 0 3px, #2a2a2a 3px 6px); }
+  #readout { position: absolute; left: 10px; bottom: 10px; z-index: 5; background: rgba(20,26,46,.92); border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px; font-size: 12px; min-width: 300px; white-space: pre-wrap; }
+  #readout .sem { color: var(--muted); font-size: 11px; }
+  #attrib { position: absolute; right: 10px; bottom: 10px; z-index: 5; font-size: 10px; color: var(--muted); background: rgba(11,16,32,.8); padding: 3px 6px; max-width: 45%; text-align: right; }
+  .origin { font-size: 11px; color: var(--muted); }
+  .warn { color: #ffd27a; }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>Run viewer</h1>
+    <div id="run-meta" class="origin"></div>
+    <h2>Layer</h2>
+    <div id="controls"></div>
+    <h2>Layer facts</h2>
+    <div id="layer-facts" class="origin"></div>
+    <h2>Stations</h2>
+    <div id="stations" class="origin"></div>
+  </aside>
+  <div id="map">
+    <div id="banner"></div>
+    <div id="legend"></div>
+    <div id="uniform"></div>
+    <div id="readout">move over the map</div>
+    <div id="attrib"></div>
+  </div>
+</div>
+<script>
+(async function () {
+  const qs = new URLSearchParams(location.search);
+  const api = qs.get("api") || "";                  // same-origin by default: the API serves this page
+  const $ = (id) => document.getElementById(id);
+  const banner = (text, info) => { const b = $("banner"); b.textContent = text; b.className = info ? "info" : ""; b.style.display = text ? "block" : "none"; };
+  const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
+
+  // ---- map: dark background + graticule + the vendored coastline (no tile service)
+  const graticule = { type: "FeatureCollection", features: [] };
+  for (let lon = -180; lon <= 180; lon += 5) graticule.features.push({ type: "Feature", properties: { v: lon }, geometry: { type: "LineString", coordinates: [[lon, -85], [lon, 85]] } });
+  for (let lat = -80; lat <= 80; lat += 5) graticule.features.push({ type: "Feature", properties: { v: lat }, geometry: { type: "LineString", coordinates: [[-180, lat], [180, lat]] } });
+  const map = new maplibregl.Map({
+    container: "map",
+    style: {
+      version: 8,
+      sources: {
+        coast: { type: "geojson", data: `${api}/web/ne_110m_coastline.geojson` },
+        grat: { type: "geojson", data: graticule },
+      },
+      layers: [
+        { id: "bg", type: "background", paint: { "background-color": "#0b1020" } },
+        { id: "grat", type: "line", source: "grat", paint: { "line-color": "#1e2745", "line-width": 0.6 } },
+        { id: "coast", type: "line", source: "coast", paint: { "line-color": "#d0d6e6", "line-width": 0.8 } },
+      ],
+    },
+    center: [-121.5, 13.0], zoom: 4.2,
+  });
+  map.addControl(new maplibregl.NavigationControl(), "top-left");
+  map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+  const overlay = new deck.MapboxOverlay({ layers: [] });
+  map.addControl(overlay);
+
+  // ---- the presentation model
+  let model = null, current = null, data = null;  // `cell` below: the one canonical cell selected
+  try {
+    const runs = await (await fetch(`${api}/runs`)).json();
+    if (!Array.isArray(runs) || runs.length === 0) { banner("The API is reachable and serves no runs."); return; }
+    const runId = qs.get("run") || runs[0].run_id;
+    const r = await fetch(`${api}/runs/${encodeURIComponent(runId)}/viewer`);
+    if (!r.ok) { banner(`Run '${runId}' is not served (HTTP ${r.status}). Served: ${runs.map(x => x.run_id).join(", ")}`); return; }
+    model = await r.json();
+  } catch (err) {
+    banner(`Cannot reach the API at ${api || location.origin} — nothing was loaded. This is a connection failure, not an empty run. (${err})`);
+    return;
+  }
+  if (!model.n_layers) { banner(model.messages.no_layers); return; }
+  $("run-meta").textContent = `run ${model.run_id} · ${model.content_hash.slice(0, 19)}… · run origin ${model.run_data_origin}`;
+  $("attrib").textContent = [model.attribution.coastline, ...model.attribution.libraries].join(" · ");
+
+  // ---- controls, BUILT FROM THE MODEL: one <select> per declared axis. The page holds ONE
+  // canonical cell; every option's state comes from that cell's precomputed `neighbours`
+  // (viewer_model.py), looked up by option index — the page computes no state itself.
+  const axes = model.controls.map(c => c.axis);
+  let cell = model.canonical.find(c => c.state === "present");
+  if (!cell) { banner("This run's catalog declares axes but no present cell — nothing to render."); return; }
+
+  function buildControls() {
+    const host = $("controls"); host.innerHTML = "";
+    for (const control of model.controls) {
+      const states = cell.neighbours[control.axis];
+      const isAxis = states.some(n => n.state !== "not_applicable");
+      const wrap = document.createElement("div");
+      wrap.className = "control" + (isAxis ? "" : " axis-not_applicable");
+      const label = document.createElement("label"); label.textContent = control.label; wrap.appendChild(label);
+      const sel = document.createElement("select");
+      control.values.forEach((v, i) => {
+        const opt = document.createElement("option");
+        const st = states[i].state;                          // three states, three treatments
+        opt.value = String(i);
+        opt.className = `state-${st}`;
+        opt.textContent = v.label + (st === "present" ? "" : ` — ${model.state_labels[st]}`);
+        opt.disabled = st !== "present";
+        if (JSON.stringify(cell.coordinates[control.axis]) === JSON.stringify(v.value)) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.disabled = !isAxis;
+      sel.onchange = () => {
+        const target = states[Number(sel.value)];
+        const next = model.canonical.find(c => c.key === target.key && c.state === "present");
+        if (next) { cell = next; select(); }
+      };
+      wrap.appendChild(sel);
+      if (!isAxis) { const n = document.createElement("div"); n.className = "axis-note"; n.textContent = model.state_labels.not_applicable; wrap.appendChild(n); }
+      host.appendChild(wrap);
+    }
+  }
+
+  // ---- the current cell resolves EXACTLY ONE layer key
+  async function select() {
+    buildControls();
+    if (cell.state !== "present" || !cell.key) { banner(`No layer at these coordinates: ${model.state_labels[cell.state]}`, true); return; }
+    banner("");
+    const layer = model.layers[cell.key];
+    current = layer;
+    $("readout").textContent = model.messages.loading;
+    const resp = await fetch(`${api}${layer.data_url}`);
+    if (!resp.ok) { data = null; overlay.setProps({ layers: [] }); banner(fill(model.messages.layer_missing, { title: layer.title, status: resp.status })); drawLegend(layer); return; }
+    data = await resp.json();
+    draw(layer, data); drawLegend(layer); drawFacts(layer); drawUniform(layer);
+    $("readout").textContent = "move over the map";
+  }
+
+  // ---- colour: bins from the model (rule named there), masked = a hatched grey outside every ramp
+  function colorFor(layer, v) {
+    if (v === null || v === undefined) return null;
+    if (layer.ramp === "categorical") { const b = layer.bins.find(b => b.value === v); return b ? b.color : "#ff00ff"; }
+    const e = layer.edges; if (!e || e.length < 2) return layer.bins[0] ? layer.bins[0].color : "#888";
+    for (let i = 0; i < layer.bins.length; i++) if (v <= layer.bins[i].to || i === layer.bins.length - 1) return layer.bins[i].color;
+    return layer.bins[layer.bins.length - 1].color;
+  }
+  function hex(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
+  function draw(layer, d) {
+    const g = d.grid, W = g.width, H = g.height, values = d[layer.data_field];
+    const canvas = document.createElement("canvas"); canvas.width = W * 4; canvas.height = H * 4;
+    const ctx = canvas.getContext("2d");
+    const masked = hex(model.masked.color);
+    for (let i = 0; i < values.length; i++) {
+      const row = Math.floor(i / W), col = i % W, v = values[i];
+      const c = colorFor(layer, v);
+      if (c === null) {  // UNDEFINED: hatched grey, never the ramp's floor, never transparent
+        ctx.fillStyle = `rgb(${masked.join(",")})`; ctx.fillRect(col * 4, row * 4, 4, 4);
+        ctx.fillStyle = "#2a2a2a"; ctx.fillRect(col * 4, row * 4, 2, 2); ctx.fillRect(col * 4 + 2, row * 4 + 2, 2, 2);
+      } else { ctx.fillStyle = c; ctx.fillRect(col * 4, row * 4, 4, 4); }
+    }
+    const [w, s, e, n] = g.extent;
+    const layers = [new deck.BitmapLayer({ id: "surface", image: canvas, bounds: [w, s, e, n], opacity: 0.85 })];
+    if (model.stations) layers.push(stationLayer());
+    overlay.setProps({ layers });
+  }
+  function stationLayer() {
+    const pts = Object.entries(model.stations.coordinates).map(([id, c]) => ({ id, position: c }));
+    return new deck.ScatterplotLayer({ id: "stations", data: pts, getPosition: p => p.position, radiusMinPixels: 4, getFillColor: [255, 255, 255], getLineColor: [0, 0, 0], lineWidthMinPixels: 1, stroked: true, pickable: false });
+  }
+  function fmt(layer, v) {
+    if (v === null || v === undefined) return layer.readout.masked_label;
+    const f = layer.format;
+    if (f.kind === "code") return `${v} — ${f.labels[String(Math.round(v))] ?? "?"}`;
+    return `${v.toFixed(f.decimals)} ${f.unit_label}`;
+  }
+  function drawLegend(layer) {
+    const L = $("legend"); L.innerHTML = `<div><b>${layer.title}</b></div><div class="origin">${layer.legend_title}</div>`;
+    for (const b of layer.bins) {
+      const row = document.createElement("div"); row.className = "row";
+      const text = layer.ramp === "categorical" ? `${b.value}: ${b.label}` : `${b.from.toFixed(layer.format.decimals)} – ${b.to.toFixed(layer.format.decimals)} ${layer.format.unit_label}`;
+      row.innerHTML = `<span class="swatch" style="background:${b.color}"></span><span>${text}</span>`; L.appendChild(row);
+    }
+    const m = document.createElement("div"); m.className = "row"; m.innerHTML = `<span class="swatch masked"></span><span>${model.masked.label}</span>`; L.appendChild(m);
+    const wm = document.createElement("div"); wm.className = "origin warn";
+    wm.textContent = layer.watermark_form.startsWith("surface") ? layer.watermark : layer.watermark_reasons.map(r => `${r.reason}: ${r.lifted ? "lifted" : "UNLIFTED"} — ${r.lifted_by}`).join(" | ");
+    L.appendChild(wm);
+    const rule = document.createElement("div"); rule.className = "origin"; rule.textContent = `bins: ${model.binning_rule.split(";")[0]}`; L.appendChild(rule);
+  }
+  function drawFacts(layer) {
+    const f = $("layer-facts");
+    f.textContent = `origin ${layer.data_origin} · publishable ${layer.publishable} · ${layer.watermark_form}`;
+  }
+  function drawUniform(layer) {
+    const u = $("uniform");
+    if (layer.uniform_today && layer.uniform_today.flag) { u.style.display = "block"; u.textContent = `This layer is UNIFORM today — every switch on this kind of layer produces the same picture. ${layer.uniform_today.note || ""} ${layer.uniform_today.meaning || ""}`; }
+    else u.style.display = "none";
+  }
+  function drawStations() {
+    const s = model.stations, el = $("stations");
+    if (!s) { el.textContent = "none recorded"; return; }
+    el.textContent = `${s.n} training stations, origin ${s.data_origin}. ${s.asymmetry_note}`;
+  }
+
+  // ---- hover: the value AND its paired companion, always together; cell_index repeated from the model
+  map.on("mousemove", (ev) => {
+    if (!current || !data) return;
+    const g = data.grid, [a, , c, , e, f] = g.transform;
+    const lon = ev.lngLat.lng, lat = ev.lngLat.lat;
+    const col = Math.floor((lon - c) / a), row = Math.floor((lat - f) / e);
+    if (col < 0 || row < 0 || col >= g.width || row >= g.height) { $("readout").textContent = `outside the grid  (${lon.toFixed(3)}, ${lat.toFixed(3)})`; return; }
+    const i = row * g.width + col;
+    const v = data[current.data_field][i];
+    let text = `${current.readout.value_label}: ${fmt(current, v)}`;
+    const unc = current.readout.paired;
+    if (unc) {
+      const u = data[unc.field][i];
+      text += `\n${unc.label}: ${fmt(current, u)}`;
+      text += `\n` + `(${unc.semantics})`.slice(0, 160);
+    }
+    text += `\nlon ${lon.toFixed(3)}, lat ${lat.toFixed(3)} · row ${row}, col ${col}`;
+    $("readout").textContent = text;
+  });
+
+  drawStations();
+  await select();
+})();
+</script>
+</body>
+</html>

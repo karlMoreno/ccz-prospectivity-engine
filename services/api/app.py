@@ -19,6 +19,8 @@
     GET /runs/{run_id}/layers          THE LAYER CATALOG (commit 2; catalog.py) — 24 layers, the
                                        72-cell control grid, the verdict, the watermark forms
     GET /runs/{run_id}/files/{key}     ONLY a key in output_hashes; ETag = the recorded sha256
+    GET /runs/{run_id}/viewer          THE PRESENTATION MODEL (E5.3; viewer_model.py — the named exception)
+    GET /  ·  GET /web/{name}          the static viewer page and its allow-listed files (apps/web/)
 
 THREE RULES, each structural rather than a convention:
 
@@ -67,6 +69,8 @@ from fastapi.responses import FileResponse, Response
 from engine.prospectivity.domain.results import RunManifest
 from engine.prospectivity.harness import STACK_DIR
 from services.api.catalog import build_catalog
+from services.api.viewer_model import build_viewer_model
+from services.api.web import INDEX_HTML, STATIC_FILES, WEB_DIR, attribution
 
 MANIFEST_NAME = "run_manifest.json"
 RUNS_ROOT_ENV = "CCZ_RUNS_ROOT"
@@ -226,6 +230,28 @@ def create_app(runs_root: Path | str | None = None) -> FastAPI:
     def layers(run_id: str) -> dict:
         """THE LAYER CATALOG (commit 2) — see services/api/catalog.py."""
         return _run(run_id).catalog
+
+    @app.get("/runs/{run_id}/viewer")
+    def viewer(run_id: str) -> dict:
+        """THE PRESENTATION MODEL (E5.3) — the named exception to rule 2: bins,
+        labels and states are rendering decisions, not data (viewer_model.py)."""
+        model = build_viewer_model(_run(run_id).catalog)
+        model["attribution"] = attribution()
+        return model
+
+    @app.get("/")
+    def index() -> FileResponse:
+        """The viewer: ONE static page (apps/web/index.html), served here so it is
+        same-origin with the API it reads."""
+        return FileResponse(INDEX_HTML, media_type=STATIC_FILES["index.html"])
+
+    @app.get("/web/{name}")
+    def static_file(name: str) -> FileResponse:
+        """apps/web/ files by ALLOW-LIST (never a directory listing): the page and
+        the vendored coastline."""
+        if name not in STATIC_FILES:
+            raise HTTPException(status_code=404, detail=f"{name!r} is not a served web file; served: {sorted(STATIC_FILES)}")
+        return FileResponse(WEB_DIR / name, media_type=STATIC_FILES[name])
 
     @app.get("/runs/{run_id}/files/{key:path}")
     def recorded_file(run_id: str, key: str) -> FileResponse:
