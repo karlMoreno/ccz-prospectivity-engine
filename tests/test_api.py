@@ -404,3 +404,29 @@ def test_legend_statistics_match_the_rasters_computed_independently_and_the_unif
     assert "not of the seafloor" in c["uniformity_today"]["statement"] and c["training_stations"]["n"] == 35
     assert "/runs/{run_id}/layers" in {r.path for r in api["app"].routes if hasattr(r, "methods")}
 
+
+# ═══════════════════════════════ E5.2 — the catalog points at each layer's export
+
+def test_every_entry_points_at_its_export_by_the_manifests_record_and_the_data_url_serves_those_bytes(api: dict) -> None:
+    """`data_url` resolves to /files/<export key> — a key output_hashes carries
+    — and serving it returns the export whose sha256 the manifest recorded
+    beside the raster; a surface pair's two entries share ONE file and name
+    their field. The export's own `source` hash chains back to the entry's
+    raster hash (recomputed here, not by the API)."""
+    c = api["client"].get(f"/runs/{api['run_id']}/layers").json()
+    raw = json.loads(api["client"].get(f"/runs/{api['run_id']}/manifest").content)
+    for e in c["layers"]:
+        assert e["data_url"] == f"/runs/{api['run_id']}/files/export/{e['export']['file']}"
+        assert e["export"]["sha256"] == raw["output_hashes"][f"export/{e['export']['file']}"]
+        r = api["client"].get(e["data_url"])
+        assert r.status_code == 200 and r.headers["X-Content-Hash"] == e["export"]["sha256"]
+        assert "sha256:" + hashlib.sha256(r.content).hexdigest() == e["export"]["sha256"]
+        export = json.loads(r.content)
+        if e["kind"] in ("prediction", "uncertainty"):
+            assert e["data_field"] in ("mu", "sd") and e["export"]["fields"] == ["mu", "sd"]
+            assert export["source"][e["kind"]]["sha256"] == e["sha256"] and len(export[e["data_field"]]) == 3400
+        else:
+            assert e["data_field"] == "values" and export["source"]["sha256"] == e["sha256"] and len(export["values"]) == 3400
+    pairs = {(e["export"]["file"], e["coordinates"]["estimator"]) for e in c["layers"] if e["kind"] in ("prediction", "uncertainty")}
+    assert len(pairs) == 3  # two entries per estimator, one file each
+    assert "tiles_url" not in json.dumps(c)  # not added before its consumer exists (E5.2)

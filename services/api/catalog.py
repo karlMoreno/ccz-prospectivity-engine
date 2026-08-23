@@ -38,7 +38,13 @@ THREE SHAPE DECISIONS E5.0 §1 ESTABLISHED:
 
 WHAT IS NOT HERE, on purpose: legend BINNING (a viewer choice — E5.0 §3;
 the rule is E5.3's to state, and a bin computed silently here would be a
-second source of truth), and the per-cell values (E5.2's export).
+second source of truth). The per-cell values are NOT here either, but each
+entry now points at them (E5.2): `export` (the manifest's record of the
+flat-array file beside the raster) and `data_url` (the /files route for it,
+keyed by output_hashes), with `data_field` naming which array — a surface
+pair is ONE file for both halves. `tiles_url` (Checkpoint 1) will sit beside
+`data_url` as a sibling key: dict content, no schema change, when its
+consumer exists.
 """
 
 from __future__ import annotations
@@ -114,6 +120,13 @@ def _surface_entries(manifest: dict) -> list[dict]:
                            "binning_note": "a viewer choice, not recorded (E5.0 §3) — E5.3 states its rule"},
                 "full_data_fit": block.get("full_data_fit"),
                 "sidecar": block.get("sidecar"),
+                # E5.2: the layer's DATA — the paired flat-array export the manifest records
+                # beside the surface; the same file for both halves, the field named.
+                # `tiles_url` (Checkpoint 1, TiTiler) arrives as a sibling key here — dict
+                # content, no schema change — when its consumer exists; not added before.
+                "export": block.get("export"),
+                "data_url": f"/runs/{manifest.get('run_id')}/files/export/{block['export']['file']}" if block.get("export") else None,
+                "data_field": "mu" if kind == "prediction" else "sd",
                 "_hashed_under": key if key in output_hashes else None,
             })
     return entries
@@ -165,6 +178,9 @@ def _economics_entries(manifest: dict, record: dict) -> list[dict]:
             "watermark_reasons": reasons,
             "cutoff": cutoff,
             "legend": {**legend, "units": "kg_m2 cutoff; raster values are codes", "binning": None, "binning_note": "categorical — the encoding IS the legend"},
+            "export": r.get("export"),  # E5.2
+            "data_url": f"/runs/{manifest.get('run_id')}/files/export/{r['export']['file']}" if r.get("export") else None,
+            "data_field": "values",
             "_hashed_under": key if key in output_hashes else None,
         })
     return entries
@@ -256,6 +272,10 @@ def build_catalog(manifest: dict, run_dir: Path) -> dict:
     for e in entries:
         if e.pop("_hashed_under") is None:
             raise ValueError(f"catalog entry {e['key']!r} is not in output_hashes — the record names a layer it did not hash")
+        # E5.2: a layer's export is resolved from the manifest's record beside the raster
+        # and must itself be a hashed output — a data_url to an unhashed file is a phantom
+        if e.get("export") is not None and f"export/{e['export']['file']}" not in output_hashes:
+            raise ValueError(f"catalog entry {e['key']!r} names export {e['export']['file']!r}, which output_hashes does not carry")
     claim = manifest.get("claim") or {}
     verdicts = {}
     for design, v in (claim.get("verdicts") or {}).items():
