@@ -1,0 +1,313 @@
+{
+ "n_stations": 35,
+ "n_pairs": 595,
+ "n_clusters_at_100km": 2,
+ "n_sites_at_2km": 5,
+ "clusters": [
+  {
+   "cluster": 0,
+   "n": 21,
+   "nn_min_km": 0.05441006467677682,
+   "nn_median_km": 0.34879354493643994,
+   "nn_max_km": 0.7157097672044961,
+   "bbox_area_km2": 57.25017317935139,
+   "stations_per_1000km2": 366.8111174827701,
+   "max_within_km": 11.167522342990482
+  },
+  {
+   "cluster": 1,
+   "n": 14,
+   "nn_min_km": 0.156142389378009,
+   "nn_median_km": 0.5322423453045344,
+   "nn_max_km": 0.8568680118746343,
+   "bbox_area_km2": 79.7168175145736,
+   "stations_per_1000km2": 175.62166223508055,
+   "max_within_km": 12.02219617376567
+  }
+ ],
+ "site_sizes_at_2km": [
+  8,
+  7,
+  7,
+  7,
+  6
+ ],
+ "within_cluster_pairs": 301,
+ "between_cluster_pairs": 294,
+ "max_within_cluster_lag_km": 12.02219617376567,
+ "min_between_cluster_lag_km": 986.0362401809482,
+ "max_between_cluster_lag_km": 995.9969659685104,
+ "empty_gap_km": [
+  12.02219617376567,
+  986.0362401809482
+ ],
+ "gap_width_km": 974.0140440071825,
+ "pairs_in_gap": 0,
+ "bin_edges_km": [
+  0.0,
+  2.0,
+  4.0,
+  6.0,
+  8.0,
+  10.0,
+  13.0,
+  986.0,
+  997.0
+ ],
+ "min_pairs": 30,
+ "max_fit_lag_km": 13.0,
+ "lag_bins": [
+  {
+   "lo_km": 0.0,
+   "hi_km": 2.0,
+   "pairs": 102,
+   "mean_lag_km": 0.7265595653108387,
+   "semivariance": 10.6878431372549,
+   "used_in_fit": true
+  },
+  {
+   "lo_km": 2.0,
+   "hi_km": 4.0,
+   "pairs": 4,
+   "mean_lag_km": 2.1411565041553997,
+   "semivariance": 15.880000000000004,
+   "used_in_fit": false
+  },
+  {
+   "lo_km": 4.0,
+   "hi_km": 6.0,
+   "pairs": 48,
+   "mean_lag_km": 5.271427426819247,
+   "semivariance": 9.963333333333333,
+   "used_in_fit": true
+  },
+  {
+   "lo_km": 6.0,
+   "hi_km": 8.0,
+   "pairs": 50,
+   "mean_lag_km": 7.251180100492804,
+   "semivariance": 10.2784,
+   "used_in_fit": true
+  },
+  {
+   "lo_km": 8.0,
+   "hi_km": 10.0,
+   "pairs": 19,
+   "mean_lag_km": 9.169321681513514,
+   "semivariance": 12.568421052631574,
+   "used_in_fit": false
+  },
+  {
+   "lo_km": 10.0,
+   "hi_km": 13.0,
+   "pairs": 78,
+   "mean_lag_km": 10.805448582108255,
+   "semivariance": 23.39487179487179,
+   "used_in_fit": true
+  },
+  {
+   "lo_km": 13.0,
+   "hi_km": 986.0,
+   "pairs": 0,
+   "mean_lag_km": null,
+   "semivariance": null,
+   "used_in_fit": false
+  },
+  {
+   "lo_km": 986.0,
+   "hi_km": 997.0,
+   "pairs": 294,
+   "mean_lag_km": 991.102405125711,
+   "semivariance": 16.16761904761905,
+   "used_in_fit": false
+  }
+ ],
+ "full_fit": {
+  "family": "exponential",
+  "nugget": 7.879701483781632,
+  "partial_sill": 13.514309544779408,
+  "sill": 21.39401102856104,
+  "range_km": 21.610897164216457,
+  "nugget_ratio": 0.3683134253442339,
+  "range_at_candidate_ceiling": true,
+  "range_below_first_supported_lag": false,
+  "residual_dof": 1,
+  "weighted_sse": 5269.789982335684,
+  "n_fitted_bins": 4,
+  "fitted_bins": [
+   [
+    0.0,
+    2.0,
+    102,
+    10.6878431372549,
+    0.7265595653108231
+   ],
+   [
+    4.0,
+    6.0,
+    48,
+    9.963333333333333,
+    5.271427426819132
+   ],
+   [
+    6.0,
+    8.0,
+    50,
+    10.2784,
+    7.251180100492764
+   ],
+   [
+    10.0,
+    13.0,
+    78,
+    23.39487179487179,
+    10.805448582108228
+   ]
+  ],
+  "excluded_bins": [
+   [
+    "(2.0, 4.0, 4)",
+    "pairs 4 < minimum 30 (decision 1)"
+   ],
+   [
+    "(8.0, 10.0, 19)",
+    "pairs 19 < minimum 30 (decision 1)"
+   ],
+   [
+    "(13.0, 986.0, 0)",
+    "zero pairs \u2014 unsupported lag range"
+   ],
+   [
+    "(986.0, 997.0, 294)",
+    "extends beyond max fit lag 13.0 km (decision 2)"
+   ]
+  ],
+  "unsupported_km": [
+   [
+    13.0,
+    986.0
+   ]
+  ],
+  "alternative_family": "spherical",
+  "alternative_range_km": 21.610897164216457,
+  "alternative_sse": 4006.63566698072
+ },
+ "q4_density_sweep": [
+  {
+   "multiple_of_current": 1,
+   "n_samples": 21,
+   "samples_per_1000km2": 366.8111174827701,
+   "mean_ok_variance": 14.886246038005723,
+   "mean_ok_sd": 3.858269824416862,
+   "pct_reduction_vs_current": 0.0
+  },
+  {
+   "multiple_of_current": 1.5,
+   "n_samples": 37,
+   "samples_per_1000km2": 646.2862546124998,
+   "mean_ok_variance": 12.72413474603494,
+   "mean_ok_sd": 3.567090515537129,
+   "pct_reduction_vs_current": 14.524221126338686
+  },
+  {
+   "multiple_of_current": 2,
+   "n_samples": 46,
+   "samples_per_1000km2": 803.4910192479728,
+   "mean_ok_variance": 12.381662001391174,
+   "mean_ok_sd": 3.518758588109047,
+   "pct_reduction_vs_current": 16.824819569824083
+  },
+  {
+   "multiple_of_current": 3,
+   "n_samples": 70,
+   "samples_per_1000km2": 1222.703724942567,
+   "mean_ok_variance": 11.929094195303064,
+   "mean_ok_sd": 3.453852080692377,
+   "pct_reduction_vs_current": 19.864993734167935
+  },
+  {
+   "multiple_of_current": 4,
+   "n_samples": 85,
+   "samples_per_1000km2": 1484.7116660016886,
+   "mean_ok_variance": 11.7795726174622,
+   "mean_ok_sd": 3.4321381990622406,
+   "pct_reduction_vs_current": 20.869421428424253
+  },
+  {
+   "multiple_of_current": 5,
+   "n_samples": 121,
+   "samples_per_1000km2": 2113.53072454358,
+   "mean_ok_variance": 11.540321415745959,
+   "mean_ok_sd": 3.3971048579262253,
+   "pct_reduction_vs_current": 22.476617769969423
+  },
+  {
+   "multiple_of_current": 6,
+   "n_samples": 141,
+   "samples_per_1000km2": 2462.8746459557424,
+   "mean_ok_variance": 11.44769802824657,
+   "mean_ok_sd": 3.383444698564847,
+   "pct_reduction_vs_current": 23.098825593640445
+  },
+  {
+   "multiple_of_current": 8,
+   "n_samples": 189,
+   "samples_per_1000km2": 3301.3000573449312,
+   "mean_ok_variance": 11.297938008242607,
+   "mean_ok_sd": 3.3612405460250248,
+   "pct_reduction_vs_current": 24.10485504943215
+  },
+  {
+   "multiple_of_current": 10,
+   "n_samples": 216,
+   "samples_per_1000km2": 3772.9143512513497,
+   "mean_ok_variance": 11.238280690082975,
+   "mean_ok_sd": 3.352354499464962,
+   "pct_reduction_vs_current": 24.50560966552087
+  }
+ ],
+ "q4_window": {
+  "cluster_n": 21,
+  "bbox_area_km2": 57.25017317935139,
+  "current_density_per_1000km2": 366.8111174827701,
+  "grid_targets": 2025
+ },
+ "q4_initial_marginal_rate": 0.13513195574817394,
+ "q4_knee_multiple": 5,
+ "q4_marginal_rates": [
+  [
+   1.5,
+   0.13513195574817394
+  ],
+  [
+   2,
+   0.038052527182640676
+  ],
+  [
+   3,
+   0.018856991920337924
+  ],
+  [
+   4,
+   0.009968105189390878
+  ],
+  [
+   5,
+   0.006645866714340038
+  ],
+  [
+   6,
+   0.004631169374969435
+  ],
+  [
+   8,
+   0.0031200004167492392
+  ],
+  [
+   10,
+   0.002209530302208578
+  ]
+ ],
+ "q4_asymptote_floor": 11.238280690082975,
+ "q4_nugget_floor": 7.879701483781632
+}

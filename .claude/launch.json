@@ -1,0 +1,30 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-viewer",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "-m",
+        "services.api.app",
+        "/private/tmp/claude-501/-Users-karlmoreno-CCZ-ccz-prospectivity-engine/2cfc3904-0af5-4468-9bcf-9272068409f6/scratchpad/e55/viewer_runs/runs"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "deployed",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "CCZ_RUNS_ROOT=/private/tmp/claude-501/-Users-karlmoreno-CCZ-ccz-prospectivity-engine/2cfc3904-0af5-4468-9bcf-9272068409f6/scratchpad/e55/deployed_root",
+        ".venv/bin/uvicorn",
+        "services.api.app:app",
+        "--factory",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
+      "port": 8000
+    }
+  ]
+}
