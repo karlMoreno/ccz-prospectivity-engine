@@ -33,6 +33,16 @@ dependencies = [
     "openpyxl>=3.1,<4",
     "scikit-learn>=1.5,<2",
     "quantile-forest>=1.4,<2",
+    # E5.1 (2026-08-22): the read-only API. fastapi (MIT) + uvicorn (BSD-3-Clause)
+    # were approved in CLAUDE.md since Phase 0 and never installed — "the pinned
+    # FastAPI" did not exist until this line (E5.0 §2). Transitive additions,
+    # measured at install: starlette (BSD-3), anyio (MIT), h11 (MIT), idna
+    # (BSD-3), annotated-doc (MIT) — seven packages with uvicorn; httpx2 +
+    # httpcore2 + truststore (all BSD-3) are the [dev] extra's, for the TestClient.
+    # A library is a TOOL, not a value: the origin taxonomy does not classify
+    # it (the quantile-forest precedent above, E2.3, Karl 2026-08-14).
+    "fastapi>=0.141,<1",
+    "uvicorn>=0.52,<1",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +51,10 @@ dev = [
     # E1.4 plot deliverable only — never imported by engine runtime code
     # (sole import site: engine/prospectivity/features/plot_stack.py).
     "matplotlib>=3.8,<4",
+    # E5.1: Starlette 1.6's TestClient wants httpx2 (BSD-3-Clause; + httpcore2,
+    # truststore) — it DEPRECATES httpx ("install httpx2 instead"), measured as
+    # a StarletteDeprecationWarning on the first test run. Test-only.
+    "httpx2>=2.12,<3",
 ]
 # Live PANGAEA DOI fetching only (never exercised by the pipeline or tests).
 # On macOS arm64/cp311 this needs HDF5 first (`brew install hdf5 netcdf`)

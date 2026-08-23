@@ -128,3 +128,31 @@ def surface_assembly(tmp_path_factory: pytest.TempPathFactory) -> dict:
         "stack_manifest": stack_manifest,
         "surfaces": build_surfaces(grid, matrix, registry),
     }
+
+
+@pytest.fixture(scope="session")
+def production_run(tmp_path_factory: pytest.TempPathFactory) -> dict:
+    """E5.5/E5.1: ONE production-registry harness run, shared across modules
+    (`test_run_harness.py`, `test_api.py`). Three designs — leave-one-
+    station-out's 35 folds cost ~75 s under the production registry and add
+    nothing the three cannot separate; the default four-design set is
+    asserted structurally where it matters. STATED FIRST: the inputs are the
+    test generator's SYNTHETIC rasters, declared so on the command line;
+    every output is watermarked and every verdict is a refusal."""
+    from engine.prospectivity import harness
+    from engine.prospectivity.domain.results import RunManifest
+    from tests.fixtures.rasters import write_synthetic_bathymetry, write_synthetic_ts6_raster
+
+    tree = tmp_path_factory.mktemp("production_run_tree")
+    dem, ts6 = tree / "dem.tif", tree / "ts6.tif"
+    write_synthetic_bathymetry(dem)
+    write_synthetic_ts6_raster(ts6)
+    out = tree / "runs" / "run"  # <tree>/runs is a RUNS ROOT holding one run directory
+    assert harness.main([
+        "--dem", str(dem), "--dem-data-origin", "SYNTHETIC",
+        "--ts6", str(ts6), "--ts6-data-origin", "SYNTHETIC",
+        "--out", str(out), "--run-id", "e5.5-harness-test",
+        "--designs", "leave_one_cluster_out,leave_one_site_out,random_k_fold",
+    ]) == 0
+    manifest = RunManifest(**__import__("json").loads((out / "run_manifest.json").read_text()))
+    return {"tree": tree, "dem": dem, "ts6": ts6, "out": out, "runs_root": tree / "runs", "manifest": manifest}

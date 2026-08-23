@@ -59,13 +59,11 @@ def _argv(dem: Path, ts6: Path, out: Path, *, designs: str = THREE_DESIGNS, run_
 
 
 @pytest.fixture(scope="module")
-def harness_run(tmp_path_factory) -> dict:
-    tree = tmp_path_factory.mktemp("harness_tree_a")
-    dem, ts6 = _inputs(tree)
-    out = tree / "run"
-    assert harness.main(_argv(dem, ts6, out)) == 0
-    manifest = RunManifest(**json.loads((out / "run_manifest.json").read_text()))
-    return {"tree": tree, "dem": dem, "ts6": ts6, "out": out, "manifest": manifest}
+def harness_run(production_run: dict) -> dict:
+    """The session's one production run (tests/conftest.py: `production_run`),
+    shared with test_api.py since E5.1 — the same three designs and run id
+    this module used to build for itself."""
+    return production_run
 
 
 def _rf_trees_per_fold(manifest: RunManifest) -> list[int]:

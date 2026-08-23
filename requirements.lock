@@ -1,10 +1,7 @@
-# Known-good resolved environment: CPython 3.11 (cp311), macOS arm64 verified.
-# Covers [project] dependencies + [dev] extra; the [fetch] extra (pangaeapy ->
-# netcdf4>1.6.5) is NOT locked here — it needs HDF5 on macOS arm64 (see README).
-# Regenerate after any dependency change:
-#   python -m pip freeze --exclude-editable > requirements.lock
 affine==2.4.0
+annotated-doc==0.0.5
 annotated-types==0.8.0
+anyio==4.14.2
 attrs==26.1.0
 certifi==2026.7.22
 click==8.4.2
@@ -13,7 +10,12 @@ cligj==0.7.2
 contourpy==1.3.3
 cycler==0.12.1
 et_xmlfile==2.0.0
+fastapi==0.141.1
 fonttools==4.63.0
+h11==0.16.0
+httpcore2==2.12.0
+httpx2==2.12.0
+idna==3.19
 iniconfig==2.3.0
 joblib==1.5.3
 kiwisolver==1.5.0
@@ -39,7 +41,10 @@ scikit-learn==1.9.0
 scipy==1.17.1
 shapely==2.1.2
 six==1.17.0
+starlette==1.6.0
 threadpoolctl==3.6.0
+truststore==0.10.4
 typing-inspection==0.4.2
 typing_extensions==4.16.0
 tzdata==2026.3
+uvicorn==0.52.4
