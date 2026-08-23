@@ -229,3 +229,44 @@ def test_the_production_run_records_the_three_e5_5_additions_with_production_val
     assert all(0 < s["sd_min"] <= s["sd_max"] for s in m.surfaces.values())
     assert m.training_stations["n"] == 35 and m.training_stations["data_origin"] == "MEASURED"
     assert m.schema_version == 4
+
+
+# ═══════════════════════════════ E5.5 commit 3 — the run directory as a product
+
+def test_every_file_in_the_run_directory_is_resolved_by_the_record_and_the_record_names_nothing_absent(
+    harness_run: dict,
+) -> None:
+    """THE LAYOUT, both directions, against the DIRECTORY LISTING (the
+    property that caught E4.2's misplaced rasters): every file under <out>
+    is either the root record, hashed in output_hashes under the key the
+    layout states, or a member of the one unhashed group (features/stack/,
+    identified as a whole by the stack manifest's content_hash that the
+    record quotes) — and every key the record names exists with its bytes.
+    Resolution is checked FROM THE RECORD: each surface's rasters and
+    sidecar via surfaces[est], each economics raster via the association
+    record, parsing no name."""
+    m, out = harness_run["manifest"], harness_run["out"]
+    listing = {str(p.relative_to(out)) for p in out.rglob("*") if p.is_file()}
+    hashed = set(m.output_hashes)
+    stack = {f for f in listing if f.startswith(harness.STACK_DIR + "/")}
+    assert listing == {"run_manifest.json"} | hashed | stack, listing ^ ({"run_manifest.json"} | hashed | stack)
+    assert len(stack) == 9 and all(k.count("/") <= 1 for k in hashed)  # basename or economics/<basename>
+    for key, digest in m.output_hashes.items():
+        assert file_sha256(out / key) == digest, key
+    # the stack is ONE artifact: its manifest's hash is what the record quotes
+    stack_manifest = json.loads((out / harness.STACK_DIR / "provenance.json").read_text())
+    assert stack_manifest["content_hash"] == m.upstream_hashes["feature_stack"] == m.prediction_grid["stack_content_hash"]
+    # resolution from the record, never the name
+    for est, block in m.surfaces.items():
+        for kind in ("prediction", "uncertainty"):
+            assert file_sha256(out / block["rasters"][kind]["file"]) == block["rasters"][kind]["sha256"] == m.output_hashes[block["rasters"][kind]["file"]]
+        assert file_sha256(out / block["sidecar"]["file"]) == block["sidecar"]["sha256"]
+    record = json.loads((out / "economics" / "economics.footprints.json").read_text())
+    assert set(record["files"]) == set(m.economics["rasters"]) == {k[len("economics/"):] for k in hashed if k.startswith("economics/") and k.endswith(".tif")}
+    for name, entry in record["files"].items():
+        assert file_sha256(out / "economics" / name) == entry["sha256"] == m.economics["rasters"][name]["sha256"]
+    # the inputs are identified by hash, not present in the directory
+    assert not (out / "dem.tif").exists() and not (out / "ts6.tif").exists()
+    assert m.provenance_chain["links"]["ts6_benchmark"]["content_hash"] == file_sha256(harness_run["ts6"])
+    assert m.provenance_chain["links"]["feature_stack"]["dem_content_hash"] == file_sha256(harness_run["dem"])
+    assert set(harness.RUN_LAYOUT) >= {"run_manifest.json", "economics/*.tif", "features/stack/*"}

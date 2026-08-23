@@ -103,8 +103,12 @@ E5.0 was read-only and could not land the entry, so it is written here
 closed, with its commit) — and the honesty-surface inputs that are STILL
 prose-only after the three additions, for E5.4 to decide on. The count
 header was last recounted at E3.3 (49); recounted from the boxes now.
-**52 open items** (recounted from the boxes, 2026-08-22): §1 Track G 12, §2
-Karl 6, §3 Engineering 31, §4 Phase-2 risks 0 (both closed), §6 later phases
+1 ADDED at E5.5 commit 3 (2026-08-22): what committing a run directory under
+`data/` requires, found by PROBING the audit on a staged production run —
+including a new observation about the deep unrecorded scan (a QUOTED
+declaration reads as a new use).
+**53 open items** (recounted from the boxes, 2026-08-22): §1 Track G 12, §2
+Karl 6, §3 Engineering 32, §4 Phase-2 risks 0 (both closed), §6 later phases
 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -2048,6 +2052,35 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   **Trigger: E5.4's specification pass.** Detail: [E5.5.md](walkthroughs/E5.5.md)
   closing; E5.0 report §4 (chat, 2026-08-22 — the report itself is not in
   the repo; its substance is in E5.5.md §0).
+
+- [ ] **A RUN DIRECTORY CANNOT BE COMMITTED UNDER `data/` AS IT STANDS —
+  three refusals, measured by probing, one of them new** (E5.5 commit 3,
+  2026-08-22; staged at `data/runs/e5.5-probe/` in a `git archive` copy,
+  `git add`ed, `audit()` called directly). Not intended to be committed —
+  the viewer and the API read a directory the harness or E5.6's CI job
+  produces — but the first run directory that IS lands on: (a) UNCLASSIFIED
+  ×10 — `economics/economics.footprints.json` carries no top-level
+  `data_origin`, and the nine `features/stack/` files have no sidecar (the
+  stack's `provenance.json` is not one of the three marker forms); (b)
+  INVALID ×18 — every economics raster `AUTHORED with author None`, the
+  `author_inherited_from` entry above CONFIRMED on a real run directory;
+  (c) **NEW — `run_manifest.json` is flagged as "newly carrying
+  `author: unrecorded`"** because it QUOTES Contract 4's cutoff declaration
+  (`economic_results[].cutoff.author`, four occurrences): the deep scan
+  (`_contains_unrecorded_author`, any depth) cannot tell a file that
+  DECLARES an unrecorded author from one that RECORDS another file's
+  declaration, and a manifest must be able to quote what it resolved. The
+  other direction holds: stripping one sidecar entry makes exactly that
+  raster unclassified and nothing else moves. Remedies, each small: a
+  `data_origin` block on the association record; a `data_origin.yaml` in
+  `features/stack/` (TAX.1's form, SYNTHETIC-by-inheritance with the stack's
+  determinism basis); and a quoted-declaration rule in the scan (e.g. a
+  `files:`/`cutoff`-shaped node whose `data_origin` sits beside its
+  `author` is a QUOTATION, not a declaration — to be decided against the
+  scan's own evidence). Owner: E (a, c) + Karl (b, the existing entry).
+  **Trigger: before any run output is committed under `data/` — the same
+  moment as the E3.1+2 entry and the `author_inherited_from` entry above.**
+  Detail: [E5.5.md](walkthroughs/E5.5.md) §3; `harness.py` `RUN_LAYOUT`.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

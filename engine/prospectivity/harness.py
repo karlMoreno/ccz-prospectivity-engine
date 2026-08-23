@@ -99,8 +99,50 @@ from engine.prospectivity.validation.splitter import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_AOI = REPO_ROOT / "data" / "aoi" / "study_area.geojson"
 FEATURES_DIR = "features"  # <out>/features/stack/ — the StackFeatureBuilder's layout
+
+# ─────────────────────────────────────────── E5.5 commit 3: THE RUN DIRECTORY AS A PRODUCT
+# A human and an API both read this directory, so its layout is stated as a
+# contract-shaped thing: what exists, where, and WHAT RESOLVES WHAT. The
+# rule is E4.2's — resolution comes from a RECORD, never from a filename;
+# the names below are readable, and nothing downstream may parse them.
+#
+#   <out>/
+#   ├── run_manifest.json                 THE ROOT RECORD (RunManifest, schema 4): hashes every
+#   │                                     file in output_hashes (basename; economics/<basename>),
+#   │                                     names each surface's rasters + sidecar (surfaces.*),
+#   │                                     every economics raster (economics.rasters), the claim
+#   │                                     verdicts, the training stations, the full-data fits
+#   ├── <estimator>_prediction.tif        paired surfaces (E3.1+2) — resolved by surfaces[est].rasters
+#   ├── <estimator>_uncertainty.tif         (never from the name); the pair is structural
+#   ├── <estimator>.provenance.json       carrier 2: the surface's sidecar — surfaces[est].sidecar
+#   ├── data_origin.yaml                  the origin audit's marker for the surface rasters
+#   ├── economics/
+#   │   ├── footprint__<scenario>__<estimator>__z<z>.tif      12 — resolved by economics.footprints.json
+#   │   ├── difference__<a>__<b>__<estimator>__z<z>.tif        6 — (kind, scenario/pair, estimator, z, sha256)
+#   │   ├── economics.footprints.json     E4.2's association record — hashed into the chain (E4.3)
+#   │   └── data_origin.yaml              the audit's marker for the economics rasters
+#   └── features/stack/                   the covariate stack the surfaces were predicted on:
+#       ├── <covariate>.tif  × 8            NOT in output_hashes — its identity is the stack's
+#       └── provenance.json                 content_hash, quoted by upstream_hashes.feature_stack,
+#                                           prediction_grid.stack_content_hash and every raster's tags
+#
+# The inputs (the DEM, the TS-6 raster) are NOT inside: they are wherever
+# the caller keeps them, and the record identifies them by content hash
+# (upstream_hashes / provenance_chain.links.*), never by path — HASH.1.
+RUN_LAYOUT: dict[str, str] = {
+    "run_manifest.json": "the root record; resolves everything below",
+    "<estimator>_prediction.tif": "surfaces[<estimator>].rasters.prediction (file + sha256)",
+    "<estimator>_uncertainty.tif": "surfaces[<estimator>].rasters.uncertainty (file + sha256)",
+    "<estimator>.provenance.json": "surfaces[<estimator>].sidecar (file + sha256)",
+    "data_origin.yaml": "output_hashes['data_origin.yaml']; the audit's marker for the rasters beside it",
+    "economics/*.tif": "economics.rasters[<basename>] via economics.footprints.json (kind, scenario|pair, estimator, z, sha256)",
+    "economics/economics.footprints.json": "economics.association (file + sha256); output_hashes['economics/…']",
+    "economics/data_origin.yaml": "output_hashes['economics/data_origin.yaml']; the audit's marker for the economics rasters",
+    "features/stack/*": "NOT hashed per file: identified as one artifact by the stack manifest's content_hash, quoted throughout",
+}
+STACK_DIR = f"{FEATURES_DIR}/stack"
+DEFAULT_AOI = REPO_ROOT / "data" / "aoi" / "study_area.geojson"
 
 # E2.4's committed design set, in its order. random_k_fold takes the run's
 # seed; the three spatial designs are seedless.

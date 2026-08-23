@@ -458,7 +458,16 @@ ccz-prospectivity-engine/
 
 ## Current status
 
-- Phase: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
+- Phase: **5, Track E — IN PROGRESS. E5.0 (preflight, read-only) reported
+  2026-08-22; E5.5 (the run harness) LANDED 2026-08-22 and RESEQUENCED
+  FIRST — E5.0 found no viewer layer existed on disk (every surface was a
+  pytest tmp artifact), so the lane order is now E5.5 → E5.1 → E5.2 → E5.3
+  → E5.4 → E5.6 → E5.7. One command produces a run directory
+  (`python -m engine.prospectivity.harness`, `docs/walkthroughs/E5.5.md`
+  §3 for the layout); the manifest is at schema 4 with the full-data fit,
+  the sd ranges and the training stations; suite 611 → 624. Next: E5.1,
+  the read-only API + layer catalog, awaiting Karl's review of E5.5.**
+  Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
   the full status refresh is the P2.C item in `docs/BACKLOG.md` §2.)
@@ -515,7 +524,7 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **Phase 3 planning**, which needs the **AOI decision** (`docs/BACKLOG.md`
+- **Next task:** **E5.1** (Phase 5; see the status line above — this bullet's remainder is the Phase-2-era text, kept for the record). *Was:* **Phase 3 planning**, which needs the **AOI decision** (`docs/BACKLOG.md`
   §1) — the point where Track G becomes load-bearing again; and **Checkpoint 2** (Karl +
   Isaac). The Phase-2 closeout batch is DONE (P2.CLOSE, 2026-08-20, four commits;
   `docs/walkthroughs/P2-closeout.md`). E2.4 (spatial CV + the comparison report, audited and approved), E2.5
