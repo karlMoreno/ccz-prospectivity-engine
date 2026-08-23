@@ -339,6 +339,18 @@ Corollaries worth keeping in mind:
   indistinguishable from a run with nothing to say — confirm in the
   foreground. FIXTURE findings are a separate column (the single-source
   tamper row): do not conflate them.*
+- **THE FRESH-RUN LOOK IS PART OF THE TASK, not a courtesy** (entered at the
+  E5.4 approval, 2026-08-23). A stated test limit is a PLACE TO LOOK, and
+  this one has found something both times anyone looked: E5.3's page
+  labelled a present layer kind "absent" (the state logic lived in the
+  untested page; moved into the tested model), and E5.4's first-draw
+  `fitBounds` sat inside `map.once("load")` registered AFTER the event had
+  fired, so it silently never ran — SUCCESS-SHAPED SILENCE, the
+  empty-background-output shape in JavaScript (a listener that fires nothing
+  looks exactly like one that has not fired yet). Neither could fail a test
+  in this repo by the mechanism's own stated limit; both were caught by
+  looking at a fresh run, deliberately, at the end. Do it every time a task
+  touches the page, and report "nothing" explicitly when nothing is found.
 - **A check scoped by what is actually there observes what nobody predicted.**
   The counterpart to coverage-that-isn't: `output_hashes` is recomputed over
   the DIRECTORY LISTING and the emitter refuses two files under one key, so
@@ -496,8 +508,12 @@ ccz-prospectivity-engine/
   readout (Karl: (c)+; σ-as-saturation declined), the no-information region
   hatched on every layer from recorded values (2,846 of 2,880 cells beyond the
   21.6 km fitted range, a lower bound), the uniform rasters explained; all 13
-  of E5.0 §4's rows dispositioned, none left LOOKING. Suite 672. Next: E5.6 (CI)
-  and E5.7 (deploy) — awaiting Karl's review of E5.4.**
+  of E5.0 §4's rows dispositioned, none left LOOKING. Suite 672. **E5.4 APPROVED
+  2026-08-23. THE VIEWER IS COMPLETE AND THE HONESTY SURFACE HAS LANDED; CP5a IS
+  THE NEXT BOUNDARY, and E5.6 (CI: a named, artifact-producing job around the
+  harness) and E5.7 (deploy: the verdict travels with the URL) are what remain.
+  The proposal's CP5a criteria — every layer that exists, correctly, the verdict
+  and both reasons visible without interaction — read as MET PENDING DEPLOY.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;

@@ -551,10 +551,14 @@ G5.4  Draft the impact narrative for grants ("open, evidence-typed CCZ corpus +
 
 ### Integration checkpoint 5 — SPLIT
 ```
-CP5a  TRACK E ALONE — reachable now. The viewer shows every layer that exists,
-      correctly, with the claim verdict and both watermark reasons visible
-      without interaction. A working, honest viewer over non-scientific data,
-      which is exactly what the project is.
+CP5a  TRACK E ALONE — MET PENDING DEPLOY (E5.4 approved 2026-08-23): the
+      viewer shows every layer that exists, correctly, with the claim verdict
+      and each layer's own watermark reasons visible without interaction
+      (E5.3 + E5.4; docs/walkthroughs/E5.4.md §2 dispositions all thirteen of
+      E5.0 §4's rows, zero LOOKING). A working, honest viewer over
+      non-scientific data, which is exactly what the project is. What remains
+      to reach the boundary: E5.6 (CI) and E5.7 (deploy, where the verdict
+      travels with the URL).
 
 CP5b  = ALPHA LAUNCH. Needs CP1 (real GEBCO) + CP3 (digitized TS-6) + CP4
       (real economics). The same viewer over real terrain, real economics and
