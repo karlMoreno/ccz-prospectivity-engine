@@ -480,7 +480,17 @@ ccz-prospectivity-engine/
   700x smaller than polygons), the mask as null, the origin and the source's
   watermark form carried in the file and verified by the emitter against the
   pixels; the catalog's `data_url` per entry; a run directory is now 62 files
-  / 2.75 MB; suite 645. Next: E5.3, the viewer — awaiting Karl's review of E5.2.**
+  / 2.75 MB. E5.3 LANDED 2026-08-23: the viewer — ONE static page
+  (`apps/web/index.html`, MapLibre 5.24.0 + deck.gl 9.3.10 from a CDN with SRI
+  hashes recorded in `services/api/web.py`), driven by a SERVED PRESENTATION
+  MODEL (`GET /runs/{id}/viewer`, the named exception to 'the API computes
+  nothing': bins, labels and states are rendering decisions); no tile basemap
+  (a vendored public-domain coastline); context layers as a second class with
+  their own origin and a FIXTURE rectangle; the 35 stations from the manifest.
+  The page names no layer, model, axis or unit of this project (grepped); the
+  DOM, rendering and interaction are UNTESTED and the walkthrough says so. First
+  non-Python files in the repo, outside the audit's walk (confirmed). Suite 665.
+  Next: E5.4, the honesty surface — awaiting Karl's review of E5.3.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
@@ -538,9 +548,10 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **E5.3** — the viewer: ONE static HTML page on MapLibre GL JS + deck.gl
-  from a CDN, reading the catalog E5.1 serves and each entry's `data_url` (E5.2's flat
-  arrays), the control panel from the grid's three states, the 35 stations drawn. The
+- **Next task:** **E5.4** — the honesty surface, whose specification is E5.0 §4's
+  thirteen-row inventory (every row LOOKING today): the claim verdict visible without
+  interaction with its failing preconditions named, both watermark reasons with their
+  expiry, the uncertainty not optional, the 99 %-no-information region marked. The
   Phase-2/3/4 closeout facts this bullet used to carry live in their walkthroughs
   and `docs/BACKLOG.md` (corrected 2026-08-22, E5.1 commit 0: it had said
   "Phase 3 planning" two phases late — found by E5.0).

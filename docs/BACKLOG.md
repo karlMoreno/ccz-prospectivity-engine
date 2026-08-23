@@ -108,9 +108,10 @@ header was last recounted at E3.3 (49); recounted from the boxes now.
 including a new observation about the deep unrecorded scan (a QUOTED
 declaration reads as a new use).
 1 ADDED at E5.3 commit 2 (2026-08-23): the context-layer data task with its
-two riding decisions (the AOI; the APEIs and exclusions.geojson).
-**54 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
-Karl 6, §3 Engineering 33, §4 Phase-2 risks 0 (both closed), §6 later phases
+two riding decisions (the AOI; the APEIs and exclusions.geojson). 1 ADDED at
+E5.3 commit 3: the catalog is not yet data-driven (trigger: a second dataset).
+**55 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
+Karl 6, §3 Engineering 34, §4 Phase-2 risks 0 (both closed), §6 later phases
 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -2046,7 +2047,9 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   + `prediction_grid`, the same way; (iii) **the two-cluster / 991-km
   geometry** — carried as data (`cross_validation.designs[].assignment`,
   the LOCO fold labels and `measured_min_separation_km`) but only as a
-  sentence in `purpose`; (iv) **the RF-registry dependence** (40 vs 500
+  sentence in `purpose` — *at E5.3 the 35 stations are DRAWN from
+  `training_stations`, so the clustering is visible without the number;
+  the number stays derive-vs-record for E5.4*; (iv) **the RF-registry dependence** (40 vs 500
   trees changes the surface) — now verifiable from `full_data_fit.n_estimators`
   but stated nowhere a reader meets. None blocks E5.4; each is a choice
   between recording a number at the emitter (schema 5, under HASH.1's rule)
@@ -2122,6 +2125,25 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   are downloaded; before E5.7 ships a public URL with the fixture rectangle
   still drawn.** Detail: [E5.3.md](walkthroughs/E5.3.md) §3;
   `services/api/context.py`; `apps/web/context/ccz_management_area_FIXTURE.geojson`.
+
+- [ ] **THE VIEWER IS CATALOG-DRIVEN; THE CATALOG IS NOT YET DATA-DRIVEN**
+  (E5.3 §0.4, 2026-08-23; Karl: "worth a BACKLOG entry for when a second
+  dataset actually arrives, rather than generalizing the catalog
+  speculatively"). The viewer renders whatever the catalog advertises — one
+  control per declared axis, labels and values from `grid.axes` /
+  `axis_labels` / `value_labels`, states from the cells, ramp and format from
+  per-entry hints — and `tests/test_viewer_model.py` proves it on a foreign
+  catalog (three axes, layer types and names this project does not have) with
+  no code change. The generality stops one layer lower: `services/api/catalog.py`'s
+  `KINDS`, `APPLICABLE_AXES`, `RAMP_BY_KIND`, `FORMAT_BY_KIND` and the label
+  tables are THIS project's constants, so a five-axis dataset — a second study
+  area, a lunar volatile surface, an estimator nobody has written — needs an
+  E5.1 change, not a viewer change. That is the honest boundary of the
+  flexibility requirement: real, and one layer below where the requirement
+  implies. The generalization (axes declared by the MANIFEST or a contract,
+  the catalog reading them) is not made speculatively. Owner: E.
+  **Trigger: the first second dataset.** Detail: [E5.3.md](walkthroughs/E5.3.md)
+  §1; `catalog.py` header.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

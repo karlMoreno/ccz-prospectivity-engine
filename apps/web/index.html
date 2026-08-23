@@ -255,8 +255,20 @@
     overlay.setProps({ layers });
   }
   function stationLayer() {
+    // THE 35 STATIONS, from the model (the manifest's training_stations) — never the corpus CSV.
+    // A point with an outline in the model's station style; pickable, with its own readout
+    // so a station reads as a PLACE with an origin, not as a value on the ramp.
+    const st = model.stations.style;
     const pts = Object.entries(model.stations.coordinates).map(([id, c]) => ({ id, position: c }));
-    return new deck.ScatterplotLayer({ id: "stations", data: pts, getPosition: p => p.position, radiusMinPixels: 4, getFillColor: [255, 255, 255], getLineColor: [0, 0, 0], lineWidthMinPixels: 1, stroked: true, pickable: false });
+    return new deck.ScatterplotLayer({
+      id: "stations", data: pts, getPosition: p => p.position, radiusMinPixels: st.radius_px,
+      getFillColor: hex(st.fill), getLineColor: hex(st.outline), lineWidthMinPixels: 1, stroked: true, pickable: true,
+      onHover: info => {
+        if (!info.object) return;
+        const r = model.stations.readout;
+        $("readout").textContent = `${r.label}: ${info.object.id}\nlon ${info.object.position[0].toFixed(3)}, lat ${info.object.position[1].toFixed(3)} · ${r.origin_suffix}`;
+      },
+    });
   }
   function fmt(layer, v) {
     if (v === null || v === undefined) return layer.readout.masked_label;
@@ -272,6 +284,11 @@
       row.innerHTML = `<span class="swatch" style="background:${b.color}"></span><span>${text}</span>`; L.appendChild(row);
     }
     const m = document.createElement("div"); m.className = "row"; m.innerHTML = `<span class="swatch masked"></span><span>${model.masked.label}</span>`; L.appendChild(m);
+    if (model.stations) {  // the stations in the legend with BOTH origins: the asymmetry is in the legend, not only the panel
+      const srow = document.createElement("div"); srow.className = "row";
+      srow.innerHTML = `<span class="swatch" style="background:${model.stations.style.fill}; border-radius:50%; width:12px"></span><span>${model.stations.legend_label}</span>`;
+      L.appendChild(srow);
+    }
     const wm = document.createElement("div"); wm.className = "origin warn";
     wm.textContent = layer.watermark_form.startsWith("surface") ? layer.watermark : layer.watermark_reasons.map(r => `${r.reason}: ${r.lifted ? "lifted" : "UNLIFTED"} — ${r.lifted_by}`).join(" | ");
     L.appendChild(wm);

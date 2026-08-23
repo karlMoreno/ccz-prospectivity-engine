@@ -243,6 +243,23 @@ def test_the_stations_come_from_the_manifest_with_their_own_origin_kept_apart_fr
     assert "model.stations.coordinates" in page and "ScatterplotLayer" in page and "master_observations" not in page
 
 
+def test_the_station_legend_carries_both_origins_and_a_station_reads_as_a_place_not_a_value(model: dict) -> None:
+    """E5.3 commit 3 (adversarial review): the legend row names the stations'
+    origin AND the surface's — a label naming one origin flattens the
+    asymmetry (mutation S1). The station style is a point with an outline
+    in no ramp colour; the station readout has no value field; the
+    clustering NUMBER is not computed here (stated), the points are drawn."""
+    m = model["model"]; s = m["stations"]
+    assert s["legend_label"] == "35 training stations — origin MEASURED (the surface is SYNTHETIC)"
+    assert "MEASURED" in s["legend_label"] and "SYNTHETIC" in s["legend_label"]
+    assert s["style"]["kind"] == "point" and s["style"]["fill"] not in SEQUENTIAL_RAMP + CATEGORICAL_PALETTE and s["style"]["fill"] != MASKED["color"]
+    assert s["readout"]["fields"] == ["id", "lon", "lat"] and "value" not in s["readout"]["fields"] and s["readout"]["origin_suffix"] == "origin MEASURED"
+    assert "991 km" in s["geometry_note"] and "not computed" in s["geometry_note"]
+    page = INDEX_HTML.read_text()
+    assert "model.stations.legend_label" in page and "pickable: true" in page and "model.stations.readout" in page
+    assert "layers.push(stationLayer())" in page  # drawn over every surface layer, not optional
+
+
 def test_the_cdn_pins_are_exact_versions_with_integrity_hashes_equal_to_the_recorded_ones_without_a_network() -> None:
     page = INDEX_HTML.read_text()
     tags = re.findall(r'<(script|link)\b([^>]*)>', page)

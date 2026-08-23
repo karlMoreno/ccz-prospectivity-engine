@@ -285,6 +285,19 @@ def build_viewer_model(catalog: dict) -> dict:
                 f"the stations are {stations.get('data_origin')}; the surface they sit on is {catalog.get('data_origin')} — "
                 "drawn apart on purpose: the clearest single statement of what this project has and has not got"
             ),
+            # E5.3 commit 3: what the legend says beside the station swatch — BOTH origins, so the
+            # asymmetry is in the legend and not only in the panel
+            "legend_label": (
+                f"{stations.get('n')} training stations — origin {stations.get('data_origin')} "
+                f"(the surface is {catalog.get('data_origin')})"
+            ),
+            "style": {"kind": "point", "fill": "#ffffff", "outline": "#000000", "radius_px": 4,
+                      "note": "a point with an outline, never a ramp colour: a station is a place, not a value"},
+            "readout": {"label": "training station", "fields": ["id", "lon", "lat"], "origin_suffix": f"origin {stations.get('data_origin')}"},
+            "geometry_note": (
+                "the clustering (two groups ~991 km apart; zero pairs between 13 and 986 km — E2.4) is VISIBLE here as "
+                "drawn points; the number itself is not computed by this model (E5.5's BACKLOG entry: derive vs record, E5.4 decides)"
+            ),
         },
         "claim": catalog.get("claim"),
         "watermark_asymmetry": catalog.get("watermark_asymmetry"),
