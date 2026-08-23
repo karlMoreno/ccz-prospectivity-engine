@@ -101,7 +101,7 @@ def test_files_are_served_only_by_a_key_the_record_names_with_the_recorded_hash_
     output': the record is consulted BEFORE any path is formed (mutation R2)."""
     client, run_id, out = api["client"], api["run_id"], api["out"]
     hashes = api["manifest"].output_hashes
-    assert len(hashes) == 30
+    assert len(hashes) == 30 + 22  # E5.2: 21 exports + their sidecar
     for key, digest in hashes.items():
         r = client.get(f"/runs/{run_id}/files/{key}")
         assert r.status_code == 200, key
@@ -216,9 +216,11 @@ def test_every_catalog_entry_is_on_disk_and_every_file_on_disk_is_a_layer_or_exp
         if path.endswith(".provenance.json") and "/" not in path: return "<estimator>.provenance.json"
         if path in ("data_origin.yaml", "economics/data_origin.yaml", "economics/economics.footprints.json"): return path
         if path.startswith("features/stack/"): return "features/stack/*"
+        if path == "export/data_origin.yaml": return path
+        if path.startswith("export/") and path.endswith(".json"): return "export/*.json"
         return None
     assert {p: excluded_by(p) for p in unlisted} == {p: excluded_by(p) for p in unlisted if excluded_by(p) in rules}
-    assert len(unlisted) == 1 + 3 + 2 + 1 + 9
+    assert len(unlisted) == 1 + 3 + 2 + 1 + 9 + 21 + 1  # E5.2: the exports are the layers' DATA, reached from an entry, not layers
     # every entry's identity is the record's: key in output_hashes, sha256 equal, file present
     hashes = api["manifest"].output_hashes
     for e in c["layers"]:
@@ -401,3 +403,4 @@ def test_legend_statistics_match_the_rasters_computed_independently_and_the_unif
     assert c["uniformity_today"]["difference_fraction_of_predictable"]["MARKET_STANDARD->STRATEGIC_SUBSIDIZED" if "MARKET_STANDARD->STRATEGIC_SUBSIDIZED" in c["uniformity_today"]["difference_fraction_of_predictable"] else next(iter(c["uniformity_today"]["difference_fraction_of_predictable"]))]
     assert "not of the seafloor" in c["uniformity_today"]["statement"] and c["training_stations"]["n"] == 35
     assert "/runs/{run_id}/layers" in {r.path for r in api["app"].routes if hasattr(r, "methods")}
+

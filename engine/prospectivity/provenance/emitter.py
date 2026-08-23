@@ -212,6 +212,7 @@ def extend_run_manifest(
     economic_results: Sequence[EconomicScenarioResult] = (),
     economic_differences: Sequence[EconomicDifferenceResult] | None = None,
     economics_dir: Path | str | None = None,
+    exports_dir: Path | str | None = None,
 ) -> RunManifest:
     """Extend the CV-stage RunManifest with Phase 3's outputs, asserting every
     link of the provenance chain by recomputation. Returns a NEW finalized
@@ -591,6 +592,18 @@ def extend_run_manifest(
             ),
         }
 
+    # ---- 8. E5.2 — the flat-array exports, each VERIFIED AGAINST THE PIXELS
+    # and the records it quotes, then hashed under export/<basename> and
+    # recorded beside the raster it renders
+    exports_link = None
+    if exports_dir is not None:
+        exports_link = _verify_exports(
+            Path(exports_dir), surfaces, written, surfaces_block, economics_block, grid,
+            expected_surface_origin=expected_origin.value, record_output=_record_output,
+            economics_dir=Path(economics_dir) if economics_dir is not None else None,
+        )
+        provenance_chain["links"]["exports"] = exports_link
+
     extended = base.model_copy(
         update={
             "economics": economics_block,
@@ -747,6 +760,7 @@ def _verify_economics(
                 manifest=str(owner.footprints[estimator][str(z) if str(z) in owner.footprints[estimator] else f"{z:g}"]["n_minable"]),
             )
             _require_equal(f"data_origin of {file}", raster_tag=tags.get("data_origin"), record=entry.get("data_origin"), manifest=owner.data_origin)
+            origin_expected = owner.data_origin  # the difference's origin: its result's, shown equal to the tag and the record
         # THE TWO REASONS, per artifact: the record's verdict must equal the manifest's,
         # and the terrain reason's state must be what the stack's declared origin implies
         verdict = entry.get("watermark") or {}
@@ -773,6 +787,10 @@ def _verify_economics(
             "estimator": estimator,
             "z": z,
             "sha256": digest,
+            # E5.2: the raster's COMPUTED origin, recorded on the entry it describes — the
+            # value recomputed by combine_origins above and shown equal to the tag, the
+            # record and the result; the export's origin is verified against it
+            "data_origin": origin_expected,
             "counts": {k: entry[k] for k in ("n_minable", "n_predictable", "fraction_of_predictable", "area_m2") if k in entry}
             if kind == "footprint"
             else {**(entry.get("counts") or {}), "difference_fraction_of_predictable": entry.get("difference_fraction_of_predictable"), "area_m2": entry.get("area_m2")},
@@ -809,4 +827,166 @@ def _verify_economics(
         },
         "rasters": rasters_block,
         "watermark_note": WATERMARK_REASONS_NOTE,
+    }
+
+
+# ═══════════════════════════════════════════════ E5.2: the flat-array exports
+
+EXPORT_DIR_NAME = "export"
+EXPORT_FORMAT = "ccz-flat-array/1"
+
+
+def _flat_expected(values: np.ndarray, decimals: int) -> list:
+    rounded = np.round(np.asarray(values, dtype=np.float64), decimals)
+    return [None if not np.isfinite(v) else float(v) for v in rounded.ravel().tolist()]
+
+
+def _verify_exports(
+    exports_dir: Path,
+    surfaces: Mapping[str, SurfaceResult],
+    written: Mapping[str, Mapping[str, Path]],
+    surfaces_block: dict[str, dict],
+    economics_block: dict | None,
+    grid: PredictionGrid,
+    *,
+    expected_surface_origin: str,
+    record_output,
+    economics_dir: Path | None,
+) -> dict:
+    """Every export file: its `source` hashes equal the rasters' RECOMPUTED
+    hashes; its arrays equal the PIXELS RE-READ FROM THE RASTER — the float32
+    bytes the export renders, not the float64 in-memory surface: at 3 dp the
+    two differ in ~1–2 of 2,880 cells that sit on a rounding boundary (found
+    by the extension fixture's 100-tree forest; the e2e run happened to have
+    none), and `_verify_raster` has already shown the raster holds the
+    surface — rounded as the file says, with null exactly where the pixel is
+    NaN; its origin equals the computed one;
+    its watermark form is the source's. The directory listing and the set
+    of expected exports must be the same set, each way named. Then each
+    export is hashed into output_hashes and recorded beside its raster."""
+    if not exports_dir.is_dir():
+        raise _refuse(f"the exports directory {exports_dir} does not exist — the export step did not run")
+    listing = {p.name for p in exports_dir.iterdir() if p.is_file() and p.suffix == ".json"}
+    expected = {f"{name}.surface.json" for name in surfaces}
+    if economics_block is not None:
+        expected |= {f"{Path(file).stem}.json" for file in economics_block["rasters"]}
+    if listing != expected:
+        raise _refuse(
+            f"the exports directory holds {sorted(listing - expected)} the run did not expect and "
+            f"lacks {sorted(expected - listing)} it did — every written raster has exactly one export"
+        )
+    sidecar = exports_dir / SIDECAR_NAME
+    if not sidecar.is_file():
+        raise _refuse(f"the exports' origin sidecar {sidecar} is missing — the exports would be unclassified")
+
+    def _refuse_token(token: str):
+        raise ValueError(f"non-standard JSON token {token!r} (a browser's JSON.parse rejects it)")
+
+    def _load(name: str) -> dict:
+        try:
+            # parse_constant: a bare NaN/Infinity is an ERROR here, as in a browser —
+            # Python's json would otherwise read the token back silently
+            payload = json.loads((exports_dir / name).read_bytes(), parse_constant=_refuse_token)
+        except ValueError as error:  # a NaN token, or not JSON at all
+            raise _refuse(f"export {name!r} is not strict JSON ({error}) — a browser could not parse it")
+        if payload.get("format") != EXPORT_FORMAT:
+            raise _refuse(f"export {name!r} declares format {payload.get('format')!r}, not {EXPORT_FORMAT!r}")
+        return payload
+
+    def _require_arrays(name: str, payload: dict, field: str, pixels: np.ndarray) -> None:
+        """ONE check, the full array: the export's list must equal the pixels
+        rounded as the export states with None exactly where the pixel is
+        NaN. The mask is inside that equality — a separate null-set check
+        below it was UNREACHABLE (E5.2 mutation X9 survived its removal:
+        equal arrays have equal null sets), the sub-pattern CLAUDE.md counts.
+        The message names whether the difference is in the mask, so the
+        refusal reads right either way; it is diagnosis, not a second gate."""
+        expected_values = _flat_expected(pixels, int(payload.get("decimals", -1)))
+        got = payload.get(field)
+        if got != expected_values:
+            if isinstance(got, list) and len(got) == len(expected_values):
+                n_diff = sum(1 for a, b in zip(got, expected_values) if a != b)
+                mask_diff = sum(1 for a, b in zip(got, expected_values) if (a is None) != (b is None))
+                detail = f"{n_diff} cell(s) differ, {mask_diff} of them in the mask (null vs value)"
+            else:
+                detail = f"length {len(got) if isinstance(got, list) else 'not a list'} vs {len(expected_values)} cells"
+            raise _refuse(
+                f"export {name!r} field {field!r} does not hold the raster's pixels (rounded to "
+                f"{payload.get('decimals')} dp, null where NaN): {detail} — refusing to "
+                "record an export that renders something other than its source"
+            )
+        if payload.get("n_masked") != sum(1 for v in expected_values if v is None):
+            raise _refuse(f"export {name!r} records n_masked={payload.get('n_masked')}, the raster has {sum(1 for v in expected_values if v is None)}")
+
+    n_files = 0
+    for name in sorted(surfaces):
+        export_name = f"{name}.surface.json"
+        payload = _load(export_name)
+        block = surfaces_block[name]
+        for kind in SURFACE_KINDS:
+            _require_equal(
+                f"{kind} source hash in export {export_name}",
+                export_source=(payload.get("source") or {}).get(kind, {}).get("sha256"),
+                recomputed_raster=block["rasters"][kind]["sha256"],
+            )
+            with rasterio.open(Path(written[name][kind])) as dataset:
+                pixels = dataset.read(1)  # the bytes the export renders (float32), already shown to hold the surface
+            _require_arrays(export_name, payload, "mu" if kind == "prediction" else "sd", pixels)
+        _require_equal(f"estimator in export {export_name}", export=payload.get("estimator"), surface=name)
+        _require_equal(f"origin in export {export_name}", export=payload.get("data_origin"), computed=expected_surface_origin)
+        _require_equal(f"watermark in export {export_name}", export=payload.get("watermark"), sidecar=block.get("watermark"))
+        if payload.get("watermark_reasons") is not None:
+            raise _refuse(f"export {export_name!r} carries watermark_reasons for a SURFACE — a second reason invented (E5.1 §2)")
+        if tuple(payload.get("grid", {}).get("transform", ())) != tuple(grid.transform) or payload.get("grid", {}).get("width") != grid.width:
+            raise _refuse(f"export {export_name!r} quotes a grid other than the prediction grid's")
+        digest = file_sha256(exports_dir / export_name)
+        record_output(exports_dir / export_name, digest, key=f"{EXPORT_DIR_NAME}/{export_name}")
+        block["export"] = {"file": export_name, "sha256": digest, "format": EXPORT_FORMAT, "fields": ["mu", "sd"]}
+        n_files += 1
+
+    if economics_block is not None:
+        for file, entry in sorted(economics_block["rasters"].items()):
+            export_name = f"{Path(file).stem}.json"
+            payload = _load(export_name)
+            _require_equal(f"source hash in export {export_name}", export_source=(payload.get("source") or {}).get("sha256"), recomputed_raster=entry["sha256"])
+            _require_equal(f"source key in export {export_name}", export_source=(payload.get("source") or {}).get("key"), expected=f"{ECONOMICS_DIR_NAME}/{file}")
+            if economics_dir is None:
+                raise _refuse("economics exports exist but no economics directory was given to verify them against")
+            with rasterio.open(economics_dir / file) as dataset:
+                pixels = dataset.read(1)
+            _require_arrays(export_name, payload, "values", pixels)
+            _require_equal(f"origin in export {export_name}", export=payload.get("data_origin"), record=entry.get("data_origin") or "")
+            reasons = payload.get("watermark_reasons") or []
+            recorded = entry.get("watermark") or {}
+            if {r.get("reason") for r in reasons} != set(recorded) or payload.get("watermark") is not None:
+                raise _refuse(
+                    f"export {export_name!r} carries reasons {[r.get('reason') for r in reasons]}, the record carries "
+                    f"{sorted(recorded)} — the two-reason form must travel as the source carries it (E5.1 §2)"
+                )
+            for r in reasons:
+                _require_equal(f"reason {r.get('reason')} lifted state in export {export_name}",
+                               export=str(r.get("lifted")), record=str(recorded[r["reason"]].get("lifted")))
+            for axis in ("kind", "estimator", "z"):
+                _require_equal(f"{axis} in export {export_name}", export=str(payload.get(axis)), record=str(entry.get(axis)))
+            digest = file_sha256(exports_dir / export_name)
+            record_output(exports_dir / export_name, digest, key=f"{EXPORT_DIR_NAME}/{export_name}")
+            entry["export"] = {"file": export_name, "sha256": digest, "format": EXPORT_FORMAT, "fields": ["values"]}
+            n_files += 1
+
+    sidecar_digest = file_sha256(sidecar)
+    record_output(sidecar, sidecar_digest, key=f"{EXPORT_DIR_NAME}/{SIDECAR_NAME}")
+    return {
+        "files": n_files + 1,
+        "directory": EXPORT_DIR_NAME,
+        "format": EXPORT_FORMAT,
+        "recomputed_from": (
+            "each export's arrays against the pixels (the in-memory surfaces for the pairs; the "
+            "economics rasters re-read), rounded as the export states, null exactly where NaN; each "
+            "source hash against the raster's recomputed hash; the origin against the computed one; "
+            "the watermark form against the source's"
+        ),
+        "agrees_with": ["output_hashes (export/*)", "surfaces.*.export", "economics.rasters.*.export"],
+        "verifiable_off_machine": "directory-independent: the export quotes basenames and the grid transform, never a path",
+        "why": "a JSON file carries no metadata the format provides, so the export carries its origin in its body and the emitter checks it before recording it",
+        "origin_sidecar": {"file": SIDECAR_NAME, "sha256": sidecar_digest},
     }

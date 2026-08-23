@@ -2086,6 +2086,11 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   API's runs root is wherever the operator points it, and nothing served
   enters git; an E5.7 deployment that copies a run INTO `data/` would trip
   this entry, one that serves from outside does not.*
+  *E5.2 (2026-08-22): the flat-array exports join the run directory
+  (`export/`, 22 files) with their own `data_origin.yaml` in TAX.1's form and
+  an in-file `data_origin` block each; if a run is ever copied under `data/`
+  they classify, and the economics exports meet the same
+  `author_inherited_from` refusal as the rasters — no new cost, the same one.*
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

@@ -74,6 +74,8 @@ EXCLUSIONS: tuple[dict[str, str], ...] = (
     {"pattern": "economics/data_origin.yaml", "reason": "the same, for the economics rasters"},
     {"pattern": "economics/economics.footprints.json", "reason": "E4.2's association record — what the economics entries RESOLVE FROM, not a layer"},
     {"pattern": "features/stack/*", "reason": "the covariate stack the surfaces were predicted on: SYNTHETIC covariates, one artifact by the stack hash, not a viewer layer (E5.0 §1)"},
+    {"pattern": "export/*.json", "reason": "E5.2's flat-array export of a layer — the layer's DATA, reached from its entry, not a layer itself"},
+    {"pattern": "export/data_origin.yaml", "reason": "the origin audit's marker sidecar for the exports — not a layer"},
 )
 
 
@@ -156,7 +158,7 @@ def _economics_entries(manifest: dict, record: dict) -> list[dict]:
             "coordinates": {"kind": kind, "estimator": r.get("estimator"), "z": r.get("z"), "scenario": scenario, "pair": pair},
             "axes_not_applicable": [a for a in ("z", "scenario", "pair") if a not in APPLICABLE_AXES[kind]],
             "pair": None,
-            "data_origin": (scenarios.get(scenario) or scenarios.get((pair or [None])[0]) or {}).get("data_origin"),
+            "data_origin": r.get("data_origin"),  # the raster's own recorded origin (E5.2) — not the scenario's
             "publishable": False,
             "watermark_form": "economics: two independent reasons, per reason, each with its expiry condition",
             "watermark": None,
@@ -250,6 +252,7 @@ def build_catalog(manifest: dict, run_dir: Path) -> dict:
     if association:
         record = json.loads((run_dir / "economics" / association).read_text())
     entries = _surface_entries(manifest) + _economics_entries(manifest, record)
+    output_hashes = manifest.get("output_hashes") or {}
     for e in entries:
         if e.pop("_hashed_under") is None:
             raise ValueError(f"catalog entry {e['key']!r} is not in output_hashes — the record names a layer it did not hash")

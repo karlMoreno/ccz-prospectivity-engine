@@ -475,8 +475,12 @@ ccz-prospectivity-engine/
   E5.5 → E5.1 → E5.2 → E5.3 → E5.4 → E5.6 → E5.7.** E5.1 LANDED 2026-08-22:
   the read-only FastAPI (`services/api/`, `python -m services.api.app <runs_root>`)
   and the layer catalog (`/runs/{id}/layers`: 24 layers, the 72-cell grid with
-  three states, the watermark forms kept apart, the verdict once); suite 635.
-  Next: E5.2, the layer export — awaiting Karl's review of E5.1.**
+  three states, the watermark forms kept apart, the verdict once). E5.2 LANDED
+  2026-08-22: every layer exported as FLAT ARRAYS (Karl's decision, E5.0 §2 —
+  700x smaller than polygons), the mask as null, the origin and the source's
+  watermark form carried in the file and verified by the emitter against the
+  pixels; the catalog's `data_url` per entry; a run directory is now 62 files
+  / 2.75 MB; suite 645. Next: E5.3, the viewer — awaiting Karl's review of E5.2.**
   Previous: **4, Track E — COMPLETE and APPROVED (E4.3 approved 2026-08-22;
   E4.0 → E4.1 → E4.2 → E4.3; suite 566 → 611 across the phase)**; Phase 3 Track E complete and
   approved (E3.4, 2026-08-22); Phase 2 (E2.5, 2026-08-19). (Minimal update;
@@ -534,9 +538,9 @@ ccz-prospectivity-engine/
   real Dryad `[06]` data or the TS-6 `[18]` digitization — both are deliberately unwired
   because their placeholders were fabricated. `data/corpus/manifest.json` is the build
   record; see `docs/contracts/PROVENANCE.md`.
-- **Next task:** **E5.2** — the layer export (rasters → the web-renderable form E5.0 §2
-  chose, with the mask surviving and the origin and both watermark reasons travelling),
-  read by the catalog E5.1 serves from a run directory the harness produces (E5.5). The
+- **Next task:** **E5.3** — the viewer: ONE static HTML page on MapLibre GL JS + deck.gl
+  from a CDN, reading the catalog E5.1 serves and each entry's `data_url` (E5.2's flat
+  arrays), the control panel from the grid's three states, the 35 stations drawn. The
   Phase-2/3/4 closeout facts this bullet used to carry live in their walkthroughs
   and `docs/BACKLOG.md` (corrected 2026-08-22, E5.1 commit 0: it had said
   "Phase 3 planning" two phases late — found by E5.0).

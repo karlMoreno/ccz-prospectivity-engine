@@ -133,7 +133,8 @@ def test_the_real_composition_runs_end_to_end_and_writes_one_record_of_everythin
     # subdirectory), recomputed here from the bytes — the FULL listing
     files = {p.name: file_sha256(p) for p in out.iterdir() if p.is_file() and p.name != "run_manifest.json"}
     files |= {f"economics/{p.name}": file_sha256(p) for p in (out / "economics").iterdir() if p.is_file()}
-    assert manifest.output_hashes == files and len(files) == 10 + 18 + 2
+    files |= {f"export/{p.name}": file_sha256(p) for p in (out / "export").iterdir() if p.is_file()}  # E5.2
+    assert manifest.output_hashes == files and len(files) == 10 + 18 + 2 + 21 + 1
     # E4.2/E4.3: 18 rasters and two sidecars, every raster named by a result and resolved from the record
     rasters = {n[len("economics/"):] for n in files if n.startswith("economics/") and n.endswith(".tif")}
     assert len(rasters) == 18 == 12 + 6

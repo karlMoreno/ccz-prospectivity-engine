@@ -107,11 +107,15 @@ def _compose(built: dict, out: Path, *, run_id: str = RUN_ID) -> dict:
         diff = model.difference(footprints[a], footprints[b])
         paths = write_difference(diff, footprints[a], footprints[b], grid, surfaces, economics_dir, claim_verdict=verdicts[CLAIM_DESIGN])
         economic_differences.append(diff.record({k: p.name for k, p in paths.items()}))
+    # E5.2: the flat-array exports, written like the engine does, before the extension
+    from engine.prospectivity.export.flat import export_layers
+    export_layers(out, surfaces_written=written, economics_dir=economics_dir, grid=grid)
     inputs = dict(
         base=base, matrix=matrix, matrix_manifest=matrix_manifest, corpus_manifest=corpus,
         stack_manifest=stack, grid=grid, surfaces=surfaces, written=written, ts6=ts6,
         agreements=agreements, verdicts=verdicts, claim_design=CLAIM_DESIGN,
         economic_results=economic_results, economic_differences=economic_differences, economics_dir=economics_dir,
+        exports_dir=out / "export",
     )
     manifest = extend_run_manifest(**inputs)
     (out / "run_manifest.json").write_text(manifest.to_json())
@@ -127,7 +131,7 @@ def _extend(run: dict, **overrides) -> RunManifest:
     keys = (
         "base", "matrix", "matrix_manifest", "corpus_manifest", "stack_manifest", "grid",
         "surfaces", "written", "ts6", "agreements", "verdicts", "claim_design",
-        "economic_results", "economic_differences", "economics_dir",
+        "economic_results", "economic_differences", "economics_dir", "exports_dir",
     )
     return extend_run_manifest(**{**{k: run[k] for k in keys}, **overrides})
 
@@ -168,7 +172,7 @@ def test_two_runs_reproduce_byte_identically_apart_from_the_hash_excluded_fields
     assert run["manifest"].content_hash == second["manifest"].content_hash
     # the two runs wrote into different directories, and the record cannot tell
     assert run["out"] != second["out"]
-    assert a["output_hashes"] == b["output_hashes"] and len(a["output_hashes"]) == 30
+    assert a["output_hashes"] == b["output_hashes"] and len(a["output_hashes"]) == 30 + 22  # E5.2: + the exports
 
 
 def test_every_recorded_hash_matches_its_artifact_by_recomputation(run: dict) -> None:
@@ -201,7 +205,8 @@ def test_every_recorded_hash_matches_its_artifact_by_recomputation(run: dict) ->
         if p.is_file() and p.name not in ("run_manifest.json", "ts6_fixture.tif")
     }
     expected |= {f"economics/{p.name}": file_sha256(p) for p in (out / "economics").iterdir() if p.is_file()}
-    assert manifest.output_hashes == expected and len(expected) == 30
+    expected |= {f"export/{p.name}": file_sha256(p) for p in (out / "export").iterdir() if p.is_file()}  # E5.2
+    assert manifest.output_hashes == expected and len(expected) == 30 + 22
     for name, block in manifest.surfaces.items():
         for kind in ("prediction", "uncertainty"):
             assert block["rasters"][kind]["sha256"] == file_sha256(out / block["rasters"][kind]["file"])
@@ -212,10 +217,11 @@ def test_output_hashes_are_keyed_by_basename_never_by_path(run: dict) -> None:
     """A path in the substance is the E2.4-audit defect one artifact over:
     the record must not vary with the directory the run wrote into."""
     keys = set(run["manifest"].output_hashes)
-    surface_keys = {k for k in keys if not k.startswith("economics/")}
+    surface_keys = {k for k in keys if not k.startswith(("economics/", "export/"))}
     assert surface_keys == {Path(p).name for files in run["written"].values() for p in files.values()}
-    # economics files carry ONE constant relative component — the subdirectory's name — never a directory of the run
-    assert all(k.count("/") <= 1 and not Path(k).is_absolute() and (not k.startswith("economics/") or k.count("/") == 1) for k in keys)
+    # economics and export files carry ONE constant relative component — the subdirectory's name — never a directory of the run
+    assert all(k.count("/") <= 1 and not Path(k).is_absolute() and (not k.startswith(("economics/", "export/")) or k.count("/") == 1) for k in keys)
+    assert sum(k.startswith("export/") for k in keys) == 22  # E5.2
     assert str(run["out"]) not in run["manifest"].to_json()
 
 
@@ -353,6 +359,9 @@ def test_surfaces_block_records_each_estimators_summary_origin_and_watermark(run
             **result.summary(),
             # E5.5 commit 2: the full-data fit, from the provenance the builder recorded
             "full_data_fit": json.loads(json.dumps(_jsonable(result.provenance))),
+            # E5.2: the flat-array export of the pair, hashed from its bytes here
+            "export": {"file": f"{name}.surface.json", "sha256": file_sha256(out / "export" / f"{name}.surface.json"),
+                       "format": "ccz-flat-array/1", "fields": ["mu", "sd"]},
             "data_origin": "SYNTHETIC",
             "watermark": sidecar["watermark"],
             "publishable": False,
@@ -388,6 +397,7 @@ def test_the_chain_block_states_the_remaining_limits_and_the_former_one_is_measu
         "ts6_benchmark": "not measured — a synthetic fixture today; G3.1 delivers the real raster",
         "surfaces": "directory-independent; cross-GDAL-version byte identity not measured",
         "economics": "directory-independent; cross-GDAL-version byte identity not measured",  # E4.3: the same limit, no fourth
+        "exports": "directory-independent: the export quotes basenames and the grid transform, never a path",  # E5.2: no fourth either
     }
     assert len(chain["path_dependent_hashes"]["remaining_limits"]) == 3
     # the measurement: the former limit is gone
@@ -571,19 +581,23 @@ def test_the_path_dependent_hash_count_equals_the_measured_two_directory_differe
         for name, result in run["surfaces"].items()
     }
     agreements2 = compare_all_to_ts6(run["surfaces"], grid2, run["ts6"], surface_data_origin=run["origin"])
+    # E5.2: the second tree exports its layers too — from surfaces rewritten at another
+    # path and a grid read from another stack directory; the 22 export hashes must not move
+    from engine.prospectivity.export.flat import export_layers
+    export_layers(out2, surfaces_written=written2, economics_dir=run["economics_dir"], grid=grid2)
     second = extend_run_manifest(
         base2, matrix=matrix2, matrix_manifest=mm2, corpus_manifest=run["corpus_manifest"], stack_manifest=stack2,
         grid=grid2, surfaces=run["surfaces"], written=written2, ts6=run["ts6"], agreements=agreements2,
         verdicts=verdicts2, claim_design=CLAIM_DESIGN,
         economic_results=run["economic_results"], economic_differences=run["economic_differences"],
-        economics_dir=run["economics_dir"],
+        economics_dir=run["economics_dir"], exports_dir=out2 / "export",
     )
     pattern = re.compile(r"sha256:[0-9a-f]{64}")
     def values(manifest):
         return set(pattern.findall(json.dumps({k: v for k, v in json.loads(manifest.to_json()).items() if k != "content_hash"})))
     differing = values(run["manifest"]) - values(second)
     assert len(differing) == block["count"] == second.provenance_chain["path_dependent_hashes"]["count"] == 0
-    assert values(run["manifest"]) == values(second) and len(values(second)) >= 14
+    assert values(run["manifest"]) == values(second) and len(values(second)) >= 14 + 22
     assert second.content_hash == run["manifest"].content_hash  # the whole extension, from another tree
 
 
@@ -908,3 +922,114 @@ def test_the_claim_verdicts_failing_and_passing_sets_are_unchanged_by_the_e5_5_a
     assert after["random_k_fold"][0] == {gate, Precondition.SPATIALLY_BLOCKED_CV.value} and len(after["random_k_fold"][1]) == 4
     assert all("full_data_fit" in s and "sd_min" in s for s in run["manifest"].surfaces.values())
     assert run["manifest"].training_stations["n"] == 35
+
+
+
+# ═══════════════════════════════ E5.2 — the exports verified by the emitter (the tamper fixtures)
+#
+# The exporter reads the raster, the sidecar and the record; the emitter reads
+# the export and the PIXELS. Each fixture below forges an export file and every
+# witness the export quotes CONSISTENTLY — the source hashes stay the rasters'
+# true hashes, the record is untouched — so only the pixels dissent.
+
+
+def _copied_exports(run: dict, tmp_path: Path) -> Path:
+    copy = tmp_path / "export"
+    shutil.copytree(run["out"] / "export", copy)
+    return copy
+
+
+def _rewrite(path: Path, edit) -> None:
+    payload = json.loads(path.read_bytes())
+    edit(payload)
+    from engine.prospectivity.export.flat import dumps
+    path.write_bytes(dumps(payload))
+
+
+def test_an_export_whose_masked_cells_became_zero_is_refused_by_name_the_fourth_row_failure(run: dict, tmp_path: Path) -> None:
+    """THE TEMPTATION E5.0 MEASURED (100 KB cheaper on the polygon form): the
+    520 undefined cells written as 0.0. Every hash the file quotes is still
+    true; only the pixels say those cells are NaN."""
+    copy = _copied_exports(run, tmp_path)
+    def zero_the_mask(p):
+        p["mu"] = [0.0 if v is None else v for v in p["mu"]]
+    _rewrite(copy / "ordinary_kriging.surface.json", zero_the_mask)
+    with pytest.raises(ValueError, match=r"export 'ordinary_kriging.surface.json' field 'mu' does not hold the raster's pixels .*: 520 cell\(s\) differ, 520 of them in the mask"):
+        _extend(run, exports_dir=copy)
+
+
+def test_an_export_whose_mask_moved_by_one_cell_keeps_its_count_and_is_refused(run: dict, tmp_path: Path) -> None:
+    """A mask shifted by one index has the same n_masked (520) and a different
+    set — a count-only check would pass it; the emitter compares the SET."""
+    copy = _copied_exports(run, tmp_path)
+    def shift(p):
+        values = p["sd"]
+        nulls = [i for i, v in enumerate(values) if v is None]
+        for i in nulls:
+            values[i] = 1.0
+        for i in nulls:
+            values[(i + 1) % len(values)] = None
+    _rewrite(copy / "random_forest.surface.json", shift)
+    with pytest.raises(ValueError, match=r"export 'random_forest.surface.json' field 'sd' does not hold the raster's pixels .*: \d+ cell\(s\) differ, \d+ of them in the mask"):
+        _extend(run, exports_dir=copy)
+
+
+def test_an_export_with_one_value_changed_and_the_mask_intact_is_refused_by_name(run: dict, tmp_path: Path) -> None:
+    """THE VALUE CHECK'S OWN OBSERVER, separate from the two mask fixtures
+    (which also change values): one unmasked cell +1.0, every null where it
+    was. Found necessary when mutation X9 showed the null-set check was
+    unreachable below the array check — the array check then needed a
+    fixture only it can fail on."""
+    copy = _copied_exports(run, tmp_path)
+    def bump(p):
+        i = next(i for i, v in enumerate(p["mu"]) if v is not None)
+        p["mu"][i] = p["mu"][i] + 1.0
+    _rewrite(copy / "ordinary_kriging.surface.json", bump)
+    with pytest.raises(ValueError, match=r"field 'mu' does not hold the raster's pixels .*: 1 cell\(s\) differ, 0 of them in the mask"):
+        _extend(run, exports_dir=copy)
+
+
+def test_an_export_that_launders_its_origin_or_normalises_its_watermark_form_is_refused(run: dict, tmp_path: Path) -> None:
+    """THE LAUNDERING DIRECTION, at the last hop before a browser: a surface
+    export declaring MEASURED; a surface export given two reasons; an
+    economics export with one reason collapsed away — each refused by name."""
+    copy = _copied_exports(run, tmp_path)
+    _rewrite(copy / "mean_baseline.surface.json", lambda p: p.update(data_origin="MEASURED"))
+    with pytest.raises(ValueError, match=r"origin in export mean_baseline.surface.json is recorded inconsistently: export='MEASURED', computed='SYNTHETIC'"):
+        _extend(run, exports_dir=copy)
+    copy = _copied_exports(run, tmp_path / "b")
+    _rewrite(copy / "mean_baseline.surface.json", lambda p: p.update(watermark_reasons=[{"reason": "terrain", "lifted": False}, {"reason": "economic_parameters", "lifted": False}]))
+    with pytest.raises(ValueError, match="carries watermark_reasons for a SURFACE"):
+        _extend(run, exports_dir=copy)
+    copy = _copied_exports(run, tmp_path / "c")
+    name = "footprint__MARKET_STANDARD__mean_baseline__z0.json"
+    _rewrite(copy / name, lambda p: p.update(watermark_reasons=[r for r in p["watermark_reasons"] if r["reason"] == "terrain"]))
+    with pytest.raises(ValueError, match=r"carries reasons \['terrain'\], the record carries \['economic_parameters', 'terrain'\]"):
+        _extend(run, exports_dir=copy)
+    copy = _copied_exports(run, tmp_path / "d")
+    def lift(p):
+        for r in p["watermark_reasons"]:
+            if r["reason"] == "terrain":
+                r["lifted"] = True
+    _rewrite(copy / name, lift)
+    with pytest.raises(ValueError, match="reason terrain lifted state in export .* export='True', record='False'"):
+        _extend(run, exports_dir=copy)
+
+
+def test_a_missing_or_non_strict_export_is_refused_by_name(run: dict, tmp_path: Path) -> None:
+    copy = _copied_exports(run, tmp_path)
+    (copy / "random_forest.surface.json").unlink()
+    with pytest.raises(ValueError, match=r"lacks \['random_forest.surface.json'\]"):
+        _extend(run, exports_dir=copy)
+    copy = _copied_exports(run, tmp_path / "b")
+    path = copy / "random_forest.surface.json"
+    raw = path.read_bytes()
+    assert b",null," in raw  # an ARRAY null (the first plain "null" is the word inside determinism_basis)
+    path.write_bytes(raw.replace(b",null,", b",NaN,", 1))
+    with pytest.raises(ValueError, match="is not strict JSON"):
+        _extend(run, exports_dir=copy)
+    copy = _copied_exports(run, tmp_path / "c")
+    _rewrite(copy / "random_forest.surface.json", lambda p: p["source"]["prediction"].update(sha256="sha256:" + "0" * 64))
+    with pytest.raises(ValueError, match="prediction source hash in export random_forest.surface.json is recorded inconsistently"):
+        _extend(run, exports_dir=copy)
+    assert run["manifest"].provenance_chain["links"]["exports"]["files"] == 22

@@ -96,8 +96,9 @@ def test_one_command_produces_the_full_run_inventory_with_the_production_registr
     # features stack beside them, and NOTHING else at the top level
     files = {p.name: file_sha256(p) for p in out.iterdir() if p.is_file() and p.name != "run_manifest.json"}
     files |= {f"economics/{p.name}": file_sha256(p) for p in (out / "economics").iterdir() if p.is_file()}
-    assert m.output_hashes == files and len(files) == 10 + 20
-    assert {p.name for p in out.iterdir() if p.is_dir()} == {"economics", harness.FEATURES_DIR}
+    files |= {f"export/{p.name}": file_sha256(p) for p in (out / "export").iterdir() if p.is_file()}  # E5.2
+    assert m.output_hashes == files and len(files) == 10 + 20 + 22
+    assert {p.name for p in out.iterdir() if p.is_dir()} == {"economics", "export", harness.FEATURES_DIR}
     stack = out / harness.FEATURES_DIR / "stack"
     assert {p.name for p in stack.iterdir()} == {
         "aspect.tif", "bpi.tif", "depth.tif", "plan_curvature.tif", "profile_curvature.tif",
@@ -267,4 +268,4 @@ def test_every_file_in_the_run_directory_is_resolved_by_the_record_and_the_recor
     assert not (out / "dem.tif").exists() and not (out / "ts6.tif").exists()
     assert m.provenance_chain["links"]["ts6_benchmark"]["content_hash"] == file_sha256(harness_run["ts6"])
     assert m.provenance_chain["links"]["feature_stack"]["dem_content_hash"] == file_sha256(harness_run["dem"])
-    assert set(harness.RUN_LAYOUT) >= {"run_manifest.json", "economics/*.tif", "features/stack/*"}
+    assert set(harness.RUN_LAYOUT) >= {"run_manifest.json", "economics/*.tif", "features/stack/*", "export/<estimator>.surface.json", "export/data_origin.yaml"}

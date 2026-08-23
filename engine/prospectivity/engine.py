@@ -63,7 +63,7 @@ was finalized with ONE `ts6_agreement`. AFTER:
     │ source      Bundle   → CV    the chain  (E2.5)     estimator, 3       to_ts6  │
     │                      Report  asserted)             paired)   carriers)(E3.3)  │
     │                                                                               │
-    │  ─► economics (EconomicModel.apply × N, Phase 4) ─► extend_run_manifest       │
+    │  ─► economics (EconomicModel.apply × N, Phase 4) ─► export (E5.2) ─► extend   │
     │        → RunManifest (+ surfaces · ts6_agreement mapping · claim · chain)     │
     │        → <output_dir>/run_manifest.json                                       │
     └──────────────────────────────────────────────────────────────────────────────┘
@@ -94,6 +94,7 @@ from engine.prospectivity.economics.model import (
 )
 from engine.prospectivity.economics.writer import write_difference, write_footprints
 from engine.prospectivity.estimators.registry import EstimatorRegistry
+from engine.prospectivity.export.flat import EXPORT_DIR, export_layers
 from engine.prospectivity.features.bundle import FeatureBundle
 from engine.prospectivity.provenance.emitter import extend_run_manifest
 from engine.prospectivity.provenance.origin import DataOrigin, combine_origins
@@ -123,6 +124,7 @@ SurfaceBuilder = Callable[..., Mapping[str, SurfaceResult]]  # build_surfaces' s
 SurfaceWriter = Callable[..., Mapping[str, Path]]  # write_surface's signature
 FootprintWriter = Callable[..., Mapping[tuple[str, float], Path]]  # write_footprints' signature
 DifferenceWriter = Callable[..., Mapping[tuple[str, float], Path]]  # write_difference's signature
+LayerExporter = Callable[..., Mapping[str, Path]]  # export_layers' signature (E5.2)
 # (surfaces, grid, ts6_surface, surface_data_origin) -> one agreement per estimator
 TS6Comparer = Callable[[Mapping[str, SurfaceResult], PredictionGrid, TS6Surface, DataOrigin], Mapping[str, TS6Agreement]]
 
@@ -161,6 +163,7 @@ class ProspectivityEngine:
         surface_writer: SurfaceWriter = write_surface,
         footprint_writer: FootprintWriter = write_footprints,
         difference_writer: DifferenceWriter = write_difference,
+        layer_exporter: LayerExporter = export_layers,
     ) -> None:
         runner_registry = getattr(cv_runner, "registry", None)
         if runner_registry is not None and runner_registry is not estimators:
@@ -202,6 +205,7 @@ class ProspectivityEngine:
         self._surface_writer = surface_writer
         self._footprint_writer = footprint_writer
         self._difference_writer = difference_writer
+        self._layer_exporter = layer_exporter
 
     def run(self) -> RunManifest:
         terrain, samples = self._ingest()
@@ -216,6 +220,7 @@ class ProspectivityEngine:
         economic_results, economic_differences = self._write_economics(
             footprints, differences, surfaces, bundle, verdicts
         )
+        self._export_layers(written, bundle)
         return self._extend_manifest(
             base, bundle, surfaces, written, ts6_surface, agreements, verdicts,
             economic_results, economic_differences,
@@ -357,6 +362,17 @@ class ProspectivityEngine:
             recorded_differences.append(difference.record({key: path.name for key, path in written.items()}))
         return results, recorded_differences
 
+    def _export_layers(self, written: Mapping[str, Mapping[str, Path]], bundle: FeatureBundle) -> Mapping[str, Path]:
+        """E5.2: the browser-facing flat-array export of every written raster
+        — the surface pairs from what the writer returned, the economics
+        rasters from E4.2's association record — into `<output_dir>/export/`,
+        BEFORE the manifest is extended so the emitter verifies each export
+        against the pixels and hashes it under `export/<basename>`."""
+        return self._layer_exporter(
+            self._output_dir, surfaces_written=written,
+            economics_dir=self._output_dir / ECONOMICS_DIR, grid=bundle.grid,
+        )
+
     def _extend_manifest(
         self,
         base: RunManifest,
@@ -385,6 +401,7 @@ class ProspectivityEngine:
             economic_results=economic_results,
             economic_differences=economic_differences,
             economics_dir=self._output_dir / ECONOMICS_DIR,
+            exports_dir=self._output_dir / EXPORT_DIR,
         )
         self._output_dir.mkdir(parents=True, exist_ok=True)
         (self._output_dir / MANIFEST_NAME).write_text(manifest.to_json())

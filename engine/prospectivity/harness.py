@@ -31,6 +31,7 @@ fixtures (PATTERNS.md §3.2's last zero-implementation rows).
      <out>/run_manifest.json · <out>/*_prediction|uncertainty.tif ·
      <out>/*.provenance.json · <out>/data_origin.yaml ·
      <out>/economics/ (18 rasters + record + sidecar) ·
+     <out>/export/ (21 flat-array JSON exports + sidecar, E5.2) ·
      <out>/features/stack/ (the 8 covariates + provenance.json)
 
 THE REGISTRY IS A DECISION THIS COMMAND MAKES, and E5.0 measured that it
@@ -122,6 +123,11 @@ FEATURES_DIR = "features"  # <out>/features/stack/ — the StackFeatureBuilder's
 #   │   ├── difference__<a>__<b>__<estimator>__z<z>.tif        6 — (kind, scenario/pair, estimator, z, sha256)
 #   │   ├── economics.footprints.json     E4.2's association record — hashed into the chain (E4.3)
 #   │   └── data_origin.yaml              the audit's marker for the economics rasters
+#   ├── export/                           E5.2: the browser-facing FLAT-ARRAY exports (JSON)
+#   │   ├── <estimator>.surface.json      3 — mu[] AND sd[] in one file (the pair); resolved by
+#   │   │                                     surfaces[est].export; source hashes chain to the rasters
+#   │   ├── <economics raster stem>.json  18 — values[] (the codes); economics.rasters[file].export
+#   │   └── data_origin.yaml              the audit's marker for the exports
 #   └── features/stack/                   the covariate stack the surfaces were predicted on:
 #       ├── <covariate>.tif  × 8            NOT in output_hashes — its identity is the stack's
 #       └── provenance.json                 content_hash, quoted by upstream_hashes.feature_stack,
@@ -139,6 +145,9 @@ RUN_LAYOUT: dict[str, str] = {
     "economics/*.tif": "economics.rasters[<basename>] via economics.footprints.json (kind, scenario|pair, estimator, z, sha256)",
     "economics/economics.footprints.json": "economics.association (file + sha256); output_hashes['economics/…']",
     "economics/data_origin.yaml": "output_hashes['economics/data_origin.yaml']; the audit's marker for the economics rasters",
+    "export/<estimator>.surface.json": "surfaces[<estimator>].export (file + sha256); output_hashes['export/…'] — E5.2",
+    "export/<economics raster stem>.json": "economics.rasters[<raster>].export (file + sha256); output_hashes['export/…'] — E5.2",
+    "export/data_origin.yaml": "output_hashes['export/data_origin.yaml']; the audit's marker for the exports",
     "features/stack/*": "NOT hashed per file: identified as one artifact by the stack manifest's content_hash, quoted throughout",
 }
 STACK_DIR = f"{FEATURES_DIR}/stack"
@@ -273,7 +282,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for design, names in failing.items():
         print(f"claim verdict {design}: {'ELIGIBLE' if manifest.claim['verdicts'][design]['eligible'] else 'REFUSED'} "
               f"— failing {names}")
-    print(f"output files  {len(manifest.output_hashes)} hashed + {FEATURES_DIR}/stack/ + run_manifest.json")
+    print(f"output files  {len(manifest.output_hashes)} hashed (incl. {sum(k.startswith('export/') for k in manifest.output_hashes)} under export/) + {FEATURES_DIR}/stack/ + run_manifest.json")
     return 0
 
 

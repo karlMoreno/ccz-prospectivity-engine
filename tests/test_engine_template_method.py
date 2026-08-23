@@ -48,6 +48,7 @@ EXPECTED_ORDER = [
     "economics:STRATEGIC_SUBSIDIZED",
     "economics:write:MARKET_STANDARD",
     "economics:write:STRATEGIC_SUBSIDIZED",
+    "export",  # E5.2: the flat-array exports, after every raster is written and before the record is extended
     "manifest:extend",
 ]
 
@@ -181,6 +182,10 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
             call_order.append(f"economics:{scenario.name}")
             return _StubFootprints(scenario.name)
 
+    def stub_exporter(out_dir, **kwargs):
+        call_order.append("export")
+        return {}
+
     def stub_extender(base, **kwargs):
         call_order.append("manifest:extend")
         return base.model_copy(
@@ -197,7 +202,7 @@ def _engine(call_order: list[str], tmp_path: Path, **overrides) -> Prospectivity
         output_dir=tmp_path, claim_design="leave_one_site_out", seed=42,
         compare_to_ts6_fn=stub_compare, manifest_emitter=stub_emitter, manifest_extender=stub_extender,
         claim_evaluator=stub_claim, surface_builder=stub_builder, surface_writer=stub_writer,
-        footprint_writer=stub_footprint_writer,
+        footprint_writer=stub_footprint_writer, layer_exporter=stub_exporter,
     )
     return ProspectivityEngine(**{**kwargs, **overrides})  # type: ignore[arg-type]
 
@@ -223,6 +228,8 @@ def test_the_claim_guard_runs_on_the_cv_record_before_any_surface_is_built(tmp_p
     _engine(call_order, tmp_path).run()
     assert call_order.index("manifest:emit") < call_order.index("claim:leave_one_site_out") < call_order.index("surfaces:build") < call_order.index("surfaces:write")
     assert call_order.index("surfaces:write") < call_order.index("ts6:compare") < call_order.index("manifest:extend")
+    # E5.2: the export reads written rasters and is verified by the extender — so it sits between them
+    assert call_order.index("economics:write:STRATEGIC_SUBSIDIZED") < call_order.index("export") < call_order.index("manifest:extend")
 
 
 def test_a_claim_design_the_run_did_not_execute_is_refused_by_name(tmp_path: Path) -> None:
