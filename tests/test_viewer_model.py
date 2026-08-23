@@ -261,7 +261,8 @@ def test_the_cdn_pins_are_exact_versions_with_integrity_hashes_equal_to_the_reco
     # the vendored coastline: hash recorded, file present, public domain, cited where a user sees it
     assert file_sha256(WEB_DIR / COASTLINE["file"]) == COASTLINE["sha256"] and (WEB_DIR / COASTLINE["file"]).stat().st_size == COASTLINE["bytes"]
     assert COASTLINE["license"] == "public domain" and "Natural Earth" in COASTLINE["citation"] and COASTLINE["data_origin"] == "LITERATURE"
-    assert "model.attribution.coastline" in page and set(STATIC_FILES) == {"index.html", COASTLINE["file"]}
+    # the coastline's citation reaches the user through the context registry (E5.3 commit 2), beside its checkbox and in the footer
+    assert "layer.attribution_text" in page and set(STATIC_FILES) == {"index.html", COASTLINE["file"]}
 
 
 def test_the_api_serves_the_viewer_model_the_page_and_the_allow_listed_files(production_run: dict) -> None:

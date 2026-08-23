@@ -107,8 +107,10 @@ header was last recounted at E3.3 (49); recounted from the boxes now.
 `data/` requires, found by PROBING the audit on a staged production run —
 including a new observation about the deep unrecorded scan (a QUOTED
 declaration reads as a new use).
-**53 open items** (recounted from the boxes, 2026-08-22): §1 Track G 12, §2
-Karl 6, §3 Engineering 32, §4 Phase-2 risks 0 (both closed), §6 later phases
+1 ADDED at E5.3 commit 2 (2026-08-23): the context-layer data task with its
+two riding decisions (the AOI; the APEIs and exclusions.geojson).
+**54 open items** (recounted from the boxes, 2026-08-23): §1 Track G 12, §2
+Karl 6, §3 Engineering 33, §4 Phase-2 risks 0 (both closed), §6 later phases
 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -2092,6 +2094,35 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   they classify, and the economics exports meet the same
   `author_inherited_from` refusal as the rasters — no new cost, the same one.*
 
+- [ ] **THE CONTEXT-LAYER DATA TASK — download, hash, classify the real
+  layers; two decisions ride on it that are Karl's** (E5.3 commit 2,
+  2026-08-23 — the capability shipped with a FIXTURE, a rectangle that says
+  it is one; the data is deliberately not acquired there). The layers: the
+  CCZ management area (Marine Regions MRGID 64222, layer
+  `MarineRegions:isa_ccz_managementarea`, CC-BY 4.0) and the ISA shapefiles —
+  exploration areas, reserved areas, APEIs (ISA copyright; ISBA/17/LTC/7,
+  ISBA/18/C/22, ISBA/26/C/58, ISBA/26/C/43). Each arrives as a file under
+  `data/context/` (INSIDE the audit's walk: a `.geojson` must declare
+  `data_origin` in-file), its sha256 in `services/api/context.py`'s
+  registry, its citation in `attribution_text` where a user sees it, and its
+  class under the taxonomy DECIDED, not assumed. **Riding decisions (Karl):
+  (i) whether the CCZ polygon resolves the AOI** (§1, Checkpoint 1) — and
+  note the classification question that comes with it: a downloaded, hashed
+  shapefile from an authoritative publisher may be MEASURED (the relation
+  the corpus has to PANGAEA) rather than the LITERATURE the AOI entry
+  assumes, which would take the AOI off the zero-observer class; reasoning
+  recorded, not decided here; **(ii) whether the APEIs populate Contract 2's
+  `exclusions.geojson`** (AUTHORED, `features: []`, asserted EMPTY by E4.1 so
+  the day it is not is visible — the first polygon is a visible refusal in
+  `CutoffEconomicModel` until rasterisation is built). Also measured at
+  E5.3: the CCZ box is ~13.86 M km² against a ~0.41 M km² prediction extent
+  (33.8×; 2.96 %) — drawing the real boundary will show how small the study
+  area is, which is honest and is not to be hidden by adjusting the view.
+  Owner: Karl (acquire + decide) + E (wire). **Trigger: whenever the files
+  are downloaded; before E5.7 ships a public URL with the fixture rectangle
+  still drawn.** Detail: [E5.3.md](walkthroughs/E5.3.md) §3;
+  `services/api/context.py`; `apps/web/context/ccz_management_area_FIXTURE.geojson`.
+
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
 - [x] **Variogram support gap — CONFRONTED at E2.2, re-dispositioned at the
@@ -2180,8 +2211,14 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   (the quantile-forest precedent, E2.3); `apps/web/*.html` is outside the
   audit's walk. A build step, if one ever becomes unavoidable, is a stack
   decision to STOP on, not an implementation detail. **Still open inside this
-  decision:** the basemap tile source — a third external dependency with its
-  own licence, attribution and uptime (E5.3 names it). Where the decision
+  decision — CLOSED at E5.3 (Karl, 2026-08-23): NO TILE BASEMAP.** Zero Natural
+  Earth coastline features intersect the study extent (nearest coast 10.4°
+  away), so a tile service would render ocean and buy an uptime dependency, a
+  licence and a runtime fetch for nothing; the page draws a dark background, a
+  graticule and the VENDORED public-domain Natural Earth 110m coastline
+  (`apps/web/ne_110m_coastline.geojson`, sha256 in `services/api/web.py`).
+  *(was: the basemap tile source — a third external dependency with its
+  own licence, attribution and uptime.)* Where the decision
   lives: the alpha proposal's Phase-5 lane (revised 2026-08-22, tracked at
   E5.1 commit 0), CLAUDE.md's stack list and status line, `apps/web/README.md`.
   Detail: E5.0's §5 report (chat, 2026-08-22; substance in

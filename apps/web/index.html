@@ -54,6 +54,14 @@
   #readout .sem { color: var(--muted); font-size: 11px; }
   #attrib { position: absolute; right: 10px; bottom: 10px; z-index: 5; font-size: 10px; color: var(--muted); background: rgba(11,16,32,.8); padding: 3px 6px; max-width: 45%; text-align: right; }
   .origin { font-size: 11px; color: var(--muted); }
+  /* CONTEXT LAYERS: three states, three treatments (shown / hidden / unavailable) */
+  .ctx { margin: 6px 0; }
+  .ctx label { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: var(--ink); }
+  .ctx.ctx-shown label { color: var(--ink); }
+  .ctx.ctx-hidden label { color: var(--muted); }
+  .ctx.ctx-unavailable label { color: #c98a8a; text-decoration: line-through; }
+  .ctx .cite { font-size: 10px; color: var(--muted); margin-left: 20px; }
+  .ctx .swatch-line { display: inline-block; width: 18px; border-top: 2px solid #fff; margin-top: 8px; }
   .warn { color: #ffd27a; }
 </style>
 </head>
@@ -68,6 +76,8 @@
     <div id="layer-facts" class="origin"></div>
     <h2>Stations</h2>
     <div id="stations" class="origin"></div>
+    <h2>Context</h2>
+    <div id="context" class="origin">loading context layers…</div>
   </aside>
   <div id="map">
     <div id="banner"></div>
@@ -85,7 +95,7 @@
   const banner = (text, info) => { const b = $("banner"); b.textContent = text; b.className = info ? "info" : ""; b.style.display = text ? "block" : "none"; };
   const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
 
-  // ---- map: dark background + graticule + the vendored coastline (no tile service)
+  // ---- map: dark background + graticule; context geometry arrives from the registry (no tile service)
   const graticule = { type: "FeatureCollection", features: [] };
   for (let lon = -180; lon <= 180; lon += 5) graticule.features.push({ type: "Feature", properties: { v: lon }, geometry: { type: "LineString", coordinates: [[lon, -85], [lon, 85]] } });
   for (let lat = -80; lat <= 80; lat += 5) graticule.features.push({ type: "Feature", properties: { v: lat }, geometry: { type: "LineString", coordinates: [[-180, lat], [180, lat]] } });
@@ -93,14 +103,10 @@
     container: "map",
     style: {
       version: 8,
-      sources: {
-        coast: { type: "geojson", data: `${api}/web/ne_110m_coastline.geojson` },
-        grat: { type: "geojson", data: graticule },
-      },
+      sources: { grat: { type: "geojson", data: graticule } },
       layers: [
         { id: "bg", type: "background", paint: { "background-color": "#0b1020" } },
         { id: "grat", type: "line", source: "grat", paint: { "line-color": "#1e2745", "line-width": 0.6 } },
-        { id: "coast", type: "line", source: "coast", paint: { "line-color": "#d0d6e6", "line-width": 0.8 } },
       ],
     },
     center: [-121.5, 13.0], zoom: 4.2,
@@ -109,6 +115,47 @@
   map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
   const overlay = new deck.MapboxOverlay({ layers: [] });
   map.addControl(overlay);
+
+  // ---- CONTEXT LAYERS: not run artifacts (GET /context, apart from every run). Outline only —
+  // never a fill, never a ramp — with the citation beside the checkbox; three states:
+  // shown / hidden (off is not gone) / unavailable (the file could not be fetched).
+  const contextState = {};
+  async function loadContext() {
+    const host = $("context");
+    let reg;
+    try { reg = await (await fetch(`${api}/context`)).json(); }
+    catch (err) { host.textContent = `context layers unavailable: cannot reach ${api || location.origin}/context`; return; }
+    host.innerHTML = "";
+    const attrib = [];
+    for (const layer of reg.layers) {
+      const id = `ctx-${layer.id}`;
+      let state = "unavailable";
+      try {
+        const r = await fetch(`${api}${layer.url}`);
+        if (r.ok) {
+          const geo = await r.json();
+          map.addSource(id, { type: "geojson", data: geo });
+          map.addLayer({ id, type: "line", source: id, paint: { "line-color": layer.style.color, "line-width": layer.style.width } });  // OUTLINE, no fill
+          state = layer.default_on ? "shown" : "hidden";
+          map.setLayoutProperty(id, "visibility", state === "shown" ? "visible" : "none");
+        }
+      } catch (err) { state = "unavailable"; }
+      contextState[layer.id] = state;
+      const row = document.createElement("div"); row.className = `ctx ctx-${state}`;
+      const lab = document.createElement("label");
+      const box = document.createElement("input"); box.type = "checkbox"; box.checked = state === "shown"; box.disabled = state === "unavailable";
+      box.onchange = () => { const st = box.checked ? "shown" : "hidden"; contextState[layer.id] = st; map.setLayoutProperty(id, "visibility", st === "shown" ? "visible" : "none"); row.className = `ctx ctx-${st}`; note.textContent = reg.states[st]; };
+      const sw = document.createElement("span"); sw.className = "swatch-line"; sw.style.borderTopColor = layer.style.color;
+      const txt = document.createElement("span"); txt.textContent = `${layer.title} · origin ${layer.data_origin}`;
+      lab.append(box, sw, txt); row.appendChild(lab);
+      const cite = document.createElement("div"); cite.className = "cite"; cite.textContent = layer.attribution_text; row.appendChild(cite);
+      const note = document.createElement("div"); note.className = "cite"; note.textContent = reg.states[state]; row.appendChild(note);
+      host.appendChild(row);
+      attrib.push(layer.attribution_text);
+    }
+    $("attrib").textContent = [...attrib, ...(model ? model.attribution.libraries : [])].join(" · ");
+  }
+  map.on("load", loadContext);
 
   // ---- the presentation model
   let model = null, current = null, data = null;  // `cell` below: the one canonical cell selected
@@ -125,7 +172,7 @@
   }
   if (!model.n_layers) { banner(model.messages.no_layers); return; }
   $("run-meta").textContent = `run ${model.run_id} · ${model.content_hash.slice(0, 19)}… · run origin ${model.run_data_origin}`;
-  $("attrib").textContent = [model.attribution.coastline, ...model.attribution.libraries].join(" · ");
+  if (!$("attrib").textContent) $("attrib").textContent = model.attribution.libraries.join(" · ");  // context layers add their own citations when they load
 
   // ---- controls, BUILT FROM THE MODEL: one <select> per declared axis. The page holds ONE
   // canonical cell; every option's state comes from that cell's precomputed `neighbours`

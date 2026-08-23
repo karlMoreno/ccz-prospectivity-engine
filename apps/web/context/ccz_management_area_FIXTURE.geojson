@@ -1,0 +1,43 @@
+{
+ "type": "FeatureCollection",
+ "data_origin": "AUTHORED",
+ "author": "model",
+ "title": "FIXTURE \u2014 rectangular stand-in at the CCZ management area's approximate extent (NOT the boundary)",
+ "note": "A placeholder so the context-layer capability (E5.3 commit 2) ships with something to draw. The real layer is Marine Regions MRGID 64222 (MarineRegions:isa_ccz_managementarea, CC-BY 4.0), downloaded, hashed and classified in its own task (BACKLOG \u00a73). This rectangle spans the published approximate extent 0\u201323.5\u00b0N, 160\u2013111.4\u00b0W and nothing about its shape is real.",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "CCZ management area \u2014 FIXTURE rectangle",
+    "fixture": true
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -160.0,
+       0.0
+      ],
+      [
+       -111.4,
+       0.0
+      ],
+      [
+       -111.4,
+       23.5
+      ],
+      [
+       -160.0,
+       23.5
+      ],
+      [
+       -160.0,
+       0.0
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

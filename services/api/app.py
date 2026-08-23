@@ -21,6 +21,7 @@
     GET /runs/{run_id}/files/{key}     ONLY a key in output_hashes; ETag = the recorded sha256
     GET /runs/{run_id}/viewer          THE PRESENTATION MODEL (E5.3; viewer_model.py — the named exception)
     GET /  ·  GET /web/{name}          the static viewer page and its allow-listed files (apps/web/)
+    GET /context · /context/{id}       CONTEXT LAYERS (E5.3 commit 2; context.py) — not run artifacts
 
 THREE RULES, each structural rather than a convention:
 
@@ -69,6 +70,7 @@ from fastapi.responses import FileResponse, Response
 from engine.prospectivity.domain.results import RunManifest
 from engine.prospectivity.harness import STACK_DIR
 from services.api.catalog import build_catalog
+from services.api.context import STATES as CONTEXT_STATES, context_file, verify_context_layers
 from services.api.viewer_model import build_viewer_model
 from services.api.web import INDEX_HTML, STATIC_FILES, WEB_DIR, attribution
 
@@ -170,6 +172,7 @@ def create_app(runs_root: Path | str | None = None) -> FastAPI:
     if str(root) in ("", "."):
         raise NotARun(f"no runs root: pass one to create_app() or set {RUNS_ROOT_ENV}")
     runs = load_runs(root)  # refused here, at construction — never an empty catalog
+    context_layers = verify_context_layers()  # E5.3 commit 2: every registered file present and hashing as recorded
 
     app = FastAPI(
         title="CCZ prospectivity engine — read-only run API",
@@ -238,6 +241,21 @@ def create_app(runs_root: Path | str | None = None) -> FastAPI:
         model = build_viewer_model(_run(run_id).catalog)
         model["attribution"] = attribution()
         return model
+
+    @app.get("/context")
+    def context() -> dict:
+        """CONTEXT LAYERS (E5.3 commit 2; context.py): geometry that is not a run
+        artifact, served apart from every run with its own origin and citation."""
+        return {"layers": context_layers, "states": CONTEXT_STATES,
+                "note": "not catalog entries: no run produced them, so they carry no coordinates, no watermark and no verdict — their own origin and citation instead"}
+
+    @app.get("/context/{layer_id}")
+    def context_geometry(layer_id: str) -> FileResponse:
+        try:
+            path, digest = context_file(layer_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"no context layer {layer_id!r}; registered: {[l['id'] for l in context_layers]}") from None
+        return FileResponse(path, media_type="application/geo+json", headers={"ETag": f'"{digest}"', "X-Content-Hash": digest})
 
     @app.get("/")
     def index() -> FileResponse:
