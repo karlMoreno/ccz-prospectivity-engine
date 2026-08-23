@@ -177,9 +177,15 @@ while economics stays, `EXPECTED_VERDICT_SETS` may move (update
 deliberately), and `DemGrid.load`'s south-up assertion (one line, BACKLOG)
 is due BEFORE the new DEM enters.
 
-## Untracked files, known and deliberate
+## Tracked at the last minute — and one caveat that rides on it
 
-`demo.py` (Karl's Phase-1 walkthrough — referenced by README, his to
-commit), `Proposals and contract V3/CCZ-...-Commercial-Improvement-Proposal.md`
-(Karl's), `scratch/` (Karl's), `.claude/launch.json` (dev server config,
-machine-specific paths). `deploy/run/` is gitignored by design.
+Karl committed the previously-untracked set himself during this session's
+usage-limit gap (`58b6b8e "Demo phase2"`): `demo.py`, the commercial
+improvement proposal, `scratch/`, and `.claude/launch.json`. **The caveat:**
+the tracked `launch.json` contains ABSOLUTE `/private/tmp/...` scratchpad
+paths (the `api-viewer` runs root and the `deployed` rehearsal root) that
+exist only for the session that wrote them — on a fresh boot or another
+machine those configs point at nothing and the dev servers will refuse to
+start (correctly, by the not-a-run refusal). Fix when next touched: point
+them at `outputs/demo/runs` (which `demo_alpha.py` produces) or re-generate.
+`deploy/run/` is gitignored by design and stays so.
