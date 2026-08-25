@@ -66,9 +66,24 @@ verified in the shipped `GEBCO_Grid_terms_of_use.pdf`): the grid is
 to bathymetric data" and "GEBCO considers the GEBCO Grid to be an
 information product"; GEBCO "does not provide the underlying source
 bathymetric data"; resolution "may be significantly different" from the
-measured data's. One licence-summary phrase in the prompt did NOT verify:
+measured data's. ~~One licence-summary phrase in the prompt did NOT verify:
 "must not mislead" — the actual terms say *must not suggest official status
-or IHO/IOC/GEBCO endorsement*; the ledger row records the verified wording.
+or IHO/IOC/GEBCO endorsement*; the ledger row records the verified wording.~~
+**CORRECTED AT THE G.3 APPROVAL (2026-08-24): the struck sentence is FALSE —
+a correction that OVERSHOT.** The terms' "Users must" list has THREE
+obligations, and the third is "Not mislead others or misrepresent The GEBCO
+Grid or its source" — verbatim in the terms PDF AND §7.2 of the
+documentation, both checked at the approval with a full-text extraction.
+G.3's extractor (a regex over Tj/TJ operators) silently dropped that span,
+and the check concluded the obligation was ABSENT when a paraphrase was
+merely INEXACT — the instrument was the defect (the check itself is in
+scope). The ledger row now carries all three; until this correction it
+carried an INCOMPLETE LICENCE RECORD — the class of defect this project
+exists to refuse, and the clause that went missing is the one about not
+misrepresenting the source. A licence obligation recorded nowhere cannot be
+honored by anyone reading the record. Correction-drift instance (o) in
+CLAUDE.md's table: a verification that finds a paraphrase inexact and
+infers the underlying fact is absent.
 The 73.146%-predicted TID composition corroborates the class independently.
 
 **The evidence rule fits without strain.** DERIVED's evidence is "a
@@ -140,6 +155,19 @@ which runs everywhere, rasters or not.
   serve the 2026 release. If that conditionality is unacceptable for the
   alpha's reproducibility claim, LFS is the upgrade path; nothing in this
   commit forecloses it.
+
+**Recorded at the approval (2026-08-24): this decision was FORECLOSED, not
+judged.** The prompt posed commit-vs-LFS-vs-fetch as a trade-off; GitHub's
+100 MiB hard push limit forecloses COMMIT outright (the 144 MB raster would
+break every future push, including the pending CP5a push), and the repo's
+Phase-0 rule forecloses it a second time. A decision posed as a trade-off
+had an external hard constraint the planning side had not checked — the
+premise-failure shape, one level up: a question framed without verifying
+the environment it lands in. **The LFS-upgrade trigger, so it is not
+re-derived later:** a failed or hash-mismatched re-download of the 2026
+release (GEBCO no longer serving it byte-identically), or a reproducibility
+reviewer requiring bytes-with-clone. Either fires the upgrade; nothing else
+does.
 
 ## §2 — Commit 2: the TID accounting (`data/bathymetry/tid_accounting.json`)
 

@@ -136,9 +136,20 @@ bathymetry HALF is decided (DERIVED) and its box stays open for the
 deepdata half; the G.0-2 sequence box stays open for the CP1 re-run. Also
 at G.3: the Phase-0 gitignore tif rules had matched NOTHING (trailing
 comments are part of a gitignore pattern) — fixed, proven by check-ignore.
-**58 open items** (recounted from the boxes, 2026-08-24, G.3): §1 Track G
-17, §2 Karl 5, §3 Engineering 33, §4 Phase-2 risks 0 (both closed), §6
-later phases 3. §5 is fully closed.
+1 ADDED at the G.3 approval (2026-08-24): §3's configs-the-suite-never-
+exercises entry — the class named in CLAUDE.md at ×3 (ci.yml/E5.6, the
+gitignore tif rules/G.3, `.claude/launch.json` — whose fix had lived only
+in the Phase-5 handoff, an open item outside this file, against its own
+rule). Same commit: the ledger row's licence record CORRECTED to carry all
+THREE of the terms' obligations (the missing one: "Not mislead others or
+misrepresent The GEBCO Grid or its source") — G.3's own correction had
+OVERSHOT, inferring absence from an inexact paraphrase; correction-drift
+instance (o), the count derived. No contract version bump: a value/comment
+fill within an existing entry, the same class as the original
+fill-on-download.
+**59 open items** (recounted from the boxes, 2026-08-24, G.3 approval): §1
+Track G 17, §2 Karl 5, §3 Engineering 34, §4 Phase-2 risks 0 (both
+closed), §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -2326,6 +2337,40 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   the day the facts change. Owner: E. **Trigger: CP1, CP3 or CP4 landing —
   any checkpoint that lifts a reason — and CP5b before the launch URL is
   shared.** Detail: [E5.6-7.md](walkthroughs/E5.6-7.md) §2; `deploy/README.md`.
+
+- [ ] **CONFIGS THE SUITE NEVER EXERCISES** (entered at the G.3 approval,
+  2026-08-24; the class is in CLAUDE.md's defect table at ×3 — ci.yml until
+  E5.6, the gitignore tif rules until G.3, `.claude/launch.json` still).
+  A config file is code that nothing executes in CI: a rule that silently
+  matches nothing is indistinguishable from one that works. The remedy with
+  a record of working is making the SUITE exercise the config the way its
+  consumer does (`test_ci_job.py` parses the workflow). The residue, found
+  by the approval's scan and deliberately NOT fixed in that commit:
+  * **.gitignore's load-bearing rules have no suite observer** — G.3's fix
+    was proven by a ONE-TIME manual `check-ignore`, not by a test; a suite
+    test asserting `git check-ignore` on representative paths
+    (`data/bathymetry/x.tif`, `data/ts6/x.tif`, `outputs/x`, `deploy/run/x`)
+    would make the next trailing-comment regression visible.
+  * **`.claude/launch.json` carries absolute session-scratchpad paths**
+    (committed at `58b6b8e`) that exist on no other machine — the dev
+    servers refuse on a fresh boot (correctly, by the not-a-run refusal).
+    Fix when next touched: point at `outputs/demo/runs` (which
+    `demo_alpha.py` produces) or regenerate. *This open item previously
+    lived ONLY in the Phase-5 handoff — an open item outside this file,
+    against its own rule; landed here at the G.3 approval.*
+  * **The Dockerfile build is untested** — not built in CI, daemon absent
+    at E5.7 (recorded honestly there); first exercised whenever Karl builds
+    the image for CP5a. If CP5a closes without CI ever building it, decide
+    whether a build-only job is worth its minutes.
+  * **ci.yml's action pins** (`actions/checkout@v4`, `setup-python@v5`)
+    resolve only on GitHub's runners; `test_ci_job.py` parses structure,
+    not pin validity. Residual, low: a bad pin fails loudly on the next
+    push. Owner: E (+ Karl for launch.json's intended paths). Trigger: the
+    next touch of each config; the gitignore test any time, cheap.
+  Not exercised-in-CI but NOT in the class: `pyproject.toml` (pip and
+  pytest consume it in CI on every run — the consumer executes it where
+  the suite lives); the data contracts (parse tests exist). No
+  `.gitattributes` exists.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

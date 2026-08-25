@@ -262,12 +262,20 @@ sources:
     evidence_classes: []                        # covariate raster, not an observation
     primary_use: COVARIATE
     is_open: true                               # PUBLIC GEBCO-class, NOT DeepData confidential bathy
-    # Verified against the shipped terms PDF (G.3): free to copy, publish,
-    # distribute, transmit and commercially exploit; must acknowledge the
-    # source in the stated attribution form; must not use in a way that
-    # suggests official status or IHO/IOC/GEBCO endorsement; NOT for
-    # navigation or any purpose involving safety at sea.
-    license: "GEBCO terms of use (public, redistribution permitted with attribution — see comment)"
+    # Verified against the shipped terms PDF (G.3; CORRECTED at the G.3
+    # approval, 2026-08-24 — the record below had TWO obligations where the
+    # terms state THREE; the missing one is the clause about not
+    # misrepresenting the source, and a licence obligation recorded nowhere
+    # cannot be honored by anyone reading the record). Users are free to
+    # copy, publish, distribute, transmit and commercially exploit. Users
+    # MUST, all three verbatim in the terms PDF and §7.2 of the
+    # documentation: (1) acknowledge the source in the stated attribution
+    # form; (2) not use The GEBCO Grid in a way that suggests any official
+    # status or that GEBCO, the IHO or IOC endorses any particular
+    # application; (3) NOT MISLEAD OTHERS OR MISREPRESENT THE GEBCO GRID OR
+    # ITS SOURCE. Also: NOT for navigation or any purpose involving safety
+    # at sea.
+    license: "GEBCO terms of use (public; redistribution and commercial use permitted; three obligations — attribution, no implied endorsement, no misrepresentation of the Grid or its source — see comment)"
     sampled_area_m2: null                       # not a sampler
     derivation: >-
       Publisher's (GEBCO Compilation Group): global bathymetric grid
