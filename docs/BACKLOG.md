@@ -126,9 +126,19 @@ Two stale detail refs corrected against the files, scoped to the claims
 verified: the normalization.yaml slots are at :67/:103/:123 (the entry said
 :50/:86/:101) and the [18] guard anchor is corpus_builder.py:256–291 (the
 entry said #L200, which now lands in [05]'s docstring).
-**61 open items** (recounted from the boxes, 2026-08-23, G.0): §1 Track G
-18 (12 + the 6 sequence entries), §2 Karl 6, §3 Engineering 34, §4 Phase-2
-risks 0 (both closed), §6 later phases 3. §5 is fully closed.
+3 CLOSED at G.3 (2026-08-24), each on its original box: §1 GEBCO (delivered
+— GEBCO_2026 + TID, DERIVED, the ledger row the committed record; the
+harness NOT run, CP1 blocked on G.0-step0 by the clock), §2 GEBCO-TID (the
+accounting artifact; no training-matrix mask needed — all 35 stations on
+multibeam, the per-cluster confound refuted), §3 DemGrid south-up (both
+refusals, mutation-verified). The §2 classify-context-sources entry's
+bathymetry HALF is decided (DERIVED) and its box stays open for the
+deepdata half; the G.0-2 sequence box stays open for the CP1 re-run. Also
+at G.3: the Phase-0 gitignore tif rules had matched NOTHING (trailing
+comments are part of a gitignore pattern) — fixed, proven by check-ignore.
+**58 open items** (recounted from the boxes, 2026-08-24, G.3): §1 Track G
+17, §2 Karl 5, §3 Engineering 33, §4 Phase-2 risks 0 (both closed), §6
+later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
 
@@ -181,7 +191,13 @@ precedes ANY real-data run** — the pre-registration clock
   fix (§3) lands BEFORE the DEM enters. Consolidates by pointer: the
   GEBCO entry below, the §2 GEBCO-TID entry, the covariates.yaml
   questions below. Owner: Karl (as G) [mechanical; the classification
-  judgment]. Trigger: after G.0-0 and G.0-1.
+  judgment]. Trigger: after G.0-0 and G.0-1. *ACQUISITION HALF DONE at G.3
+  (2026-08-24): files delivered, DERIVED declared, ledger row filled, TID
+  accounting produced, DemGrid assertion landed — G.3.md. Karl sequenced
+  the download before G.0-0/G.0-1 (the downloaded box is a SUPERSET of any
+  plausible AOI, so the AOI decision is deferred, not violated). This box
+  stays open for the CP1 re-run, which remains BLOCKED on G.0-step0 (the
+  thresholds — `acceptance_thresholds.value` is null, checked at G.3).*
 - [ ] **G.0-3 — the digitized TS-6 surface → Checkpoint 3.** Contract 6
   v4's six nulls as a procedure: product choice, a re-runnable
   `digitization_method` (DERIVED's evidence), `digitization_uncertainty`
@@ -310,12 +326,22 @@ precedes ANY real-data run** — the pre-registration clock
   *(ref corrected at G.0, 2026-08-23: the old #L200 anchor now lands in
   [05]'s docstring)*;
   [ts6_reference.yaml:51](../data/ts6/ts6_reference.yaml#L51)–82; E1.3.md §15.
-- [ ] **Real GEBCO bathymetry (G1.1).** Synthetic DEM everywhere until
+- [x] **Real GEBCO bathymetry (G1.1) — DELIVERED at G.3 (2026-08-24).**
+  GEBCO_2026 CCZ subset (N25/S0/W-160/E-110, 15 arc-sec) + its TID
+  companion, in `data/bathymetry/` (rasters untracked per the Phase-0 rule
+  — whose gitignore pattern had matched NOTHING since Phase 0, trailing
+  comments; fixed and proven at G.3). The ledger row is the committed
+  record: DERIVED by GEBCO's own "information product" wording, both
+  sha256s, the subset bbox, licence verified against the shipped terms PDF.
+  **The synthetic DEM remains the CI DEM and the harness has NOT run on the
+  real files — CP1 is blocked on G.0-step0 (thresholds), by the clock.**
+  *(original entry)* Synthetic DEM everywhere until
   Checkpoint 1; `src_bathymetry_primary`'s title/license are `null`. The
   metre-based windows (Contract 3 v3) only resolve unclamped on the real
   DEM. Owner: Karl (as G; G.0-2 — a public download, mislabelled a
   deliverable since Phase 0). Trigger: Checkpoint 1. Detail:
   [data/bathymetry/README.md](../data/bathymetry/README.md);
+  [G.3.md](walkthroughs/G.3.md);
   [source_queue.yaml:205](../data/sources/source_queue.yaml#L205), :227.
 - [ ] **Geographic spread over row count.** The corpus is two clusters of
   ~12 km extent separated by ~991 km. When queueing further Phase-A sources,
@@ -440,7 +466,14 @@ precedes ANY real-data run** — the pre-registration clock
   precision), so full float precision lands in the corpus CSV. Decide
   whether the contract should state a precision. Owner: Karl (contract
   change if yes). Trigger: before a published corpus. Detail: E1.2.md:153.
-- [ ] **Classify the two context sources under the origin taxonomy.**
+- [ ] **Classify the two context sources under the origin taxonomy —
+  BATHYMETRY HALF DECIDED at G.3 (2026-08-24): DERIVED**, by GEBCO's own
+  "information product" wording (neither of this entry's two candidate
+  labels; the row's comment carries the reasoning, the terms PDF is tracked
+  as the evidence). The Checkpoint-1 watermark will derive from DERIVED.
+  **The `src_deepdata_public_context` half stays OPEN** (G.0-1's riding
+  decision — the MEASURED-not-LITERATURE question for a hashed download
+  from an authoritative publisher). *(original entry)*
   `src_bathymetry_primary` (GEBCO-class bathymetry: MEASURED survey product
   vs LITERATURE compiled grid — it interpolates between soundings) and
   `src_deepdata_public_context` (published regulatory polygons). Both carry
@@ -449,7 +482,7 @@ precedes ANY real-data run** — the pre-registration clock
   comments; the bathymetry decision drives Checkpoint-1 watermark derivation
   (P2.0d derives the watermark from the DEM's declared origin). Owner: Karl
   (+ G). Trigger: at download / before Checkpoint 1. Detail: walkthrough
-  P2.0.md §c.
+  P2.0.md §c; [G.3.md](walkthroughs/G.3.md) §1.
 - [ ] **Contract `change_class` — the version scheme cannot say
   "nothing changed".** `*_version` means both "the structure changed" and
   "re-sync at the next checkpoint": P2.0c bumped SEVEN contracts for zero
@@ -462,7 +495,19 @@ precedes ANY real-data run** — the pre-registration clock
   existing nowhere in the repo; it now does.) Detail:
   [docs/contracts/README.md](../docs/contracts/README.md) shared P2.0c note;
   walkthrough P2.0.md §c.
-- [ ] **GEBCO is not uniformly MEASURED — the classification may be
+- [x] **GEBCO is not uniformly MEASURED — CLOSED at G.3 (2026-08-24), all
+  three asks done:** RECORDED (the TID grid delivered and hashed beside the
+  bathymetry, its own DERIVED declaration); ASSESSED
+  (`data/bathymetry/tid_accounting.json`: study extent 45.131% direct /
+  54.869% predicted over a strongly bimodal survey-block field, per-row
+  distribution shipped, swath-edge adjacencies counted); DECIDED (the
+  file-level class is DERIVED — the per-cell distinction lives in the
+  accounting artifact, machine-readable for the honesty surface; and **no
+  training-matrix TID mask is needed for the current corpus** — all 35
+  training stations, both clusters, sit on TID 11 multibeam, so nothing
+  mixes predicted and sounded cells in the matrix; the 54.9%-predicted
+  caveat belongs to the SURFACES and rides the artifact). *(original
+  entry)* **the classification may be
   per-cell, and the Phase-2 consequence matters more than the label.**
   GEBCO's global grid mixes shipborne soundings with depth PREDICTED from
   satellite altimetry, and much of the abyssal CCZ is the latter; GEBCO
@@ -1884,8 +1929,14 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   failure is the re-report trigger, not a defect. Owner: E. Trigger:
   Checkpoint 1 (real GEBCO wired). Detail: E2.0.md §E2.0-2/§E2.0-3 +
   closeout.
-- [ ] **`DemGrid.load` accepts rotated and south-up geotransforms it cannot
-  handle** (found by the E2.0-2 adversarial review's probes; pre-existing
+- [x] **`DemGrid.load` accepts rotated and south-up geotransforms — CLOSED
+  at G.3 commit 3 (2026-08-24), before any real DEM is loaded:** both
+  refusals in `load()` (rotation/shear naming b and d; south-up naming the
+  orientation), two constructed refusal tests plus a self-activating check
+  that the real GEBCO subset's transform satisfies the predicate;
+  mutation-verified (both refusals deleted → exactly the two named tests
+  fail). *(original entry)* (found by the E2.0-2 adversarial review's
+  probes; pre-existing
   in committed code, deliberately not fixed inside E2.0-2's scope). A
   rotated EPSG:4326 transform (shear terms non-zero) loads without
   complaint, `res_x/res_y` look normal, and every downstream geolocation is

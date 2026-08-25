@@ -128,6 +128,30 @@ class DemGrid:
                     "for the approved CRS strategy"
                 )
             transform = dataset.transform
+            # AXIS-ALIGNED NORTH-UP ONLY (G.3 commit 3; BACKLOG §3 entry from
+            # the E2.0-2 adversarial review, open since then). Everything
+            # below ASSUMES it: `res_y_deg = -transform.e` needs e < 0, and
+            # `lat_per_row` walks north-to-south from transform.f. A rotated
+            # transform loaded silently with normal-looking res values and
+            # every geolocation wrong (the review's probe: extraction and
+            # rasterio disagreed (5,5) vs (5,4)); a south-up one died later in
+            # the windowed recipes blaming "window_m and cell_size_m must be
+            # positive" — the wrong thing by name. A downloaded global-product
+            # subset is exactly the input that could arrive with an unexpected
+            # transform; today's GEBCO_2026 subset is north-up and shear-free
+            # (verified at G.3), so this is the observer for tomorrow's file.
+            if transform.b != 0.0 or transform.d != 0.0:
+                raise ValueError(
+                    f"DemGrid requires an axis-aligned geotransform; got rotation/shear "
+                    f"terms b={transform.b}, d={transform.d}. Per-row longitude scaling "
+                    "(strategy A) has no meaning on a rotated grid."
+                )
+            if transform.a <= 0.0 or transform.e >= 0.0:
+                raise ValueError(
+                    f"DemGrid requires north-up orientation (x-step > 0, y-step < 0); got "
+                    f"a={transform.a}, e={transform.e}. A south-up raster would silently "
+                    "flip every latitude — re-export it north-up rather than loading it."
+                )
             values = dataset.read(1).astype(np.float64)
 
         res_x_deg = transform.a

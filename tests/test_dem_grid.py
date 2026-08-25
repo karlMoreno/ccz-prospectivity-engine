@@ -164,3 +164,57 @@ def test_from_terrain_layer_is_what_the_engine_seam_produces(tmp_path: Path) -> 
 
     grid = DemGrid.from_terrain_layer(layer)
     assert grid.content_hash == DemGrid.load(dem_path).content_hash
+
+
+# ── G.3 commit 3: the axis-aligned/north-up assertion (BACKLOG §3, E2.0-2) ──
+
+
+def _write_with_transform(tmp_path: Path, transform) -> Path:
+    import rasterio
+
+    path = tmp_path / "odd.tif"
+    with rasterio.open(
+        path, "w", driver="GTiff", height=6, width=4, count=1,
+        dtype="float32", crs="EPSG:4326", transform=transform,
+    ) as dst:
+        dst.write(np.full((6, 4), -4200.0, dtype="float32"), 1)
+    return path
+
+
+def test_a_rotated_transform_is_refused_naming_its_shear_terms(tmp_path: Path) -> None:
+    """The E2.0-2 probe's failure mode: shear terms non-zero loaded silently
+    with normal-looking res values and every geolocation wrong. Now refused
+    at load, with b and d in the message."""
+    from affine import Affine
+
+    rotated = Affine(RES_DEG, 0.003, WEST, 0.003, -RES_DEG, NORTH)
+    with pytest.raises(ValueError, match=r"rotation/shear terms b=0\.003, d=0\.003"):
+        DemGrid.load(_write_with_transform(tmp_path, rotated))
+
+
+def test_a_south_up_transform_is_refused_naming_orientation_not_window_math(tmp_path: Path) -> None:
+    """South-up (e > 0) used to die later in the windowed recipes blaming
+    'window_m and cell_size_m must be positive' — the wrong thing by name.
+    Now refused at load, naming the orientation."""
+    from affine import Affine
+
+    south_up = Affine(RES_DEG, 0.0, WEST, 0.0, RES_DEG, NORTH - 6 * RES_DEG)
+    with pytest.raises(ValueError, match="north-up orientation"):
+        DemGrid.load(_write_with_transform(tmp_path, south_up))
+
+
+def test_the_real_gebco_subset_passes_the_orientation_assertion_whenever_present() -> None:
+    """Today's actual GEBCO_2026 subset satisfies the load-time predicate
+    (verified north-up, shear-free at G.3) — an assertion that happens to
+    pass today is still the observer for tomorrow's file. Checks the SAME
+    predicate DemGrid.load enforces, on the real file's transform via
+    rasterio directly, because DemGrid.load would also read the full 144 MB
+    band. Skips by name when the gitignored raster is absent."""
+    import rasterio
+
+    real = Path(__file__).resolve().parents[1] / "data" / "bathymetry" / "gebco_2026_n25.0_s0.0_w-160.0_e-110.0_geotiff.tif"
+    if not real.is_file():
+        pytest.skip("gitignored GEBCO raster not present locally")
+    with rasterio.open(real) as src:
+        t = src.transform
+    assert t.b == 0.0 and t.d == 0.0 and t.a > 0.0 and t.e < 0.0
