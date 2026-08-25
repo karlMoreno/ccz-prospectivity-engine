@@ -300,6 +300,64 @@ sources:
     citation: "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)"
     notes: "Public global bathymetry (GEBCO). NOT DeepData confidential processed bathymetry. The TID grid is ITS OWN ARTIFACT (provenance metadata about the bathymetry, classified in its own right — both DERIVED, each with its own derivation; see data/bathymetry/data_origin.yaml comments)."
 
+  # -------------------------------------------------------------------------
+  # THE AOI ITSELF (Contract 2). Filled at download, G.2, 2026-08-25.
+  # NOT the same source as src_deepdata_public_context below: this is Marine
+  # Regions' redistribution of the ISBA-document limits (the MANAGEMENT AREA);
+  # that row is ISA DeepData (the APEI / contract polygons, the exclusions
+  # half), still open. Two publishers, two rows — merging them would have left
+  # the APEI source with no row at all.
+  - source_id: src_ccz_boundary_marineregions
+    data_origin: LITERATURE                     # G.2: the artifact is a boundary DECREED in ISBA
+                                                # instruments and digitised from them. NOT MEASURED —
+                                                # nothing in its chain was measured, and the sha256
+                                                # proves only WHICH COPY we hold. NOT DERIVED — that
+                                                # requires MEASURED inputs, and there are none (GEBCO's
+                                                # DERIVED rests on measured soundings; this has no
+                                                # analogue). LITERATURE's evidence rule — a citation
+                                                # that LOCATES the value — is the one that is satisfiable.
+                                                # Karl to confirm; BACKLOG §2's classify-context-sources.
+    title: "Clarion-Clipperton Zone management area (MRGID 64222)"
+    doi: null                                   # the gazetteer entry has no DOI
+    url: "https://www.marineregions.org/gazetteer.php?p=details&id=64222"
+    wfs_request: "https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=MarineRegions:isa_ccz_managementarea&outputFormat=application/json"
+    source_type: polygon
+    evidence_classes: []                        # geometry, not observations
+    primary_use: CONTEXT                        # the AOI denominator; nothing filters on it (G.2-PRE)
+    is_open: true
+    license: "CC-BY-4.0 (Marine Regions); underlying limits are ISA's"
+    sampled_area_m2: null
+    derivation: >-
+      Downloaded verbatim by the WFS request above; preserved unedited at
+      data/aoi/sources/ccz_management_area_mrgid64222.geojson. The Contract 2
+      file data/aoi/study_area.geojson carries THE SAME GEOMETRY with ONLY the
+      properties rewritten (Contract 2 needs area_id/name; the download carries
+      {"dummy": 0, "mrgid": 64222}) — asserted equal by
+      tests/test_study_area_aoi.py, so the edit cannot drift silently.
+    accessed_date: "2026-08-25"
+    content_hash: "sha256:98aa2a83ad5fe0718996756426218265dfd7016b5c53920a6f704c00fb947200"
+    gazetteer_status: "Proposed standard"       # the gazetteer's own word, not ours
+    gazetteer_last_edited: "2023-03-13"         # STALENESS RISK, recorded so it is checkable: the
+                                                # entry cites documents up to ISBA/26/C/58; a later ISA
+                                                # revision would NOT be reflected here and nothing in
+                                                # this repo would notice.
+    authority: >-
+      A REDISTRIBUTION. ISA's own Esri shapefiles at
+      isa.org.jm/exploration-contracts/maps/ are the primary record.
+    citation: >-
+      International Seabed Authority (2023). The geographical limits of the
+      Clarion-Clipperton Zone management area, exploration areas, reserved areas
+      and areas of particular environmental interest (APEIs). ISBA/17/LTC/7,
+      ISBA/18/C/22, ISBA/26/C/58, ISBA/26/C/43.
+    notes: >-
+      MultiPolygon, 2 parts, kept as published: part 0 is a 1.41 km2 triangle
+      touching the main polygon at exactly one point (its own ring-closure
+      vertex) — a digitisation spur at the seam, not an island. Recorded rather
+      than dropped so the geometry still verifies against the source. The file
+      vouches for nothing about itself (properties are {"dummy": 0,
+      "mrgid": 64222}), so this row and the in-file declaration ARE the
+      provenance; there is nothing embedded to cross-check them against.
+
   - source_id: src_deepdata_public_context
     data_origin: null                          # [KARL] classify at download: published regulatory geometry —
                                                # MEASURED portal dataset vs LITERATURE reference product. BACKLOG §2.

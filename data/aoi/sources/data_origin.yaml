@@ -1,0 +1,36 @@
+# Origin sidecar for data/aoi/sources/ (G.2, 2026-08-25).
+#
+# WHY A RAW COPY EXISTS AT ALL. The committed contract file
+# (data/aoi/study_area.geojson) CANNOT be the publisher's bytes: Contract 2
+# requires features[0].properties.area_id (contract_versions.py reads it;
+# StudyArea.from_geojson_feature needs area_id + name) and the WFS response
+# carries {"dummy": 0, "mrgid": 64222}. So the contract file is NECESSARILY an
+# edit of the download, and without the download nothing could check WHICH
+# parts were edited. This file is the check's other half:
+# tests/test_study_area_aoi.py asserts the contract file's geometry equals this
+# file's geometry exactly, so "only the properties were rewritten" is a
+# measured claim rather than a promise.
+#
+# THE HASH IS THE PUBLISHER'S. These bytes are byte-identical to the WFS
+# response (sha256 98aa2a83ad5fe0718996756426218265dfd7016b5c53920a6f704c00fb947200,
+# 44,498 bytes), so a re-fetch can be compared against them. The contract
+# file's hash cannot serve that purpose and is not asked to.
+
+files:
+  ccz_management_area_mrgid64222.geojson:
+    data_origin: LITERATURE
+    citation: >-
+      International Seabed Authority (2023). The geographical limits of the
+      Clarion-Clipperton Zone management area, exploration areas, reserved
+      areas and areas of particular environmental interest (APEIs) —
+      ISBA/17/LTC/7, ISBA/18/C/22, ISBA/26/C/58, ISBA/26/C/43. Digitised and
+      redistributed by Marine Regions (Flanders Marine Institute) as MRGID
+      64222 (https://www.marineregions.org/gazetteer.php?p=details&id=64222),
+      gazetteer status "Proposed standard", entry last edited 2023-03-13,
+      retrieved 2026-08-25 by WFS from geo.vliz.be. Full record incl. the
+      verbatim WFS request, licence and content hash: the
+      src_ccz_boundary_marineregions row in data/sources/source_queue.yaml.
+      LITERATURE and not MEASURED because the artifact is a boundary DECREED
+      in legal instruments and digitised from them — there is no measurement
+      anywhere in its chain, and its sha256 proves only WHICH COPY this repo
+      holds, never that anything was measured.

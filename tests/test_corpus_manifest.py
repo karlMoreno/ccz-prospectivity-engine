@@ -307,15 +307,27 @@ def test_a_placeholder_hash_is_refused_as_not_real_evidence() -> None:
     assert failure is not None and "not a real 64-hex" in failure
 
 
-def test_geometry_records_the_aoi_mismatch_and_the_variogram_support_gap() -> None:
-    """Both facts that previously lived only in audit findings: every row falls
-    outside the placeholder AOI, and the pairwise distances have a ~974 km hole
-    in the middle."""
+def test_geometry_records_aoi_containment_and_the_variogram_support_gap() -> None:
+    """Both facts that previously lived only in audit findings: where the rows
+    sit relative to the AOI, and the ~974 km hole in the pairwise distances.
+
+    RENAMED AND INVERTED AT G.2 (2026-08-25). This asserted `fraction_outside
+    == 1.0` — TRUE of the Phase-0 placeholder (a 2-degree box that missed every
+    station by ~1.1 degrees of LATITUDE) and now false of the real CCZ
+    management area, which contains all 108. The old name said "mismatch",
+    which was the placeholder's property, not a rule; the rule is that the
+    containment count is REPORTED, never enforced (nothing filters on the AOI —
+    `geometry.count_outside_study_area`'s own note says so).
+
+    ZERO IS ASSERTED AS A MEASUREMENT, NOT AN EXPECTATION: a corpus row outside
+    the CCZ management area would be a real finding about the corpus, so this
+    fails loudly rather than being relaxed."""
     _, manifest = build_corpus_with_manifest()
 
     containment = manifest.study_area_containment
-    assert containment["rows_outside_study_area"] == containment["rows_total"] == 108
-    assert containment["fraction_outside"] == 1.0
+    assert containment["rows_total"] == 108
+    assert containment["rows_outside_study_area"] == 0
+    assert containment["fraction_outside"] == 0.0
 
     # The decision-relevant block: the stations that can actually TRAIN, so
     # the pair count must exclude the flagged failed box core.
@@ -362,7 +374,11 @@ def test_manifest_declares_its_contract_versions_and_no_upstream_artifacts() -> 
     assert versions["master_observations_schema_version"] == 5
     assert versions["covariates_registry_version"] == 4
     assert versions["normalization_policy_version"] == 2
-    assert versions["study_area_id"] == "ccz_alpha_aoi"
+    # G.2 (2026-08-25): the Phase-0 placeholder's id gave way to the real
+    # CCZ management area's. Contract 2 has NO version field, so this id and
+    # the content hash beside it are the ONLY signal a consumer gets that the
+    # AOI changed (BACKLOG §2) — which is exactly why it is pinned.
+    assert versions["study_area_id"] == "ccz_management_area"
     # Ingestion is the first stage: raw-download hashes live per source.
     assert manifest.upstream_hashes == {}
     assert manifest.content_hash is not None

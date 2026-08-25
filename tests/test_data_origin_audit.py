@@ -28,10 +28,12 @@ contradictions rather than first-match-wins:
                  source's data_origin (the manifest is the path-bearing
                  projection of the queue entry)
 
-`study_area.geojson` is the one classified file none of the three can reach:
-it is hash-pinned (contract_versions.study_area_content_hash) and its
-declaration lives in the contracts README row — so it appears in EXCLUSIONS
-with exactly that reason, not silently special-cased.
+`study_area.geojson` USED TO BE the one classified file none of the three
+could reach — hash-pinned, declared only in the contracts README row, and so
+listed in EXCLUSIONS. G.2 (2026-08-25) closed that gap: the real CCZ polygon
+replaced the placeholder, which moved the hash regardless, so the in-file
+marker became free. It now resolves through form 1 like any other .geojson,
+and its EXCLUSIONS entry is gone.
 """
 
 from __future__ import annotations
@@ -77,12 +79,15 @@ MIN_DETERMINISM_BASIS_CHARS = 40
 # pattern lets a subtree go dark, the coverage-that-isn't shape three Phase-1
 # audits kept finding. A stale entry (file gone) or a shadowing entry (file
 # actually classified) fails its own hygiene test below.
+# G.2 (2026-08-25) REMOVED study_area.geojson's entry. Its reason was "an
+# in-file marker would move the recorded hash" — true, and it stopped being a
+# cost at the one moment the file was replaced outright (placeholder -> the real
+# CCZ management area), which moved the hash anyway. The file now carries an
+# in-file `data_origin` (a foreign member, RFC 7946 §6.1, precedented by
+# exclusions.geojson beside it) that `_in_file_declaration` reaches like any
+# other .geojson, so keeping the entry would trip this module's own
+# never-shadow-a-classification hygiene test.
 EXCLUSIONS: dict[str, str] = {
-    "data/aoi/study_area.geojson": (
-        "hash-pinned (contract_versions.study_area_content_hash); origin "
-        "declared in docs/contracts/README.md contract-2 row (AUTHORED, "
-        "author: unrecorded); an in-file marker would move the recorded hash"
-    ),
     "data/bathymetry/README.md": (
         "documentation prose, no data values (audit §3); the directory is "
         "reserved for real GEBCO at Checkpoint 1"
@@ -749,13 +754,26 @@ def test_the_screening_node_declaration_is_resolved_and_carries_its_citation() -
     assert "Table 2" in (declaration.citation or "")
 
 
-def test_the_readme_row_declaration_for_study_area_is_pinned() -> None:
-    """study_area.geojson's declaration lives in prose (the contracts README
-    contract-2 row) because the file is hash-pinned — so the prose is pinned
-    here, or it could drift or vanish with the suite green."""
+def test_the_readme_row_declaration_for_study_area_matches_the_file() -> None:
+    """The README's contract-2 origin row and study_area.geojson's OWN in-file
+    declaration must agree.
+
+    Until G.2 the README row WAS the declaration (the file carried no marker
+    and sat in EXCLUSIONS), so this test pinned the prose alone. Now the file
+    declares itself and the resolver reaches it — which makes prose that
+    disagrees with the file worse than prose that drifts, because a reader has
+    two answers and no way to tell which the audit uses. So this asserts
+    AGREEMENT, reading the origin out of the file rather than restating it:
+    hardcoding "LITERATURE" on both sides would pass if both were wrong
+    together."""
     readme = (REPO_ROOT / "docs" / "contracts" / "README.md").read_text()
-    assert "study_area.geojson — data_origin: AUTHORED" in readme
-    assert "author: unrecorded (it also self-marks" in readme
+    declaration = _in_file_declaration(REPO_ROOT, "data/aoi/study_area.geojson")
+    assert declaration is not None, "study_area.geojson lost its in-file declaration"
+    assert f"study_area.geojson — data_origin: {declaration.data_origin}" in readme
+    # LITERATURE's evidence rule is the citation, so the README must carry the
+    # locator too — not merely the label.
+    assert "ISBA/17/LTC/7" in readme and "ISBA/17/LTC/7" in (declaration.citation or "")
+    assert "MRGID 64222" in readme
 
 
 def test_unrecorded_scan_extras_carry_valid_declarations() -> None:

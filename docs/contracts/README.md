@@ -38,17 +38,36 @@ CONTRACT                     v3 STATUS      WHAT CHANGED
                                              schema_version 4 -> 5 (P2.0c, 2026-08-08):
                                              METADATA-ONLY origin markers — see the
                                              shared P2.0c note under this table.
-2 study_area (+ exclusions)  FROZEN          no change.
-                                             P2.0c origin declaration (2026-08-08),
-                                             recorded HERE because study_area.geojson's
-                                             SHA-256 is pinned in manifest.json
-                                             (contract_versions.study_area_content_hash)
-                                             and must not be edited for a marker:
-                                             study_area.geojson — data_origin: AUTHORED,
-                                             author: unrecorded (it also self-marks with
-                                             "placeholder": true). exclusions.geojson is
-                                             NOT hash-pinned and carries its own in-file
-                                             data_origin/author fields.
+2 study_area (+ exclusions)  FROZEN          geometry REPLACED at G.2 (2026-08-25):
+                                             the Phase-0 placeholder box gave way to
+                                             the real CCZ management area. No field was
+                                             added or removed, so the SHAPE is unchanged
+                                             and there is nothing to re-sync — but the
+                                             content hash MOVED, which is the only signal
+                                             Contract 2 has (it was frozen without a
+                                             version field; see BACKLOG §2).
+                                             ORIGIN, no longer recorded only here: the
+                                             file now carries its OWN in-file declaration
+                                             (a GeoJSON foreign member, RFC 7946 §6.1),
+                                             which the audit resolver reaches, so its
+                                             EXCLUSIONS entry is gone. The P2.0c reason
+                                             for prose-only ("must not be edited for a
+                                             marker") expired the moment the polygon was
+                                             replaced outright, which moved the hash
+                                             anyway. This row now MIRRORS the file and a
+                                             test asserts the two agree:
+                                             study_area.geojson — data_origin: LITERATURE,
+                                             citation ISBA/17/LTC/7 + ISBA/18/C/22 +
+                                             ISBA/26/C/58 + ISBA/26/C/43, digitised and
+                                             redistributed by Marine Regions as
+                                             MRGID 64222 (ledger row
+                                             src_ccz_boundary_marineregions).
+                                             LITERATURE, not MEASURED: the artifact is a
+                                             boundary DECREED in legal instruments, and
+                                             its SHA-256 proves which COPY we hold, never
+                                             that anything was measured.
+                                             exclusions.geojson is unchanged — still
+                                             empty, still AUTHORED/unrecorded in-file.
 3 covariates.yaml            FROZEN          Option-A enabled; Option-B disabled.
                                              registry_version 2 -> 3 (E1.4 preflight,
                                              2026-07-28): windowed recipes (roughness,
@@ -129,7 +148,7 @@ moves its `content_hash` — accounted in `docs/walkthroughs/P2.0.md` §c.
 | # | Contract | File(s) | Track E does | Track G does |
 |---|----------|---------|--------------|--------------|
 | 1 | Master observations | `data/corpus/master_observations.csv` + `docs/contracts/master_observations.schema.json` | loader + evidence-class validation; SampleSource selects MASS rows | run Phase A → populate evidence-typed rows + provenance |
-| 2 | AOI geometry | `data/aoi/study_area.geojson` (+ `exclusions.geojson`) | clip/align grid | real study area (public DeepData polygons OK) |
+| 2 | AOI geometry | `data/aoi/study_area.geojson` (+ `exclusions.geojson`) | **read as the coverage DENOMINATOR; nothing clips or aligns on it** (G.2) | **DONE for the AOI** (CCZ management area, G.2); exclusions/APEIs still open |
 | 3 | Covariate registry | `docs/contracts/covariates.yaml` | implement Option-A recipes; version them | enable/source Option-B TS-6 proxies later |
 | 4 | Economic config | `data/economics/scenarios.yaml` | read into `EconomicModel`; watermark while illustrative | real cutoffs (real ranges); flip `illustrative_only` |
 | 5 | Phase-A source queue | `data/sources/source_queue.yaml` | one `SourceAdapter` per entry; enforce `is_open` gate | download the queue; fill license/area/hash/accessed |
