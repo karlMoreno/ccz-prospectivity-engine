@@ -1,0 +1,48 @@
+# Origin sidecar for data/bathymetry/ (G.3, 2026-08-24).
+#
+# ONLY THE TWO TRACKED PDFs HAVE ENTRIES HERE. The two GEBCO rasters are
+# deliberately NOT entries, because they are deliberately NOT tracked
+# (.gitignore's standing `data/bathymetry/*.tif` rule, Phase 0), and the
+# audit's `dangling_sidecar_entries` check refuses — correctly — a tracked
+# sidecar entry naming an untracked file. THE RASTERS' COMMITTED DECLARATION
+# IS THE LEDGER ROW: `src_bathymetry_primary` in data/sources/source_queue.yaml
+# (data_origin DERIVED, both sha256 hashes, the subset bbox, the licence).
+#
+# If the storage decision ever changes and the rasters become TRACKED, add
+# these entries in the same commit (probed against the resolver at G.3 —
+# passes as written; with `derivation` stripped it fails by name):
+#
+#   gebco_2026_n25.0_s0.0_w-160.0_e-110.0_geotiff.tif:
+#     data_origin: DERIVED
+#     derivation: >-
+#       GEBCO_2026 Grid, a published interpolated information product
+#       (publisher's derivation, recorded in GEBCO_Grid_documentation.pdf:
+#       SRTM15+ base grid, satellite-gravity-guided prediction, remove-restore
+#       blending of Seabed 2030 regional grids); CCZ subset N25/S0/W-160/E-110
+#       cut by GEBCO's Grid Subsetting App. Hash + full record:
+#       src_bathymetry_primary in data/sources/source_queue.yaml.
+#   gebco_2026_tid_n25.0_s0.0_w-160.0_e-110.0_geotiff.tif:
+#     data_origin: DERIVED
+#     derivation: >-
+#       GEBCO_2026 Type Identifier (TID) companion grid — per-cell source-type
+#       codes assigned by the GEBCO Compilation Group (code table:
+#       GEBCO_Grid_documentation.pdf section 3.0); same subset, same record.
+#       Its OWN artifact, classified in its own right: provenance metadata
+#       ABOUT the bathymetry, not bathymetry.
+
+files:
+  GEBCO_Grid_terms_of_use.pdf:
+    data_origin: LITERATURE
+    citation: >-
+      "Terms of Use of The GEBCO Grid and derived information products",
+      GEBCO Compilation Group (2026) GEBCO 2026 Grid
+      (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa), downloaded with the
+      grid 2026-08-24. Source of the DERIVED classification's evidence quote
+      ("GEBCO considers the GEBCO Grid to be an information product").
+  GEBCO_Grid_documentation.pdf:
+    data_origin: LITERATURE
+    citation: >-
+      GEBCO 2026 Grid documentation, GEBCO Compilation Group (2026)
+      (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa), downloaded with the
+      grid 2026-08-24. Source of the TID code table (section 3.0) and the
+      dataset reference (section 6.0).

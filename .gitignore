@@ -11,9 +11,14 @@ __pycache__/
 .vscode/
 .idea/
 
-# Data that shouldn't be versioned in git
-data/bathymetry/*.tif      # real DEMs are large — track with DVC later
-data/ts6/*.tif             # digitized TS-6 raster, same reason
+# Data that shouldn't be versioned in git.
+# real DEMs are large — track with DVC later; digitized TS-6 raster likewise.
+# (G.3, 2026-08-24: comments moved OFF the pattern lines — gitignore treats a
+# trailing comment as part of the pattern, so these two rules had matched
+# NOTHING since Phase 0; found by `git status` showing the GEBCO tifs, proven
+# by `git check-ignore` exiting 1.)
+data/bathymetry/*.tif
+data/ts6/*.tif
 outputs/
 *.log
 
@@ -26,6 +31,12 @@ outputs/
 
 # Large reference PDFs (keep locally, don't version)
 *.pdf
+# G.3 (2026-08-24) exceptions: the two small GEBCO documents ARE versioned —
+# the DERIVED classification of the bathymetry rests on the terms PDF's own
+# "information product" wording, and the TID code table lives in the
+# documentation PDF, so the citations' backing ships with the repo.
+!data/bathymetry/GEBCO_Grid_terms_of_use.pdf
+!data/bathymetry/GEBCO_Grid_documentation.pdf
 
 # E5.7: the pinned run directory an image is built from — a downloaded CI artifact;
 # SERVING IS NOT COMMITTING, and a run never enters data/

@@ -238,22 +238,59 @@ sources:
   # ===================== PHASE A — public CONTEXT (not samples) =================
 
   - source_id: src_bathymetry_primary
-    data_origin: null                          # [KARL] classify at download: MEASURED survey product vs
-                                               # LITERATURE compiled grid (GEBCO interpolates between soundings).
-                                               # Decision affects Checkpoint-1 watermark derivation — BACKLOG §2.
-    title: null                                # [GEOLOGY — ISAAC] e.g. "GEBCO 2024 tile"
-    doi: null
-    url: null
+    # CLASSIFIED AT DOWNLOAD (Karl, G.3, 2026-08-24): DERIVED — decided by
+    # the source's own words, not our reasoning about it. GEBCO's terms of
+    # use (data/bathymetry/GEBCO_Grid_terms_of_use.pdf, tracked): the grid is
+    # "created by interpolating, applying algorithms and mathematical
+    # techniques to bathymetric data"; "GEBCO considers the GEBCO Grid to be
+    # an information product"; GEBCO "does not provide the underlying source
+    # bathymetric data"; and the grid's resolution "may be significantly
+    # different to that of the resolution of the underlying measured data".
+    # Under TAX.1's rule (what the artifact IS decides its class), a global
+    # interpolated product is DERIVED; the TID composition corroborates
+    # independently (73.146% of the subset box is predicted, not measured).
+    # The publisher's derivation is the recorded evidence — documented in
+    # GEBCO_Grid_documentation.pdf (tracked), summarized in `derivation`.
+    data_origin: DERIVED
+    title: "GEBCO_2026 Grid (bathymetry + TID companion), CCZ subset N25/S0/W-160/E-110"
+    doi: "10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa"
+    url: "https://download.gebco.net/"          # Grid Subsetting App
+    # THE SUBSET BBOX IS WHAT MAKES THE FILES REPRODUCIBLE FROM THE SOURCE:
+    # the release is fixed at the DOI, so release + bbox -> the same subset.
+    subset_bbox: {north: 25.0, south: 0.0, west: -160.0, east: -110.0}
     source_type: dem
     evidence_classes: []                        # covariate raster, not an observation
     primary_use: COVARIATE
-    is_open: null                               # PUBLIC GEBCO-class, NOT DeepData confidential bathy
-    license: null
-    sampled_area_m2: null
-    derivation: null
-    accessed_date: null
-    content_hash: null
-    notes: "Public global bathymetry (GEBCO). NOT DeepData confidential processed bathymetry."
+    is_open: true                               # PUBLIC GEBCO-class, NOT DeepData confidential bathy
+    # Verified against the shipped terms PDF (G.3): free to copy, publish,
+    # distribute, transmit and commercially exploit; must acknowledge the
+    # source in the stated attribution form; must not use in a way that
+    # suggests official status or IHO/IOC/GEBCO endorsement; NOT for
+    # navigation or any purpose involving safety at sea.
+    license: "GEBCO terms of use (public, redistribution permitted with attribution — see comment)"
+    sampled_area_m2: null                       # not a sampler
+    derivation: >-
+      Publisher's (GEBCO Compilation Group): global bathymetric grid
+      interpolated from heterogeneous soundings — satellite-gravity-guided
+      prediction over sparse areas, remove-restore blending of Seabed 2030
+      regional grids over surveyed ones — per GEBCO_Grid_documentation.pdf.
+      Per-cell source class in the TID companion grid (code table: the
+      documentation's section 3.0). Not a derivation we performed; the
+      publisher's, cited with its recording artifact shipped.
+    accessed_date: "2026-08-24"
+    # TWO FILES UNDER ONE ROW, hashed separately. THE LEDGER IS THE HASH
+    # OBSERVER, NOT THE AUDIT (TRACK-G.md §0.5, probed): the origin audit has
+    # no MEASURED/DERIVED hash branch, so a clean audit is NOT
+    # hash-verification — these recorded values, asserted by
+    # tests/test_bathymetry_ledger.py whenever the files are present, are
+    # what make the declaration mean anything. The rasters are deliberately
+    # untracked (.gitignore `data/bathymetry/*.tif`, Phase 0); re-obtain via
+    # doi + subset_bbox and verify against these hashes.
+    content_hash:
+      gebco_2026_n25.0_s0.0_w-160.0_e-110.0_geotiff.tif: "sha256:beba30531d066b0b370a49a1a8fbb22af7beaa0daab014563f0a20287df686d9"
+      gebco_2026_tid_n25.0_s0.0_w-160.0_e-110.0_geotiff.tif: "sha256:674fa459dcab2b03129a5b7e160e10e16274b8d38223e6ee928b764e6195a77f"
+    citation: "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)"
+    notes: "Public global bathymetry (GEBCO). NOT DeepData confidential processed bathymetry. The TID grid is ITS OWN ARTIFACT (provenance metadata about the bathymetry, classified in its own right — both DERIVED, each with its own derivation; see data/bathymetry/data_origin.yaml comments)."
 
   - source_id: src_deepdata_public_context
     data_origin: null                          # [KARL] classify at download: published regulatory geometry —
