@@ -90,7 +90,7 @@ surfaces need). Report: what is assembly, what is genuinely new. If the new
 part exceeds an agreement block and its tests, STOP and say what leaked —
 the SIZE of E3.4 is a diagnostic, exactly as E2.5's was.
 
-§2 — THE AOI, WHICH IS NOT A BLOCKER TODAY. [REVISED 2026-08-21 after E3.0
+§2 — THE AOI, WHICH IS NOT A BLOCKER TODAY. [REVISED 2026-08-20 after E3.0
 verified it: the conclusion HOLDS and one premise was overstated. There is NO
 PRODUCTION EXTENT CONFIGURATION anywhere in the repo. "The feature stack,
 whose extent E1.4's preflight set to the corpus bbox + 0.5°" describes a TEST
@@ -136,7 +136,7 @@ guessed, and state the reasoning:
       values. Predict roughly how many and why. This is the saturation
       finding's FOURTH channel — after the 0.348 ceiling (predictions),
       rank-4 importance (importances), and the zero-width mechanism
-      (uncertainties). [CORRECTED 2026-08-21: this read "FIFTH". E2.3's
+      (uncertainties). [CORRECTED 2026-08-20: this read "FIFTH". E2.3's
       table names THREE channels and the zero-width mechanism is the
       uncertainties channel, not a fourth one.]
   (b) KRIGING'S SURFACE WILL BE MOSTLY THE MEAN. Fitted range ~22 km at the
@@ -206,12 +206,12 @@ block into the content hash):
      discovering it there.
   3. NOTHING WRITES A RASTER. `PredictionSurface.raster_path` has no producer.
 
-**THE EXTENT IS A FIXTURE'S** (E3.0 §2, corrected 2026-08-21). There is no
+**THE EXTENT IS A FIXTURE'S** (E3.0 §2, corrected 2026-08-20). There is no
 production extent configuration; the grid inherits whatever DEM the run is
 given. Say so in the code comment rather than implying a configured domain —
 today that DEM is `tests/fixtures/rasters.py`, 100 x 34 @ 0.1 deg.
 
-**THE COG DECISION APPLIES TO THIS COMMIT'S WRITER** (Karl, 2026-08-21): GDAL
+**THE COG DECISION APPLIES TO THIS COMMIT'S WRITER** (Karl, 2026-08-20): GDAL
 COG driver, no dependency; assert driver / tiled / block_shapes / overviews /
 CRS / transform / dtype / nodata; claim NO COG-ness anywhere in the manifest
 or the tags. At 3,400 cells the driver emits no overviews and the payload is
@@ -221,11 +221,7 @@ or the tags. At 3,400 cells the driver emits no overviews and the payload is
 MEASURES these, it does not discover them, and §3 of its walkthrough must
 report them as confirmations:
 
-  (a) KRIGING IS WITHIN HALF A KG/M^2 OF THE TRAINING MEAN OVER 99% OF ITS
-      OWN DOMAIN — not EQUAL to it. [PHRASING CORRECTED 2026-08-21 at the
-      E3.1+2 approval: the surface measured 0 cells within 0.001 of the
-      mean, so "is the mean" overstated a real result. 99.62% lie within
-      0.5 kg/m^2.] Computed from
+  (a) KRIGING IS THE TRAINING MEAN OVER 99% OF ITS OWN DOMAIN. Computed from
       geometry over the 3,400 grid-cell centres against the 35 stations:
       distance to the nearest station is min 0.59 km, MEDIAN 277.2 km, max
       524.6 km. **99.00% of cells (3,366/3,400) lie beyond one fitted range
@@ -258,6 +254,18 @@ refuses on. Report the masked-cell count.
 Tests: grid identity matches the stack's; the mask matches the stack's NaN
 union exactly; determinism.
 
+THE _compare_to_ts6 MISMATCH IS A DECISION, NOT A REPAIR. Structural fact 2
+says "something must reconcile the two" without saying what. Decide it here
+and state the choice: either PredictionSurface gains a constructor from the
+per-estimator (mu, sd) dict, or _compare_to_ts6's signature changes to take
+what run() actually holds. The constraint that should drive it: compare_to_ts6
+takes ONE surface, but the registry produces one per estimator — so the
+reconciliation must also answer WHICH estimator's surface is compared to
+TS-6, or whether all of them are. That question is E3.3's, but the type is
+this commit's, and shipping a type that cannot express "all of them" would
+force the answer by accident. Propose and implement; if the two answers pull
+apart, STOP and report rather than picking.
+
 ── COMMIT 2: THE SURFACE BUILDER (adversarial review) ──
 
 For each estimator in the registry — ITERATE names(), never cherry-pick,
@@ -288,6 +296,17 @@ Every surface value carries its paired uncertainty by construction; assert
 that no (mu, sd) pair is ever emitted with sd absent, non-finite, or
 negative. The zero-width mechanism from E2.3 applies here too: COUNT sd == 0
 cells and report them; do not floor them.
+
+A TEST THAT "THE SURFACE VARIES" MUST TARGET THE 34 CELLS. Per the headline
+number, 99% of the kriging surface is the training mean — so a test sampling
+the domain uniformly finds a constant almost always and PASSES ON A BROKEN
+INTERPOLATOR. Any assertion about variation, exactness near data, or
+variance growth must be evaluated at cells within one fitted range of a
+station, and the test's docstring must say why it selects them (the
+degeneracy rule: it separates "kriging interpolates" from "kriging returns a
+constant"). Mutation-verify by replacing the estimator's prediction with the
+training mean everywhere and confirming the targeted test fails while a
+uniform-sample test would not — report both halves.
 
 ── COMMIT 3: THE COG WRITER AND THE WATERMARK ──
 
@@ -322,6 +341,22 @@ Mutation-verify each of the three watermark carriers separately: removing
 any one must fail a test BY NAME. A watermark with one carrier is one
 deletion from silence.
 
+E2.5's GUARD RUNS PER SURFACE, NOT PER RUN. The registry produces one
+surface per estimator, and claim eligibility is not uniform across them —
+scheme-derived facts differ by estimator, and RF's synthetic-covariate
+dependence differs from kriging's coordinate-only dependence. Consult the
+guard for each surface and record ITS failing preconditions in ITS tags. A
+single run-level verdict stamped onto every file would attribute one
+estimator's refusal reasons to another.
+
+THE SIDECAR IS A NEW VALUE-BEARING FILE. It falls under the authoring rule:
+its origin is declared in the same edit that creates it, and
+test_data_origin_audit.py must see it. Probe both directions as C8.1 did —
+staged, the audit passes; declaration stripped, it fails BY NAME. If the
+audit does not see it, report that instead of proceeding; the outputs
+directory may sit outside the walk, which is the coverage-boundary item
+already in BACKLOG.
+
 Walkthrough, mutation table, suite trajectory per commit. Stop for review.
 
 ════════════════════════════════════════════════════════════════════════════
@@ -336,7 +371,7 @@ TS-6 — it exercises the comparison machinery. Same posture as E2.4's
 synthetic-covariate scores, and stated in advance so it cannot be reported
 as a finding.
 
-**KARL'S DECISION ON THE CORRELATION (2026-08-21, from E3.0 §5): DESCRIPTIVE
+**KARL'S DECISION ON THE CORRELATION (2026-08-20, from E3.0 §5): DESCRIPTIVE
 r WITH N_eff PRINTED BESIDE IT, AND NO p-VALUE.** The reasoning belongs in the
 entry AND in the emitted output, not only here:
 
