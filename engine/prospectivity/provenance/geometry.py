@@ -7,11 +7,12 @@ decision is made with them in view instead of rediscovered by audit.
 
 The three that matter today, and why:
 
-- **Rows outside the AOI.** Currently ALL of them. `study_area.geojson` is a
-  Phase-0 placeholder that no real corpus row falls inside; the only rows that
-  ever did were the fabricated chamber rows removed in P1. A 100% miss between
-  the contract's AOI and the actual corpus belongs on every build, not in a
-  chat log.
+- **Rows outside the AOI.** Currently NONE of them (G.2, 2026-08-25). This
+  read "Currently ALL of them" and was true of the Phase-0 placeholder — a
+  2-degree box that missed all 108 rows by ~1.1 degrees of LATITUDE, not by
+  being in the wrong ocean. The real CCZ management area contains every row.
+  The count belongs on every build either way: it is the AOI-vs-corpus
+  relationship, and it is REPORTED, never enforced.
 - **Cluster structure** at a stated linkage distance, with within-cluster
   extent — the corpus is two tight clusters, not a spread.
 - **Pairwise-distance distribution**, including the largest gap between
@@ -264,8 +265,15 @@ def count_outside_study_area(observations: list[Observation], study_area_path: P
         "rows_outside_study_area": outside,
         "fraction_outside": _rounded(outside / len(observations)) if observations else None,
         "note": (
-            "Descriptive only. The AOI is a Phase-0 placeholder and defining "
-            "the real one is an open decision (docs/BACKLOG.md section 1); "
-            "nothing filters rows on it."
+            "Descriptive only: NOTHING FILTERS ROWS ON THE AOI. Verified at "
+            "G.2-PRE by tracing every consumer — FileTerrainSource.load() "
+            "accepts a StudyArea and never references it, and the prediction "
+            "grid inherits the feature stack's extent (PredictionGrid."
+            "from_stack), not the polygon. The AOI is the region the project "
+            "is ABOUT and the DENOMINATOR for coverage; where the model may "
+            "emit values is a separate question the run records in "
+            "prediction_grid. Updated at G.2 (2026-08-25): this string said "
+            "the AOI was a Phase-0 placeholder and an open decision, which "
+            "stopped being true when the real CCZ management area landed."
         ),
     }

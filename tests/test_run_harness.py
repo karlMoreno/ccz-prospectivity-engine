@@ -227,7 +227,7 @@ def test_the_production_run_records_the_three_e5_5_additions_with_production_val
     assert 21.0 < kriging["range_km"] < 22.5 and kriging["range_at_candidate_ceiling"] is True
     assert all(0 < s["sd_min"] <= s["sd_max"] for s in m.surfaces.values())
     assert m.training_stations["n"] == 35 and m.training_stations["data_origin"] == "MEASURED"
-    assert m.schema_version == 4
+    assert m.schema_version == 5
 
 
 # ═══════════════════════════════ E5.5 commit 3 — the run directory as a product

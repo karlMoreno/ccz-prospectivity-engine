@@ -107,11 +107,17 @@ PAIRING_RULE = (
 )
 
 
-def _haversine_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    d = math.radians(lon2 - lon1)
-    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(d / 2) ** 2
-    return 2 * 6371.0 * math.asin(math.sqrt(h))
+# G.2 (2026-08-25): this module had its OWN great-circle helper on a 6371.0 km
+# earth while the engine used the IUGG mean 6371.0088 — one predicate, two
+# earths, with nothing observing that they agreed. Now one function, imported.
+# The gap was 1.4 ppm (0.03 m over a 21.6 km radius) and moves NO recorded
+# count: tests/test_aoi_coverage.py recomputes the no-information cells under
+# both radii and gets the same number either way, so this is a de-duplication
+# rather than a silent restatement of a published figure. (Wording note: this
+# comment avoids several of this project's own nouns on purpose — the
+# foreign-catalog test greps this file for them, because the model must stay
+# describable without them.)
+from engine.prospectivity.provenance.coverage import haversine_km as _haversine_km
 
 
 def _range_source(entries: list[dict]) -> tuple[str | None, dict | None]:

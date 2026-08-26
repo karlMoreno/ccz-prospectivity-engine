@@ -156,7 +156,7 @@ def test_the_schema_version_is_inside_the_hashed_substance_not_beside_it() -> No
     predates the field), which is exactly the limitation stated in the
     module docstring."""
     fresh = RunManifest(run_id="r", seed=7).finalize()
-    assert fresh.substance()["schema_version"] == RunManifest.SCHEMA_VERSION == 4  # 2 at E4.1, 3 at E4.3, 4 at E5.5
+    assert fresh.substance()["schema_version"] == RunManifest.SCHEMA_VERSION == 5  # 2 at E4.1, 3 at E4.3, 4 at E5.5, 5 at G.2
     legacy = RunManifest(**json.loads((REPO_ROOT / "data/runs/e2.4/run_manifest.json").read_text()))
     assert "schema_version" not in legacy.substance() and legacy.schema_version is None
 
@@ -208,10 +208,10 @@ def test_every_real_artifact_declares_a_frozen_legacy_set_that_is_a_subset_of_it
             "added since HASH.1 bumps the version, and a bumped version names its field"
         )
     # the versions as declared: the stack gained `dem_path` at HASH.1 commit 2,
-    # the run manifest `economic_differences` at E4.1, `economics` at E4.3 and
-    # `training_stations` at E5.5 commit 2
+    # the run manifest `economic_differences` at E4.1, `economics` at E4.3,
+    # `training_stations` at E5.5 commit 2 and `aoi_coverage` at G.2
     assert {cls.__name__: cls.SCHEMA_VERSION for cls in ALL_ARTIFACTS} == {
-        "CorpusManifest": 1, "FeatureStackManifest": 2, "TrainingMatrixManifest": 1, "RunManifest": 4
+        "CorpusManifest": 1, "FeatureStackManifest": 2, "TrainingMatrixManifest": 1, "RunManifest": 5
     }
 
 

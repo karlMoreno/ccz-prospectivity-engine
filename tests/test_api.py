@@ -60,7 +60,7 @@ def test_runs_are_identified_from_their_manifests_and_the_manifest_is_served_byt
     assert out.name == "run" != run_id
     runs = client.get("/runs").json()
     assert [r["run_id"] for r in runs] == [run_id]
-    assert runs[0]["content_hash"] == api["manifest"].content_hash and runs[0]["schema_version"] == 4
+    assert runs[0]["content_hash"] == api["manifest"].content_hash and runs[0]["schema_version"] == 5
     assert runs[0]["data_origin"] == "SYNTHETIC" and runs[0]["publishable"] == [False]
     assert runs[0]["estimators"] == ["mean_baseline", "ordinary_kriging", "random_forest"]
     r = client.get(f"/runs/{run_id}/manifest")

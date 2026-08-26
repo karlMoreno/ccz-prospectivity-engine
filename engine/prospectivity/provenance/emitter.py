@@ -73,7 +73,9 @@ from engine.prospectivity.domain.results import (
 )
 from engine.prospectivity.domain.ts6 import TS6Surface
 from engine.prospectivity.features.stack import FeatureStackManifest
+from engine.prospectivity.domain.study_area import StudyArea
 from engine.prospectivity.provenance.contract_versions import file_sha256
+from engine.prospectivity.provenance.coverage import aoi_coverage, grid_predictable_area_km2
 from engine.prospectivity.provenance.corpus_manifest import CorpusManifest
 from engine.prospectivity.provenance.origin import combine_origins
 from engine.prospectivity.surfaces.builder import SurfaceResult
@@ -213,6 +215,7 @@ def extend_run_manifest(
     economic_differences: Sequence[EconomicDifferenceResult] | None = None,
     economics_dir: Path | str | None = None,
     exports_dir: Path | str | None = None,
+    study_area: "StudyArea | None" = None,
 ) -> RunManifest:
     """Extend the CV-stage RunManifest with Phase 3's outputs, asserting every
     link of the provenance chain by recomputation. Returns a NEW finalized
@@ -604,8 +607,38 @@ def extend_run_manifest(
         )
         provenance_chain["links"]["exports"] = exports_link
 
+    # ---- 9. G.2 — COVERAGE AGAINST THE AOI. Computed HERE because this is the
+    # only place all three inputs are already in hand (the AOI, the stations,
+    # the fitted range) — deriving it downstream would make a second source of
+    # truth for a number the paper quotes (E5.0 section 3's rule). The range is
+    # taken from WHICHEVER estimator's full-data fit records one, iterating
+    # sorted names rather than naming kriging: an estimator-specific constant
+    # here would silently stop working the day the registry changes.
+    aoi_coverage_block = None
+    if study_area is not None:
+        range_km = range_source = at_ceiling = None
+        for name in sorted(surfaces_block):
+            fit = (surfaces_block[name] or {}).get("full_data_fit") or {}
+            if isinstance(fit.get("range_km"), (int, float)):
+                range_km, range_source = fit["range_km"], name
+                at_ceiling = fit.get("range_at_candidate_ceiling")
+                break
+        aoi_coverage_block = aoi_coverage(
+            study_area.shapely_geometry(),
+            study_area.area_id,
+            (base.contract_versions or {}).get("study_area_content_hash"),
+            [(float(coords[i, 0]), float(coords[i, 1])) for i in range(coords.shape[0])],
+            range_km,
+            range_source,
+            at_ceiling,
+            prediction_grid_area_km2=grid_predictable_area_km2(
+                grid.transform, grid.width, grid.height, grid.predictable.reshape(-1)
+            ),
+        )
+
     extended = base.model_copy(
         update={
+            "aoi_coverage": aoi_coverage_block,
             "economics": economics_block,
             "ts6_agreement": {name: agreements[name] for name in sorted(agreements)},
             "economic_results": list(economic_results),

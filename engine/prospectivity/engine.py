@@ -402,6 +402,11 @@ class ProspectivityEngine:
             economic_differences=economic_differences,
             economics_dir=self._output_dir / ECONOMICS_DIR,
             exports_dir=self._output_dir / EXPORT_DIR,
+            # G.2: the AOI the run was configured with — the coverage block's
+            # denominator. Passed rather than re-read from disk inside the
+            # emitter so the manifest records the polygon THIS RUN used, which
+            # is the same object the terrain source was handed.
+            study_area=self._study_area,
         )
         self._output_dir.mkdir(parents=True, exist_ok=True)
         (self._output_dir / MANIFEST_NAME).write_text(manifest.to_json())

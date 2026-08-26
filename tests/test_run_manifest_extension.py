@@ -728,7 +728,7 @@ def test_the_two_historical_artifacts_hashes_did_not_move_at_shape_tolerant_hash
     raw = json.loads((REPO_ROOT / "data/runs/e2.4/run_manifest.json").read_text())
     assert raw["content_hash"] == RunManifest(**raw).compute_content_hash() == pins["data/runs/e2.4/run_manifest.json"]
     assert json.loads((REPO_ROOT / "data/corpus/manifest.json").read_text())["content_hash"] == pins["data/corpus/manifest.json"]
-    assert RunManifest.SCHEMA_VERSION == 4 and RunManifest.model_fields["economics"].default is None  # 3 at E4.3; E5.5 commit 2 added training_stations
+    assert RunManifest.SCHEMA_VERSION == 5 and RunManifest.model_fields["economics"].default is None  # 3 at E4.3; 4 at E5.5 (training_stations); 5 at G.2 (aoi_coverage)
 
 
 def test_a_count_forged_consistently_in_tag_record_and_result_is_refused_by_recomputation_from_the_pixels(run: dict, tmp_path: Path) -> None:
@@ -898,10 +898,11 @@ def test_schema_4_adds_training_stations_with_a_none_default_and_the_two_histori
     for relative, (pinned, cls) in pins.items():
         raw = json.loads((REPO_ROOT / relative).read_text())
         assert raw["content_hash"] == pinned == cls(**raw).compute_content_hash(), relative
-    assert RunManifest.SCHEMA_VERSION == 4 and RunManifest.model_fields["training_stations"].default is None
+    assert RunManifest.SCHEMA_VERSION == 5 and RunManifest.model_fields["training_stations"].default is None
+    assert RunManifest.model_fields["aoi_coverage"].default is None  # G.2: the new-field rule
     assert run["base"].training_stations is None and run["manifest"].training_stations is not None
     assert "training_stations" not in RunManifest.LEGACY_HASHED_FIELDS
-    assert run["manifest"].schema_version == 4 == RunManifest(**json.loads(run["manifest"].to_json())).schema_version
+    assert run["manifest"].schema_version == 5 == RunManifest(**json.loads(run["manifest"].to_json())).schema_version
 
 
 def test_the_claim_verdicts_failing_and_passing_sets_are_unchanged_by_the_e5_5_additions(run: dict) -> None:

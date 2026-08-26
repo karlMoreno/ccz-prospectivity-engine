@@ -287,7 +287,7 @@ class RunManifest(ProvenanceArtifact):
     # HASH.1: the field set frozen at 2026-08-22 — what data/runs/e2.4/
     # run_manifest.json (LEGACY, re-stamped at E3.4 with its five nulls IN the
     # substance) is hashed over. A SNAPSHOT; never regenerate from model_fields.
-    SCHEMA_VERSION: ClassVar[int] = 4  # E4.1: + economic_differences; E4.3: + economics; E5.5: + training_stations
+    SCHEMA_VERSION: ClassVar[int] = 5  # E4.1: + economic_differences; E4.3: + economics; E5.5: + training_stations; G.2: + aoi_coverage
     LEGACY_HASHED_FIELDS: ClassVar[frozenset[str]] = frozenset({
         "claim", "claim_eligible_designs", "contract_versions", "cross_validation", "cv_scores",
         "data_origin", "derivation", "economic_results", "estimator_declarations", "generator",
@@ -322,6 +322,16 @@ class RunManifest(ProvenanceArtifact):
     output_hashes: dict[str, str] = Field(default_factory=dict)
     # ---- E3.4 additions (provenance/emitter.py: extend_run_manifest)
     prediction_grid: dict | None = None
+    # G.2 (schema 5): COVERAGE AGAINST THE AOI — the arithmetic option (b)
+    # adds, joining three values this manifest ALREADY held (the AOI's id and
+    # hash from contract_versions, the stations from training_stations, the
+    # range from surfaces[*].full_data_fit) into the one number the paper
+    # turns on. Split into `stable` (run-independent: the AOI and its area)
+    # and `per_run` (the range, the supported area, the fraction) because the
+    # range comes from a FIT which comes from a RUN — see
+    # provenance/coverage.py for why that split is in the OUTPUT and not just
+    # a doc, and for the pinned integration method.
+    aoi_coverage: dict | None = None
     surfaces: dict[str, dict] | None = None
     claim: dict | None = None
     provenance_chain: dict | None = None
