@@ -176,8 +176,19 @@ it predicted) with the gap RE-MEASURED at 0 of 703 and the reason it cannot
 close by adding well-formed members; the classify-context-sources entry is
 NARROWED (the CCZ half answered LITERATURE on its own new row, the APEI half
 open); and the AOI's origin question inside the context entry is DECIDED.
-**62 open items** (recounted from the boxes, 2026-08-25, G.2 approval): §1
-Track G 16, §2 Karl 5, §3 Engineering 38, §4 Phase-2 risks 0 (both
+1 CLOSED at OBS.1 (2026-08-26): **LITERATURE's evidence observer**, on its
+ORIGINAL box and recorded as CLOSING OVERDUE — its deadline lapsed at G.3
+(2026-08-24) and was missed twice before a re-measurement found it. The
+mutation score went 0 of 703 → 1 of 704. OBS.1 also swept EVERY open entry's
+trigger and the result is why the class is now named in CLAUDE.md: **30 of 62
+triggers name something adjacent to rather than required by the work, 24 name
+a condition ALREADY TRUE today, and 9 say "any time" — a priority wearing a
+trigger's clothes.** Only 3 entries survived refutation as genuinely doable
+now (#43 here, plus `claim.py`'s NameError branch and the pre-registration
+timestamp-in-the-hash entry, both of whose defects the sweep REPRODUCED LIVE).
+No entries were re-triggered or fixed by that sweep — it reports only.
+**61 open items** (recounted from the boxes, 2026-08-26, OBS.1): §1
+Track G 16, §2 Karl 5, §3 Engineering 37, §4 Phase-2 risks 0 (both
 closed), §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -1620,7 +1631,27 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   + E + Karl (whether to enforce). **Trigger: when Track G delivers the
   raster** — which is Checkpoint 3. Detail: `data/ts6/ts6_reference.yaml`.
 
-- [ ] **LITERATURE's evidence requirement has NO OBSERVER — the one evidence
+- [x] **LITERATURE's evidence requirement has NO OBSERVER — CLOSED at OBS.1
+  (2026-08-26), AND IT CLOSED OVERDUE.** The fix was one negation fixture
+  (`test_audit_reports_literature_declarations_missing_their_citation`),
+  needing no data, no decision and no delivery — so it was buildable from the
+  day it was found, 2026-08-20. Re-running the measurement that scored it:
+  deleting the branch now fails **1 of 704**, was **0 of 703**. The fixture
+  separates three neighbours (no citation key / whitespace citation /
+  document+table+page), and the well-formed row is the discriminating one.
+  **RECORDED BECAUSE AN ENTRY THAT CLOSES WITHOUT SAYING IT WAS LATE TEACHES
+  NOTHING:** this entry's deadline ("before Track G supplies any cited value")
+  LAPSED at G.3 on 2026-08-24 when the two GEBCO PDFs landed declared
+  LITERATURE with citations, was missed at that approval, and was missed again
+  during G.2 the next day — which shipped two MORE cited LITERATURE values
+  against an unobserved check. It was found only at the G.2 approval, by
+  re-measuring rather than by the trigger doing its job. **The cause is now a
+  named defect class** (CLAUDE.md, *trigger mismatch*): the trigger watched an
+  external Track-G delivery the remedy never needed, so the alarm was wired to
+  the wrong door. **REPORTED, NOT FIXED:** the resolver does not distinguish an
+  EMPTY citation from a MISSING one — both collapse into one finding text —
+  now pinned as behaviour so changing it is deliberate. Detail:
+  [OBS.1.md](walkthroughs/OBS.1.md). *(original entry)* — the one evidence
   check of five that nothing tests** (found at P2.CLOSE commit 4, 2026-08-20,
   by the sole-observer measurement; **not fixed there — that commit is
   docstrings-only by instruction**).
