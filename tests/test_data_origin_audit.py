@@ -690,6 +690,56 @@ def test_audit_reports_derived_declarations_missing_their_derivation(tmp_path: P
     assert not any("complete.yaml" in item for item in findings.invalid)
 
 
+def test_audit_reports_literature_declarations_missing_their_citation(tmp_path: Path) -> None:
+    """LITERATURE's evidence bar: a citation that LOCATES the number.
+
+    THE NEGATION FIXTURE THIS CLASS DID NOT HAVE (OBS.1, 2026-08-26). Measured
+    at the G.2 approval over the full 703-test suite: deleting the LITERATURE
+    branch failed **0** tests, against 1 each for its siblings. The gap was
+    STRUCTURAL, not an oversight of coverage: the branch fires only on a
+    MISSING citation, and every LITERATURE subject in the repo has one, so no
+    amount of well-formed real data could ever exercise it. Only a
+    deliberately malformed declaration can — which is exactly what
+    `..._missing_their_derivation` and the SYNTHETIC tests already do, and why
+    they scored 1.
+
+    WHICH NEIGHBOURS THE FIXTURE SEPARATES (the degeneracy rule):
+      * `uncited` (declared, no `citation` key)  -> MUST be reported;
+      * `blank`   (citation present but "   ")   -> MUST be reported, because
+        the bar is a citation that LOCATES, and whitespace locates nothing;
+      * `located` (document + section)           -> MUST NOT be reported.
+    The third is what makes the first two mean something: a check that
+    reported every LITERATURE declaration would satisfy the first two asserts
+    and be useless, so the well-formed row is the discriminating one.
+
+    REPORTED, NOT FIXED HERE: the resolver does NOT distinguish an EMPTY
+    citation from a MISSING one — `not (citation and str(citation).strip())`
+    collapses both, and both surface under the same "LITERATURE without a
+    citation" text. That is arguably right (neither locates a number) but it
+    is a real limit: a reviewer reading the finding cannot tell whether the
+    author forgot the field or typed nothing into it. Pinned below as
+    behaviour so a future change to it is deliberate, not accidental."""
+    _write(tmp_path, "uncited.yaml", "data_origin: LITERATURE\n")
+    _write(tmp_path, "blank.yaml", "data_origin: LITERATURE\ncitation: '   '\n")
+    _write(
+        tmp_path,
+        "located.yaml",
+        "data_origin: LITERATURE\ncitation: 'ISA Technical Study 6 (2010), Table 4, p. 27'\n",
+    )
+    rel_paths = ["uncited.yaml", "blank.yaml", "located.yaml"]
+    findings = audit(rel_paths, collect_declarations(tmp_path, rel_paths, {}), {})
+
+    assert "uncited.yaml: LITERATURE without a citation" in findings.invalid
+    assert "blank.yaml: LITERATURE without a citation" in findings.invalid
+    assert not any("located.yaml" in item for item in findings.invalid)
+    # FULL-STATE, not "no violations": the set of reported subjects is exactly
+    # the two malformed ones. An `assert not [...]` idiom here would pass on an
+    # empty findings list (convention 7).
+    assert {item.split(":")[0] for item in findings.invalid} == {"uncited.yaml", "blank.yaml"}
+    # the recorded limit, pinned: empty and missing are ONE finding text today
+    assert len({item.split(": ", 1)[1] for item in findings.invalid}) == 1
+
+
 def test_unrecorded_scan_reports_an_unpermitted_file_by_name(tmp_path: Path) -> None:
     _write(tmp_path, "sneaky.yaml", "data_origin: AUTHORED\nauthor: unrecorded\n")
     rel_paths = ["sneaky.yaml"]
