@@ -212,7 +212,9 @@ Open **http://127.0.0.1:8765/** and look for, in order:
 5. **Switch Layer → Minable footprint** — the UNIFORM banner explains why
    every economics layer looks identical today, with the recorded counts.
 6. **The context section** — the coastline (Natural Earth, public domain) and
-   the CCZ rectangle labelled FIXTURE, each with its own origin and citation,
+   the REAL CCZ management area (Marine Regions MRGID 64222, CC-BY 4.0 — a
+   curved white outline; it was a rectangle labelled FIXTURE until G.2,
+   2026-08-25), each with its own origin and citation,
    never inheriting the run's watermark.
 7. **The stations** — 35 white points, origin MEASURED, drawn over a surface
    whose origin is SYNTHETIC: the clearest single statement of what this
@@ -228,7 +230,7 @@ python deploy/verify_deployment.py http://127.0.0.1:8765
 
 ## 9. Optional epilogues
 
-- **The suite as the footnote:** `pytest -q` — 676 tests, ~2–5 min.
+- **The suite as the footnote:** `pytest -q` — 703 tests, ~2–5 min. *(676 until G.2, 2026-08-25.)*
 - **CI:** every push runs the suite *and* builds the same run directory on
   GitHub's machines (`run-artifact`), verified by recomputation and uploaded
   as `run-<sha>` (30-day retention).

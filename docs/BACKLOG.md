@@ -162,8 +162,22 @@ committed corpus manifest now diverging from every fresh build in four fields
 at once, only one of which is about the AOI. The APEIs/`exclusions.geojson`
 half is REPORTED, not closed — a different publisher, a different licence,
 and two Track-E steps.
-**61 open items** (recounted from the boxes, 2026-08-25, G.2): §1
-Track G 16, §2 Karl 5, §3 Engineering 37, §4 Phase-2 risks 0 (both
+1 ADDED at the G.2 APPROVAL (2026-08-25), and four entries CORRECTED rather
+than closed. The addition is §3's **seven live sites still calling the AOI a
+placeholder or the context layer a fixture** — every one a false statement in
+LIVE CODE (two of them reaching an emitted artifact and a served page), all
+outside that commit's docs-only fence, grouped so the sweep happens once (the
+E3.1+2 precedent). The corrections, all found by a verification pass over
+G.2's OWN output: the context-layer entry is HALF DONE and its E5.3-era
+33.8×/2.96% figures are STRUCK (the comparison was bounding-box-vs-extent, not
+just the numbers — correction-drift (q)); the LITERATURE-observer entry's
+deadline is recorded as EXPIRED AT G.3 (2026-08-24, one day before the arrival
+it predicted) with the gap RE-MEASURED at 0 of 703 and the reason it cannot
+close by adding well-formed members; the classify-context-sources entry is
+NARROWED (the CCZ half answered LITERATURE on its own new row, the APEI half
+open); and the AOI's origin question inside the context entry is DECIDED.
+**62 open items** (recounted from the boxes, 2026-08-25, G.2 approval): §1
+Track G 16, §2 Karl 5, §3 Engineering 38, §4 Phase-2 risks 0 (both
 closed), §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -524,7 +538,15 @@ precedes ANY real-data run** — the pre-registration clock
   as the evidence). The Checkpoint-1 watermark will derive from DERIVED.
   **The `src_deepdata_public_context` half stays OPEN** (G.0-1's riding
   decision — the MEASURED-not-LITERATURE question for a hashed download
-  from an authoritative publisher). *(original entry)*
+  from an authoritative publisher). **NARROWED at G.2 (2026-08-25): that
+  question is now ANSWERED for the CCZ management area — LITERATURE, on a new
+  row `src_ccz_boundary_marineregions`, because the artifact is a boundary
+  DECREED in ISBA instruments with no measurement in its lineage.
+  `src_deepdata_public_context` was deliberately NOT repurposed for it: that
+  row is ISA DeepData (the APEI / contract polygons), a different publisher
+  under a different licence, and merging them would have left the APEI source
+  with no row at all. So what stays open here is the APEI half only.**
+  *(original entry)*
   `src_bathymetry_primary` (GEBCO-class bathymetry: MEASURED survey product
   vs LITERATURE compiled grid — it interpolates between soundings) and
   `src_deepdata_public_context` (published regulatory polygons). Both carry
@@ -1668,8 +1690,34 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   Phase 3, since the AOI decision and Isaac's target citation both arrive as
   LITERATURE (confirmed at the P2.CLOSE approval, 2026-08-20; the earlier
   wording, "with the next Track G delivery", made the trigger contingent on a
-  delivery rather than preceding it). Detail:
-  [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4.
+  delivery rather than preceding it).
+
+  **THE DEADLINE HAS EXPIRED, AND IT EXPIRED AT G.3 — one day before the
+  arrival this entry predicted** (found at the G.2 approval, 2026-08-25, by
+  measuring rather than assuming). The trigger says BEFORE, so it did not
+  "fire at" a delivery: it lapsed the instant `eb3ef3b` (G.3, 2026-08-24)
+  committed `data/bathymetry/data_origin.yaml` with the two GEBCO PDFs
+  declared LITERATURE with locating citations — Track G's first cited values.
+  G.2 then added two more (`data/aoi/study_area.geojson` and the preserved raw
+  download), so the AOI arrived exactly as this entry foresaw. **It was missed
+  at the G.3 approval and again during G.2.**
+
+  **THE GAP ITSELF IS UNCHANGED, RE-MEASURED at the G.2 approval:** deleting
+  the `LITERATURE without a citation` branch from
+  `tests/test_data_origin_audit.py` still fails **ZERO of 703** tests (the
+  P2.CLOSE measurement was 0 of 471). The reason is exactly why nothing
+  noticed then and nothing notices now: **the branch fires only on a MISSING
+  citation, and all five LITERATURE subjects in the repo HAVE one** —
+  `normalization.yaml#screening` (since P2.0c, 2026-08-08, so LITERATURE did
+  NOT get its first real member at G.2), the two GEBCO PDFs, and G.2's two.
+  Adding well-formed members can never close this; only the negation fixture
+  can. **And there is no G.1 task in this repo — the observer was not built
+  there.** G.2 DID demonstrate the branch is live (stripping the AOI's
+  citation made `..._carry_their_resolver_side_evidence` fail by name), but a
+  probe run by hand is not an observer in the suite. Owner: E. **Trigger:
+  OVERDUE — it lapsed 2026-08-24 and every further Track-G citation widens the
+  gap.** Detail: [P2-closeout.md](walkthroughs/P2-closeout.md) commit 4;
+  [G.2.md](walkthroughs/G.2.md).
 - [x] **THE HASH SCHEME BECOMES SHAPE-TOLERANT** (DECIDED by Karl at the E3.4
   approval, 2026-08-22; **not built there — docs-only commit**). **BUILT at
   HASH.1 commit 1 (2026-08-22):** present fields + `schema_version` inside
@@ -2333,20 +2381,45 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   shapefile from an authoritative publisher may be MEASURED (the relation
   the corpus has to PANGAEA) rather than the LITERATURE the AOI entry
   assumes, which would take the AOI off the zero-observer class; reasoning
-  recorded, not decided here; **(ii) whether the APEIs populate Contract 2's
+  recorded, not decided here — **DECIDED at G.2 (2026-08-25): LITERATURE, and
+  the MEASURED reading above was considered and rejected. The artifact is a
+  boundary DECREED in ISBA instruments and digitised from them; nothing in its
+  lineage was measured (GEBCO's DERIVED rests on measured soundings — there is
+  no analogue), and its sha256 proves only WHICH COPY we hold. So the AOI does
+  NOT come off the zero-observer class; see that entry, whose deadline has now
+  EXPIRED**; **(ii) whether the APEIs populate Contract 2's
   `exclusions.geojson`** (AUTHORED, `features: []`, asserted EMPTY by E4.1 so
   the day it is not is visible — the first polygon is a visible refusal in
-  `CutoffEconomicModel` until rasterisation is built). Also measured at
-  E5.3: the CCZ box is ~13.86 M km² against a ~0.41 M km² prediction extent
-  (33.8×; 2.96 %) — drawing the real boundary will show how small the study
-  area is, which is honest and is not to be hidden by adjusting the view.
-  Owner: Karl (acquire + decide) + E (wire). **Trigger: whenever the files
-  are downloaded; before E5.7 ships a public URL with the fixture rectangle
-  still drawn.** *Reported FIRED at E5.7 (2026-08-23): the deployment is
-  built and verified at the rehearsal URL with the rectangle still drawn and
-  labelled FIXTURE where a user sees it; whether the public URL waits for the
-  real layer is Karl's call.* Detail: [E5.3.md](walkthroughs/E5.3.md) §3;
-  `services/api/context.py`; `apps/web/context/ccz_management_area_FIXTURE.geojson`.
+  `CutoffEconomicModel` until rasterisation is built) — **STILL OPEN; this is
+  the whole of what remains here.**
+
+  **HALF THIS ENTRY IS DONE (G.2, 2026-08-25).** The CCZ management area is
+  downloaded, hashed, classified and WIRED: it is `data/aoi/study_area.geojson`
+  itself (Contract 2's file, not a copy under `apps/web/`), the registry points
+  at it, and the CC-BY attribution reaches the footer. **The FIXTURE rectangle
+  is deleted** — `apps/web/context/ccz_management_area_FIXTURE.geojson` no
+  longer exists, so the trigger below ("before E5.7 ships a public URL with the
+  fixture rectangle still drawn") can no longer fire as written. What remains
+  is the ISA shapefiles and decision (ii).
+
+  ~~Also measured at E5.3: the CCZ box is ~13.86 M km² against a ~0.41 M km²
+  prediction extent (33.8×; 2.96 %)~~ — **SUPERSEDED at G.2 and struck rather
+  than edited, because the comparison itself was wrong, not just the numbers:
+  it put the CCZ's BOUNDING BOX against the prediction EXTENT box, and the
+  polygon is only 83 % of its box while the extent counts cells the covariates
+  do not define. Like against like, the AOI POLYGON (11,399,939 km²) against
+  the run's PREDICTABLE domain (346,927 km²) is 32.9×, i.e. 3.04 % of the zone.
+  This copy stood for a day after `services/api/context.py` and the test were
+  corrected — the correction-scoped-to-the-claim-not-the-entry shape, this time
+  across FILES; correction-drift instance (q).** Drawing the real boundary
+  shows how small the study area is, which is honest and is not to be hidden by
+  adjusting the view.
+  Owner: Karl (acquire + decide) + E (wire). **Trigger: whenever the ISA
+  shapefiles are downloaded.** *(The public-URL half of this trigger is spent:
+  reported FIRED at E5.7 (2026-08-23) with the rectangle still drawn, and
+  RESOLVED at G.2 by deleting it.)* Detail:
+  [G.2.md](walkthroughs/G.2.md); [E5.3.md](walkthroughs/E5.3.md) §3;
+  `services/api/context.py`.
 
 - [ ] **THE VIEWER IS CATALOG-DRIVEN; THE CATALOG IS NOT YET DATA-DRIVEN**
   (E5.3 §0.4, 2026-08-23; Karl: "worth a BACKLOG entry for when a second
@@ -2469,6 +2542,43 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   three literals in one deliberate commit), or declare the committed copy a
   dated archive and say so in it. Owner: Karl + E. Trigger: the next corpus
   change, or any time. Detail: [G.2.md](walkthroughs/G.2.md) section 4.
+
+- [ ] **SEVEN LIVE SITES STILL DESCRIBE THE AOI AS A PLACEHOLDER OR THE
+  CONTEXT LAYER AS A FIXTURE — all outside the G.2-approval commit's
+  docs-only fence** (entered at the G.2 approval, 2026-08-25, found by a
+  completeness sweep over G.2's own output; the E3.1+2 precedent — "the two
+  engine-side date labels that commit's docs-only fence could not reach" —
+  is why they land here rather than being fixed in that commit).
+  **Every one is a FALSE STATEMENT IN LIVE CODE, not stale prose in a dated
+  record**, and two of them reach an emitted artifact or a served page:
+  * `engine/prospectivity/provenance/geometry.py:250-252` —
+    `count_outside_study_area`'s FUNCTION docstring still says "the AOI itself
+    is an open decision (docs/BACKLOG.md §1), so this module states the
+    mismatch and stops". **G.2 rewrote this file's MODULE docstring and its
+    emitted `note` and missed the function three lines below** — the
+    correction-scoped-to-the-claim-not-the-entry shape inside the very commit
+    that was fixing that string. There is no mismatch now: 0 of 108.
+  * `engine/prospectivity/harness.py:169-170` — `load_study_area`'s docstring:
+    "Contract 2's AOI feature — the committed placeholder until the AOI
+    decision (BACKLOG §1)". Both halves false; G.2 never touched this file.
+  * `engine/prospectivity/terrain/tid_accounting.py:80` and `:134` — "the AOI
+    decision replaces it at CP1", the second inside an **EMITTED artifact
+    field** (`bounds_source`), so a G.3 TID artifact now ships a sentence
+    about a decision that has been made.
+  * `services/api/context.py:51-57` — "WHERE THEY LIVE: `apps/web/context/`
+    (the fixture)". G.2 DELETED that directory; the docstring contradicts the
+    registry seven lines above it in the same file.
+  * `tests/test_context_layers.py:97` and `:129` — "by the same closed form
+    the coverage block uses". FALSE and it is G.2's own: the numerator is
+    `polygon_area_km2`'s closed-form spherical excess, the denominator is
+    `grid_predictable_area_km2`'s cos(lat)-weighted per-cell SUM. The 32.9×
+    ratio is sound and like-against-like in QUANTITY; only the METHOD claim is
+    wrong (correction-drift instance (p)).
+  * `apps/web/README.md:11,17` — "Not built yet", predating G.2: the page has
+    shipped and been deployed to a rehearsal URL.
+  Owner: E. Trigger: any time — each is a one-line edit, and they are grouped
+  so the sweep happens ONCE rather than one file per task. Detail:
+  [G.2.md](walkthroughs/G.2.md) §8.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 

@@ -187,7 +187,15 @@ swapping `EARTH_RADIUS_KM` back to `6371.0` — PASSED all nine tests.** Read ra
 than assumed: the unification test asserts function *identity*, and 1.4 ppm sits
 below every other tolerance, so the **de-duplication was guarded and the constant
 was not**. Closed with a one-degree pin to six decimals (111.195080 vs 111.194927);
-M4 re-applied and caught by name. This is the check-itself-is-in-scope corollary
+M4 re-applied and caught by name. *Two precisions added at the approval, both
+measured: (1) re-run with the new pin DESELECTED, M4 gives 8 passed / 1 deselected —
+so "the other tests cannot see it" is confirmed rather than inferred, and it holds
+because `haversine_km` is the only site M4 touches while the AREA functions read
+`EARTH_RADIUS_KM` directly. A mutation of the CONSTANT ITSELF is a different, broader
+mutation, and the area pins DO catch that one. (2) Of the two asserts the fix added,
+only the literal pin is load-bearing against that broader mutation — the first
+compares against `EARTH_RADIUS_KM` on both sides and moves with it. Keep both: they
+catch different mutations.* This is the check-itself-is-in-scope corollary
 arriving in a mutation batch: a guard that covers the *shape* of a fix can leave
 its *value* unobserved.
 
@@ -204,9 +212,16 @@ reaches the footer where a viewer sees it.
 33.8×. Both sides were generous: the box overstates the zone by 20 %, and the
 extent counts cells the covariates do not define. Polygon against **predictable
 domain**: 11,399,939 / 346,927 = **32.9×**, i.e. the domain this project can speak
-about is **3.04 %** of the zone.
+about is **3.04 %** of the zone. *Corrected at the approval: the ratio is
+like-against-like in QUANTITY (two areas of a region, both latitude-aware) but NOT
+"by the same closed form", as this section and the test docstring both said — the
+numerator is `polygon_area_km2`'s closed-form spherical excess, the denominator is
+`grid_predictable_area_km2`'s cos(lat)-weighted per-cell SUM. The remedy overstated
+its own rigour while correcting a real defect; correction-drift instance (p), and the
+test docstring's copy is BACKLOG §3's fence residue.*
 
-**The README defect: STRUCK, not implemented.** `README.md:132` claimed Track E
+**The README defect: STRUCK, not implemented.** `docs/contracts/README.md:132`
+claimed Track E
 does "clip/align grid" for Contract 2 — zero code, zero tests. Implementing it is
 a *decision*, not a fix, so the row now says what is true and the question is a
 BACKLOG entry with the asymmetry that makes it non-obvious: the covariates' mask
@@ -279,3 +294,41 @@ python -c "import json;print(json.load(open('/tmp/run/run_manifest.json'))['aoi_
   wiring it is a separate task with its own fresh-run look.
 * **`data/corpus/manifest.json` was not regenerated.** Four fields move at once;
   only one is about the AOI.
+
+## 8. What the approval's verification pass found (2026-08-25)
+
+G.2 was approved, and a verification pass over its OWN output found **four
+false claims, three of them G.2's own** — recorded here because the pass is
+the point, not the score. All four are correction-drift instances (p)–(s):
+
+| # | Claim | Why it was false |
+|---|---|---|
+| (p) | "by the same closed form" (§4 above and `test_context_layers.py:97,129`) | numerator is closed-form spherical excess; denominator is a cos(lat)-weighted **cell sum**. The 32.9× is sound; the *method* claim is not |
+| (q) | `BACKLOG`'s copy of 33.8× / 2.96% | corrected in `context.py` and the test at G.2, left standing in an OPEN entry for a day — the correction-scoped-to-the-claim shape, across **files** |
+| (r) | CLAUDE.md's "found something **both times** anyone looked" | already false at E5.6-7, whose look found nothing. A rule about looking whose own tally nobody looked at |
+| (s) | `README.md:132` in §4 | the ROOT README has no such line; the file is `docs/contracts/README.md` |
+
+**Two of Karl's approval figures did not survive either, and are recorded as
+NOT counted rather than silently dropped:** the "±3 km²" convergence is a
+NEAR-MISS, not an instance — 4,120 lies *inside* the shipped instrument's own
+4,124 ± 12, it was correctly attributed to G.2-PRE throughout, and it was
+never asserted of the shipped integrator (quoting it would have been drift
+inside the note whose purpose is comparability, which is why the note says so
+explicitly). The **two earth radii** are a duplication defect, not a claim
+unsupported by a source, so they belong to the M4 corollary and not to this
+class. `geometry.py`'s containment note is likewise not counted: G.2 made it
+false in commit 1 and fixed it in commit 2, so it never outlived its source
+across tasks — though its FUNCTION docstring three lines below **was** missed
+and is now BACKLOG §3 residue.
+
+**The M4 survivor got a corollary, not an inventory row** ("a guard on the
+wrapper is not a guard on the value"), after checking it against both
+candidate classes: it is not the unreachable-check sub-pattern (nothing
+refused first) and not fixture degeneracy (no fixture, no coinciding
+statistics). One instance; every row in that table opened with at least two.
+
+**The LITERATURE-observer deadline had already expired** — at G.3
+(2026-08-24), one day *before* the AOI arrival the entry itself predicted, and
+missed at that approval. Re-measured here: deleting the branch still fails
+**0 of 703**, because the branch fires only on a MISSING citation and all five
+LITERATURE subjects have one. Adding well-formed members can never close it.
