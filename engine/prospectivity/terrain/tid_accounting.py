@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -246,12 +247,192 @@ def build_tid_accounting(
         "whole_subset": whole,
         "study_extent": study,
         "stations": station_block,
+        # TID.2 (2026-08-26): WHAT the predicted cells are. G.3 recorded where.
+        "predicted_class_provenance": _predicted_class_provenance(
+            bath_study.astype(np.float64),
+            tid_study,
+            dy_m=math.radians(abs(tid_transform.e)) * 6371.0088 * 1000.0,
+            dx_m=math.radians(abs(tid_transform.a)) * 6371.0088 * 1000.0
+            * math.cos(math.radians(0.5 * (STUDY_BOUNDS[1] + STUDY_BOUNDS[3]))),
+        ),
         "grid": {
             "pixel_deg": round(tid_transform.a, 12),
             "note": "15 arc-seconds; both grids share size, transform and CRS (asserted at generation)",
         },
     }
 
+
+
+# ── TID.2: WHAT the predicted cells are, not just where ────────────────────
+# G.3 recorded WHERE the predicted cells are. This records WHAT they are, and
+# MEASURES the consequence instead of asserting it.
+#
+# THE MEASUREMENT IS DESIGNED AROUND ONE CONFOUND: multibeam surveys TARGET
+# interesting terrain (seamounts, contractor blocks), so predicted cells could
+# be smoother simply by sitting on flatter seafloor. Absolute roughness cannot
+# separate that from smoothing. The per-cell SHORT/LONG ratio can: it is
+# scale-free, so a cell on genuinely flat abyssal plain and a cell on a rough
+# flank are compared on the same footing.
+SHORT_CELLS = 3   # ~1.4 km — Contract 3's own roughness/TPI window
+LONG_CELLS = 19   # ~8.8 km — at/above the resolution the gravity field is said to reach
+
+# Verbatim from GEBCO_Grid_documentation.pdf section 2.1 (tracked). Quoted
+# rather than paraphrased because it is the whole provenance of 54.9% of the
+# study extent, and a paraphrase is what the G.3-approval correction-drift
+# instance (o) was made of.
+GEBCO_2026_SWOT_SENTENCE = (
+    "This release of the SRTM15+ data set uses a new highly-accurate gravity "
+    "field data set from the Surface Water and Ocean Topography (SWOT) "
+    "satellite (Yu et al., 2024) and machine learning methods to produce a "
+    "bathymetric model (Sandwell et al., 2025)."
+)
+
+
+def _local_sd(a: np.ndarray, cells: int) -> np.ndarray:
+    """Local standard deviation over a square window — the same statistic
+    Contract 3's `std_dev_elevation` roughness recipe computes."""
+    from scipy.ndimage import uniform_filter
+
+    m = uniform_filter(a, size=cells, mode="nearest")
+    m2 = uniform_filter(a * a, size=cells, mode="nearest")
+    return np.sqrt(np.maximum(m2 - m * m, 0.0))
+
+
+def _predicted_class_provenance(dem: np.ndarray, tid: np.ndarray, dy_m: float, dx_m: float) -> dict:
+    direct = (tid >= 10) & (tid <= 17)
+    pred = (tid >= 40) & (tid <= 48)
+
+    short, long_ = _local_sd(dem, SHORT_CELLS), _local_sd(dem, LONG_CELLS)
+    b = LONG_CELLS // 2 + 1  # trim the border so the filter's edge mode cannot bias the split
+    s, l = short[b:-b, b:-b], long_[b:-b, b:-b]
+    d, p = direct[b:-b, b:-b], pred[b:-b, b:-b]
+    ratio = np.where(l > 1e-6, s / np.maximum(l, 1e-6), np.nan)
+
+    def _med(arr, mask):
+        """Median, rounded to 6 SIGNIFICANT figures rather than 6 decimals.
+
+        Decimals would collapse curvature (order 1e-5 to 1e-6) to one digit and
+        distort its ratio — the statistic where the effect is largest is also the
+        smallest in magnitude, so fixed decimals lose exactly the number that
+        matters. Rounding is still explicit, which is what the derivation string
+        promises."""
+        v = arr[mask]
+        v = v[np.isfinite(v)]
+        m = float(np.median(v))
+        if m == 0.0 or not np.isfinite(m):
+            return m
+        from math import floor, log10
+
+        return round(m, -int(floor(log10(abs(m)))) + 5)
+
+    # derivative order — the axis the effect actually scales along
+    z = dem
+    dzdx = ((z[:-2, 2:] + 2 * z[1:-1, 2:] + z[2:, 2:]) - (z[:-2, :-2] + 2 * z[1:-1, :-2] + z[2:, :-2])) / (8 * dx_m)
+    dzdy = ((z[2:, :-2] + 2 * z[2:, 1:-1] + z[2:, 2:]) - (z[:-2, :-2] + 2 * z[:-2, 1:-1] + z[:-2, 2:])) / (8 * dy_m)
+    slope = np.degrees(np.arctan(np.hypot(dzdx, dzdy)))
+    lap = np.abs((z[:-2, 1:-1] + z[2:, 1:-1] + z[1:-1, :-2] + z[1:-1, 2:] - 4 * z[1:-1, 1:-1]) / (dx_m * dy_m))
+    d1, p1 = direct[1:-1, 1:-1], pred[1:-1, 1:-1]
+
+    def _pair(arr, m_d, m_p):
+        md, mp = _med(arr, m_d), _med(arr, m_p)
+        return {"direct": md, "predicted": mp, "ratio_direct_over_predicted": round(md / mp, 4) if mp else None}
+
+    return {
+        "applies_to": "TID codes 40-48 (indirect/predicted) — 54.8687% of the study extent (G.3's count, unchanged)",
+        "what_they_are": {
+            "grid": "GEBCO_2026",
+            "base_dataset": "SRTM15+ Version 2.8 (Tozer et al. 2019)",
+            "gravity_mission": "SWOT — Surface Water and Ocean Topography",
+            "method": "machine learning applied to the SWOT gravity anomaly",
+            "documented_in": "GEBCO_Grid_documentation.pdf section 2.1 (tracked in data/bathymetry/)",
+            "quote": GEBCO_2026_SWOT_SENTENCE,
+            "references": [
+                "Yu Y., Sandwell D.T., Dibarboure G. (2024). Abyssal marine tectonics from the "
+                "SWOT mission. Science 386(6727):1251-1256. doi:10.1126/science.ads4472",
+                "Sandwell D.T., Phrampus B.J., Salajegheh F., et al. (2025). Bathymetry Prediction "
+                "with SWOT Gravity Anomaly using Machine Learning Methods: Paper 1 - Model "
+                "Development. ESS Open Archive, 17 November 2025. "
+                "doi:10.22541/essoar.176339961.11752151/v1",
+            ],
+        },
+        "release_distinction": {
+            "claim": "GEBCO_2026 is the first release whose predicted cells rest on SWOT gravity.",
+            "verified": True,
+            "how": (
+                "The documentation carries a parallel section per release. Section 2.1 "
+                "(GEBCO_2026) names SRTM15+ Version 2.8 AND the SWOT + machine-learning "
+                "sentence quoted above. Section 2.2 (GEBCO_2025) names Version 2.7 and "
+                "contains NO mention of SWOT or machine learning — checked by reading both "
+                "sections, not by inference from the word 'new'."
+            ),
+            "why_it_matters": "It makes this provenance specific to the file this repo holds, not to GEBCO generally.",
+        },
+        "resolution": {
+            "grid_cell_m": {"north_south": round(dy_m, 1), "east_west_at_13N": round(dx_m, 1),
+                            "note": "15 arc-seconds on the geographic grid"},
+            "gravity_field_km": None,
+            "gravity_field_citation_status": (
+                "NOT STATED IN THE TRACKED DOCUMENTATION. Searched: '8 km', 'wavelength' and "
+                "'km resolution' return ZERO hits, and every 'resolution' mention refers to the "
+                "15-arc-second GRID SPACING, not to what the gravity field resolves. A figure of "
+                "~8 km circulates in NASA/JPL press material, which this repo does not hold; it is "
+                "therefore RECORDED AS UNCITED rather than written in as fact. Yu et al. 2024 is "
+                "where such a number would live and is cited above, but this repo has not read it, "
+                "and this project's own LITERATURE bar is a citation that LOCATES the number. "
+                "Consequence: any ratio of grid spacing to gravity resolution is UNCITED too, and "
+                "the measurement below deliberately does not depend on that number."
+            ),
+        },
+        "measured_short_wavelength_deficit": {
+            "why_a_ratio": (
+                "Absolute roughness cannot separate 'prediction smooths' from 'predicted cells "
+                "happen to sit on flatter seafloor' — multibeam surveys TARGET rough, interesting "
+                "terrain. The per-cell short/long ratio is scale-free and controls for that."
+            ),
+            "short_window_cells": SHORT_CELLS,
+            "long_window_cells": LONG_CELLS,
+            "median_local_sd_m": {
+                "short_1400m": _pair(s, d, p),
+                "long_8800m": _pair(l, d, p),
+            },
+            "median_short_over_long_ratio": {"direct": _med(ratio, d), "predicted": _med(ratio, p)},
+            "finding": (
+                "PREDICTED CELLS ARE MEASURABLY SMOOTHER AT SHORT WAVELENGTHS, and it is not the "
+                "terrain-selection confound. Two independent signatures: (1) the direct/predicted "
+                "roughness gap NARROWS as the window grows, which is what suppression of short "
+                "wavelengths looks like and is the opposite of what a simple amplitude difference "
+                "would do; (2) after normalising every cell by its OWN long-wavelength roughness, "
+                "predicted cells still carry about a third less short-wavelength structure. The "
+                "alternative hypothesis this task was told to watch for — that the ML step INJECTS "
+                "short-wavelength structure the gravity field cannot support — is REFUTED for this "
+                "extent: the deficit runs the other way at every scale measured."
+            ),
+        },
+        "affected_covariates": {
+            "axis": "derivative order — each derivative amplifies the missing short-wavelength content",
+            "depth_value": _pair(z[1:-1, 1:-1], d1, p1),
+            "slope_first_derivative_deg": _pair(slope, d1, p1),
+            "curvature_second_derivative": _pair(lap, d1, p1),
+            "reading": (
+                "DEPTH is a VALUE and is barely affected — the medians agree within about 4%, so a "
+                "gravity inversion gets the depth broadly right. SLOPE and ASPECT are FIRST "
+                "derivatives on a 3x3 cell stencil. PROFILE and PLAN CURVATURE are SECOND "
+                "derivatives and are the most affected of the eight. ROUGHNESS and TPI (1400 m "
+                "windows) and BPI (460-2300 m radii) are windowed at scales that lie ENTIRELY "
+                "below the resolution the gravity field is credited with, so they are load-bearing "
+                "on short-wavelength structure throughout. Seven of Contract 3's eight layers are "
+                "affected; depth is the exception."
+            ),
+        },
+        "asymmetry_note": (
+            "The DIRECT cells are attributed to a method (multibeam) and nothing else; the "
+            "PREDICTED cells are now attributed to a mission, a gravity field, a model and two "
+            "papers. READ THAT THE RIGHT WAY: it is not that prediction is better documented than "
+            "measurement, nor that it is more trustworthy. It is that prediction NEEDS more "
+            "documentation to be interpretable at all — a multibeam sounding means one thing, "
+            "while an inversion means whatever its gravity field and its model make it mean."
+        ),
+    }
 
 def write_artifact(out_path: Path = ARTIFACT_PATH) -> Path:
     accounting = build_tid_accounting()

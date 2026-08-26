@@ -681,7 +681,7 @@ ccz-prospectivity-engine/
   `E3.1-2.md`, `TAX.1.md`, `E3.3.md`, `E3.4.md`, whose second half is
   the PHASE-3 TRACK-E CLOSEOUT, `HASH.1.md`, `E4.1.md` … `E4.3.md`,
   `E5.1.md` … `E5.5.md`, `E5.6-7.md`, whose §5 is the PHASE-5 CLOSEOUT, and
-  Track G's `G.3.md` and `G.2.md`, and `OBS.1.md`). **The Phase-4/5 and Track-G files were
+  Track G's `G.3.md`, `G.2.md` and `TID.2.md`, and `OBS.1.md`). **The Phase-4/5 and Track-G files were
   MISSING from this list until the G.2 approval (2026-08-25) — an index that
   stopped at E3.4 while instructing the reader to "read the relevant one",
   i.e. pointing away from the newest work in the sentence that exists to

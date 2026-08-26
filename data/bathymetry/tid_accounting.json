@@ -1238,6 +1238,78 @@
    }
   }
  },
+ "predicted_class_provenance": {
+  "applies_to": "TID codes 40-48 (indirect/predicted) \u2014 54.8687% of the study extent (G.3's count, unchanged)",
+  "what_they_are": {
+   "grid": "GEBCO_2026",
+   "base_dataset": "SRTM15+ Version 2.8 (Tozer et al. 2019)",
+   "gravity_mission": "SWOT \u2014 Surface Water and Ocean Topography",
+   "method": "machine learning applied to the SWOT gravity anomaly",
+   "documented_in": "GEBCO_Grid_documentation.pdf section 2.1 (tracked in data/bathymetry/)",
+   "quote": "This release of the SRTM15+ data set uses a new highly-accurate gravity field data set from the Surface Water and Ocean Topography (SWOT) satellite (Yu et al., 2024) and machine learning methods to produce a bathymetric model (Sandwell et al., 2025).",
+   "references": [
+    "Yu Y., Sandwell D.T., Dibarboure G. (2024). Abyssal marine tectonics from the SWOT mission. Science 386(6727):1251-1256. doi:10.1126/science.ads4472",
+    "Sandwell D.T., Phrampus B.J., Salajegheh F., et al. (2025). Bathymetry Prediction with SWOT Gravity Anomaly using Machine Learning Methods: Paper 1 - Model Development. ESS Open Archive, 17 November 2025. doi:10.22541/essoar.176339961.11752151/v1"
+   ]
+  },
+  "release_distinction": {
+   "claim": "GEBCO_2026 is the first release whose predicted cells rest on SWOT gravity.",
+   "verified": true,
+   "how": "The documentation carries a parallel section per release. Section 2.1 (GEBCO_2026) names SRTM15+ Version 2.8 AND the SWOT + machine-learning sentence quoted above. Section 2.2 (GEBCO_2025) names Version 2.7 and contains NO mention of SWOT or machine learning \u2014 checked by reading both sections, not by inference from the word 'new'.",
+   "why_it_matters": "It makes this provenance specific to the file this repo holds, not to GEBCO generally."
+  },
+  "resolution": {
+   "grid_cell_m": {
+    "north_south": 463.3,
+    "east_west_at_13N": 451.4,
+    "note": "15 arc-seconds on the geographic grid"
+   },
+   "gravity_field_km": null,
+   "gravity_field_citation_status": "NOT STATED IN THE TRACKED DOCUMENTATION. Searched: '8 km', 'wavelength' and 'km resolution' return ZERO hits, and every 'resolution' mention refers to the 15-arc-second GRID SPACING, not to what the gravity field resolves. A figure of ~8 km circulates in NASA/JPL press material, which this repo does not hold; it is therefore RECORDED AS UNCITED rather than written in as fact. Yu et al. 2024 is where such a number would live and is cited above, but this repo has not read it, and this project's own LITERATURE bar is a citation that LOCATES the number. Consequence: any ratio of grid spacing to gravity resolution is UNCITED too, and the measurement below deliberately does not depend on that number."
+  },
+  "measured_short_wavelength_deficit": {
+   "why_a_ratio": "Absolute roughness cannot separate 'prediction smooths' from 'predicted cells happen to sit on flatter seafloor' \u2014 multibeam surveys TARGET rough, interesting terrain. The per-cell short/long ratio is scale-free and controls for that.",
+   "short_window_cells": 3,
+   "long_window_cells": 19,
+   "median_local_sd_m": {
+    "short_1400m": {
+     "direct": 11.2162,
+     "predicted": 4.50788,
+     "ratio_direct_over_predicted": 2.4881
+    },
+    "long_8800m": {
+     "direct": 44.1449,
+     "predicted": 25.5368,
+     "ratio_direct_over_predicted": 1.7287
+    }
+   },
+   "median_short_over_long_ratio": {
+    "direct": 0.257481,
+    "predicted": 0.173685
+   },
+   "finding": "PREDICTED CELLS ARE MEASURABLY SMOOTHER AT SHORT WAVELENGTHS, and it is not the terrain-selection confound. Two independent signatures: (1) the direct/predicted roughness gap NARROWS as the window grows, which is what suppression of short wavelengths looks like and is the opposite of what a simple amplitude difference would do; (2) after normalising every cell by its OWN long-wavelength roughness, predicted cells still carry about a third less short-wavelength structure. The alternative hypothesis this task was told to watch for \u2014 that the ML step INJECTS short-wavelength structure the gravity field cannot support \u2014 is REFUTED for this extent: the deficit runs the other way at every scale measured."
+  },
+  "affected_covariates": {
+   "axis": "derivative order \u2014 each derivative amplifies the missing short-wavelength content",
+   "depth_value": {
+    "direct": -4302.0,
+    "predicted": -4456.0,
+    "ratio_direct_over_predicted": 0.9654
+   },
+   "slope_first_derivative_deg": {
+    "direct": 1.48486,
+    "predicted": 0.67219,
+    "ratio_direct_over_predicted": 2.209
+   },
+   "curvature_second_derivative": {
+    "direct": 6.21542e-05,
+    "predicted": 9.56219e-06,
+    "ratio_direct_over_predicted": 6.5
+   },
+   "reading": "DEPTH is a VALUE and is barely affected \u2014 the medians agree within about 4%, so a gravity inversion gets the depth broadly right. SLOPE and ASPECT are FIRST derivatives on a 3x3 cell stencil. PROFILE and PLAN CURVATURE are SECOND derivatives and are the most affected of the eight. ROUGHNESS and TPI (1400 m windows) and BPI (460-2300 m radii) are windowed at scales that lie ENTIRELY below the resolution the gravity field is credited with, so they are load-bearing on short-wavelength structure throughout. Seven of Contract 3's eight layers are affected; depth is the exception."
+  },
+  "asymmetry_note": "The DIRECT cells are attributed to a method (multibeam) and nothing else; the PREDICTED cells are now attributed to a mission, a gravity field, a model and two papers. READ THAT THE RIGHT WAY: it is not that prediction is better documented than measurement, nor that it is more trustworthy. It is that prediction NEEDS more documentation to be interpretable at all \u2014 a multibeam sounding means one thing, while an inversion means whatever its gravity field and its model make it mean."
+ },
  "grid": {
   "pixel_deg": 0.004166666667,
   "note": "15 arc-seconds; both grids share size, transform and CRS (asserted at generation)"

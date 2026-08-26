@@ -187,8 +187,16 @@ trigger's clothes.** Only 3 entries survived refutation as genuinely doable
 now (#43 here, plus `claim.py`'s NameError branch and the pre-registration
 timestamp-in-the-hash entry, both of whose defects the sweep REPRODUCED LIVE).
 No entries were re-triggered or fixed by that sweep — it reports only.
-**61 open items** (recounted from the boxes, 2026-08-26, OBS.1): §1
-Track G 16, §2 Karl 5, §3 Engineering 37, §4 Phase-2 risks 0 (both
+1 ADDED at TID.2 (2026-08-26): the SWOT **vertical gravity gradient as a
+covariate in its own right** — a genuine scientific idea (gravity reveals
+basement structure beneath sediment, and abundance is thought to relate to
+sediment thickness) held OUT OF SCOPE with its reasoning, because it is a new
+data source, a new contract slot, a new licence and a covariate needing its
+own justification. Its trigger is written per the OBS.1 rule and the honest
+half applies: it could NOT be done today, so it is a real trigger rather than
+a priority wearing one.
+**62 open items** (recounted from the boxes, 2026-08-26, TID.2): §1
+Track G 16, §2 Karl 5, §3 Engineering 38, §4 Phase-2 risks 0 (both
 closed), §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -2610,6 +2618,35 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   Owner: E. Trigger: any time — each is a one-line edit, and they are grouped
   so the sweep happens ONCE rather than one file per task. Detail:
   [G.2.md](walkthroughs/G.2.md) §8.
+
+- [ ] **SWOT VERTICAL GRAVITY GRADIENT AS A COVARIATE IN ITS OWN RIGHT —
+  a real scientific idea, deliberately OUT OF SCOPE** (entered at TID.2,
+  2026-08-26). TID.2 established that 54.9% of the study extent is bathymetry
+  PREDICTED from SWOT gravity by a machine-learning model. The idea that
+  follows: if gravity is already determining the terrain under half the
+  domain, use the **vertical gravity gradient directly** as a covariate rather
+  than only its bathymetric inversion. The scientific case is genuine —
+  gravity reveals BASEMENT structure beneath sediment, and nodule abundance is
+  thought to relate to sediment thickness and basement topography, which is
+  exactly the signal a smoothed depth surface loses.
+  **WHY IT IS OUT OF SCOPE, stated so the idea is not silently dropped:** it
+  is a NEW DATA SOURCE (a SWOT/altimetry gravity grid this repo does not
+  hold), a NEW CONTRACT SLOT (Contract 3 registers terrain recipes over one
+  DEM; a gravity grid is a second raster with its own resolution, CRS and
+  provenance), a NEW LICENCE to read and record, and — the real bar — a
+  covariate whose relationship to abundance needs its OWN justification
+  rather than inheriting terrain's. Adding it would also make the training
+  matrix depend on a field the 35 stations were never chosen against.
+  **TRIGGER, written per the OBS.1 rule** (a trigger naming an event unrelated
+  to its remedy expires unnoticed): **when the covariate set is actually
+  reopened** — i.e. when someone proposes changing Contract 3's registry, or
+  when a CP1 result makes the terrain covariates look insufficient. NOT a
+  date, and NOT "when convenient". *And the honest half of that rule applies
+  too: this could NOT be done today — it needs data the repo does not have —
+  so it is a genuine trigger and not a priority wearing one.* Owner: Karl
+  (scope + the science) + E (the wiring, if ever). Detail:
+  [TID.2.md](walkthroughs/TID.2.md);
+  `data/bathymetry/tid_accounting.json` → `predicted_class_provenance`.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
