@@ -30,22 +30,23 @@ outline over the heatmap; that separation is the point).
 ATTRIBUTION IS PART OF THE LAYER: each entry's `attribution_text` is shown
 beside its checkbox and in the footer — where a user sees it, not only here.
 
-THE FIXTURE. Karl is acquiring the real layers; this commit ships the
-capability with a stand-in: a RECTANGLE at the CCZ management area's
-published approximate extent (0–23.5°N, 160–111.4°W), declared AUTHORED
-in-file, titled FIXTURE, with nothing real about its shape. A fabricated
-look-alike of the real boundary would be exactly the placeholder this
-project unwired twice; a rectangle that says what it is is not. The real
-layer — Marine Regions MRGID 64222, layer MarineRegions:isa_ccz_managementarea,
-CC-BY 4.0 — and the ISA shapefiles (exploration areas, reserved areas, APEIs:
-ISA copyright; ISBA/17/LTC/7, ISBA/18/C/22, ISBA/26/C/58, ISBA/26/C/43) arrive
-in their own task: download, hash, classify (BACKLOG §3), with two decisions
-riding on it that are Karl's (the AOI; the APEIs and exclusions.geojson).
+THE FIXTURE IS GONE (G.2, 2026-08-25). It was a RECTANGLE at the published
+approximate extent, declared AUTHORED and titled FIXTURE so it could not be
+mistaken for the boundary. The real polygon has landed as Contract 2's AOI,
+and this registry now points AT THAT FILE — so the map draws the AOI the run
+was given rather than a second copy of it. The remaining half of the original
+acquisition — the ISA shapefiles (exploration areas, reserved areas, APEIs:
+ISA copyright; ISBA/17/LTC/7, ISBA/18/C/22, ISBA/26/C/58, ISBA/26/C/43) — is
+still its own task, and the exclusions.geojson decision rides on it (BACKLOG).
 
-THE SCALE SURPRISE, measured (E5.3 §0.6): the CCZ box is ~13.86 M km², the
-prediction extent ~0.41 M km² — 33.8×; the study area is 2.96 % of the zone.
-Drawing the boundary makes that visible. It is honest; the view is not
-adjusted to hide it.
+THE SCALE SURPRISE, RE-MEASURED against the real polygon (G.2; the earlier
+figures compared the CCZ's BOUNDING BOX with the prediction EXTENT, which
+flattered both sides): the AOI polygon is 11,399,939 km² — its bounding box
+is 13,726,806, so the box overstates the zone by 20 % — and the run's
+PREDICTABLE domain is 346,927 km² (2,880 cells; the extent box is 409,553).
+Polygon against predictable domain: 32.9×, i.e. the domain this project can
+speak about is 3.04 % of the zone. Drawing the boundary makes that visible.
+It is honest; the view is not adjusted to hide it.
 
 WHERE THEY LIVE: apps/web/context/ (the fixture) and apps/web/ (the
 coastline) — outside the origin audit's walk, which is why the declaration
@@ -66,6 +67,9 @@ from engine.prospectivity.provenance.origin import DataOrigin
 from services.api.web import COASTLINE, WEB_DIR
 
 CONTEXT_DIR = WEB_DIR / "context"
+# Contract 2's own file: the AOI is a context layer AND the coverage
+# denominator, and pointing at one file keeps those from drifting apart.
+AOI_PATH = Path(__file__).resolve().parents[2] / "data" / "aoi" / "study_area.geojson"
 
 CONTEXT_LAYERS: tuple[dict, ...] = (
     {
@@ -84,24 +88,33 @@ CONTEXT_LAYERS: tuple[dict, ...] = (
         "fixture": False,
     },
     {
+        # G.2 (2026-08-25): THE REAL BOUNDARY, and it is THE AOI ITSELF — the
+        # path points at Contract 2's own file rather than at a copy under
+        # apps/web/. The viewer therefore draws the polygon THE RUN WAS GIVEN,
+        # not a look-alike of it (E5.3's stations-from-the-manifest rule, one
+        # layer over), and the repo holds two copies of these coordinates
+        # instead of three. The file is inside the origin audit's walk and
+        # declares LITERATURE in-file, so `declared_in_file` below is checked
+        # against a real declaration rather than a registry echo.
         "id": "ccz_management_area",
-        "title": "CCZ management area — FIXTURE rectangle (not the boundary)",
-        "path": CONTEXT_DIR / "ccz_management_area_FIXTURE.geojson",
-        "sha256": "sha256:436f0742638cd5cd60272a6c2e40b7cea2360a9fe6e9e6f10e6444178259c3c9",
-        "bytes": 1055,
-        "data_origin": DataOrigin.AUTHORED.value,
-        "author": "model",
+        "title": "CCZ management area (Marine Regions MRGID 64222)",
+        "path": AOI_PATH,
+        "sha256": "sha256:d8663e5b36814f25cb803a7b540ee62ea118a5156c569029450979f43b749e91",
+        "bytes": 152_569,
+        "data_origin": DataOrigin.LITERATURE.value,
+        "author": None,
         "citation": (
-            "FIXTURE — a rectangle at the published approximate extent (0–23.5°N, 160–111.4°W). The real "
-            "layer: Marine Regions MRGID 64222, MarineRegions:isa_ccz_managementarea, CC-BY 4.0 (to be "
-            "downloaded, hashed and classified — BACKLOG §3)"
+            "International Seabed Authority (2023), geographical limits of the CCZ management area — "
+            "ISBA/17/LTC/7, ISBA/18/C/22, ISBA/26/C/58, ISBA/26/C/43; digitised and redistributed by "
+            "Marine Regions (Flanders Marine Institute) as MRGID 64222, retrieved 2026-08-25. Ledger "
+            "row: src_ccz_boundary_marineregions"
         ),
-        "license": "n/a (fixture); the real layer is CC-BY 4.0 (Marine Regions)",
-        "attribution_text": "CCZ management area: FIXTURE rectangle — not the boundary (real layer: Marine Regions MRGID 64222, CC-BY 4.0)",
+        "license": "CC-BY 4.0 (Marine Regions); underlying limits are ISA's",
+        "attribution_text": "CCZ management area: Marine Regions MRGID 64222 (CC-BY 4.0), from ISA limits ISBA/17/LTC/7 et seq.",
         "style": {"kind": "outline", "color": "#ffffff", "width": 1.2},
         "default_on": True,
         "declared_in_file": True,
-        "fixture": True,
+        "fixture": False,
     },
 )
 

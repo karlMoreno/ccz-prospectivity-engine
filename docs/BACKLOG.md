@@ -147,8 +147,23 @@ OVERSHOT, inferring absence from an inexact paraphrase; correction-drift
 instance (o), the count derived. No contract version bump: a value/comment
 fill within an existing entry, the same class as the original
 fill-on-download.
-**59 open items** (recounted from the boxes, 2026-08-24, G.3 approval): §1
-Track G 17, §2 Karl 5, §3 Engineering 34, §4 Phase-2 risks 0 (both
+1 CLOSED + 3 ADDED at G.2 (2026-08-25): the **AOI entry** closes on its
+ORIGINAL box (no twin — the original text continues under the checked box,
+the pattern G.3 used), Karl's option (b): the CCZ management area is the AOI
+and the coverage denominator, `fraction_outside` 1.0 becomes 0.0, and
+`aoi_coverage` (RunManifest schema 5) joins the AOI, the stations and the
+fitted range. The three additions are consequences found by measuring, not
+defects invented: Contract 2 cannot declare a change class (it has no version
+field, so its hash is its only signal — the sharpest instance of §2's
+`change_class` entry); whether the AOI should BOUND the grid, the question
+behind the README line G.2 struck (the mask can only shrink, so a smaller AOI
+would be the first thing here able to discard supported cells); and the
+committed corpus manifest now diverging from every fresh build in four fields
+at once, only one of which is about the AOI. The APEIs/`exclusions.geojson`
+half is REPORTED, not closed — a different publisher, a different licence,
+and two Track-E steps.
+**61 open items** (recounted from the boxes, 2026-08-25, G.2): §1
+Track G 16, §2 Karl 5, §3 Engineering 37, §4 Phase-2 risks 0 (both
 closed), §6 later phases 3. §5 is fully closed.
 All three E1.5 reverse-audit findings are now closed (combinators deleted,
 `TerrainSource` wired, `CorpusCsvSampleSource` implemented in E2.0-1).
@@ -273,7 +288,32 @@ precedes ANY real-data run** — the pre-registration clock
   [model_config.yaml](../data/config/model_config.yaml) header; the parsing
   hazard for anyone re-running the analysis is §3 ("[05] Depth sed parsing
   hazard").
-- [ ] **Study area / AOI scope.** ALL **108 of 108** corpus rows fall
+- [x] **Study area / AOI scope — CLOSED at G.2 (2026-08-25).** Karl's
+  decision was G.2-PRE option **(b): two concepts, kept apart.** The AOI is
+  the region the project is ABOUT — externally defined, never moving as the
+  corpus grows, and THE DENOMINATOR for coverage; where the model may EMIT
+  values is a different question the code already answered (`PredictionGrid
+  .from_stack` inherits the feature stack's extent, `manifest.prediction_grid`
+  records it per run). `data/aoi/study_area.geojson` now holds the real CCZ
+  management area (Marine Regions MRGID 64222, declared LITERATURE in-file,
+  ledger row `src_ccz_boundary_marineregions`), and `aoi_coverage` in the run
+  manifest joins the AOI, the stations and the fitted range into the one
+  number this turns on: **0.036% of the 11,399,939 km2 AOI lies within one
+  fitted range of any station (4,125 km2), the range itself at its candidate
+  ceiling so that is a LOWER BOUND; the predictable domain is 3.04% of the
+  zone.** `fraction_outside` went from 1.0 to **0.0** — measured, not assumed.
+  *(a) lost* because the manifest would have kept saying what the extent WAS
+  without ever saying anyone chose it; *(c), the data-defined boundary the
+  planning conversation had been arguing for, lost ON A MEASUREMENT*:
+  `study_area_content_hash` is in `contract_versions`, which is in
+  `LEGACY_HASHED_FIELDS` and not in `HASH_EXCLUDED_FIELDS`, so a polygon
+  regenerated as the corpus grows moves EVERY future run's `content_hash` and
+  the denominator with it. Still open and NOT closed here: the APEIs into
+  `exclusions.geojson` (§3's context-layer entry — a different publisher, a
+  different licence, and two Track-E steps because E4.1 asserts the exclusion
+  set is empty). Detail: [G.2.md](walkthroughs/G.2.md);
+  `engine/prospectivity/provenance/coverage.py`.
+  *(original entry)* ALL **108 of 108** corpus rows fall
   outside `study_area.geojson`'s Phase-0 placeholder — `fraction_outside`
   1.0 in `data/corpus/manifest.json` (E1.4 preflight confirmed 0/35 training
   points on the placeholder AOI). *Corrected at P2.CLOSE, 2026-08-20: this
@@ -2371,6 +2411,64 @@ its two `[KARL — DECIDE]` sub-items are called out in the batch header.)*
   pytest consume it in CI on every run — the consumer executes it where
   the suite lives); the data contracts (parse tests exist). No
   `.gitattributes` exists.
+
+- [ ] **CONTRACT 2 CANNOT DECLARE A CHANGE CLASS — it was frozen without a
+  version field** (entered at G.2, 2026-08-25; deliberately NOT solved there).
+  `contract_versions.py` identifies `study_area.geojson` by `area_id` + a
+  content hash, because Contract 2 has no `*_version`. So the AOI is the one
+  contract where the §2 `change_class` proposal (metadata vs semantic) cannot
+  be applied AT ALL: there is no version to class, and re-sync travels through
+  a hash that moves on ANY edit — a reformatted comment and a new polygon are
+  indistinguishable to a consumer. G.2 replaced the geometry and added an
+  in-file origin declaration in one commit, and the ONLY signal either change
+  produced was `study_area_content_hash` moving, which is exactly the noise
+  the freeze existed to prevent. This is the sharpest instance of the §2
+  entry, not a separate problem: fixing it means either giving Contract 2 a
+  version field (a structural change to a frozen contract) or accepting that
+  its hash is its only version and saying so in the contracts README. Owner:
+  Karl + E. Trigger: with the §2 `change_class` decision, or the next edit to
+  `study_area.geojson`. Detail: [G.2.md](walkthroughs/G.2.md) section 4;
+  `engine/prospectivity/provenance/contract_versions.py:5`.
+
+- [ ] **SHOULD THE AOI BOUND THE PREDICTION GRID? The README line that said
+  it did is STRUCK, and the question it implied is real** (entered at G.2,
+  2026-08-25). G.2-PRE found `docs/contracts/README.md` claiming Track E
+  does "clip/align grid" for Contract 2 — zero code, zero tests, the same
+  shape as the tripwire clause C8.1 struck, in the contracts' own summary
+  table. G.2 STRUCK it rather than implementing it, because implementing it
+  is a decision and not a fix; the row now says what is true (the AOI is read
+  as the coverage denominator; nothing clips or aligns on it).
+  **The decision, with the asymmetry that makes it non-obvious** (G.2-PRE
+  section 2e): the covariates' NaN-union mask can only ever SHRINK the
+  domain, so an AOI LARGER than the feature stack is silently inert — which
+  is today's case and why nothing has broken — while an AOI SMALLER than the
+  stack would be the first thing in this repo capable of DISCARDING cells the
+  covariates support. That is a real behaviour change and needs stated
+  intersection semantics before any code reads the polygon geometrically.
+  Note it is not urgent: at Checkpoint 1 a global GEBCO DEM stops bounding
+  anything by accident, which is when the answer starts mattering. Owner:
+  Karl + E. Trigger: Checkpoint 1, or any task that makes something read the
+  AOI's geometry for filtering. Detail: [G.2.md](walkthroughs/G.2.md)
+  section 4; `services/api/context.py`; `engine/prospectivity/surfaces/grid.py`.
+
+- [ ] **THE COMMITTED CORPUS MANIFEST NOW DIVERGES FROM EVERY FRESH BUILD**
+  (found at G.2 by measuring, 2026-08-25; deliberately not fixed there).
+  `data/corpus/manifest.json` is LEGACY (no `schema_version`) and records
+  `study_area_id: ccz_alpha_aoi`, `fraction_outside: 1.0` and the
+  placeholder's hash. Every run rebuilds it (`upstream_hashes.corpus`), and a
+  fresh build now differs in FOUR fields at once —
+  `contract_versions`, `study_area_containment`, `generated_at`, and
+  `schema_version` (null becomes 1, i.e. the artifact would leave HASH.1's
+  legacy class). Regenerating therefore bundles a legacy-status transition
+  into whatever commit does it, and moves a hash three test modules pin,
+  which is why G.2 left it: only ONE of those four reasons is about the AOI.
+  Nothing downstream propagates the stale numbers (runs use their own fresh
+  build), so this is a staleness-of-record problem, not a correctness one —
+  but a reader opening that file today reads "108 of 108 rows outside the
+  AOI", which is now false and alarming. Decide: regenerate (and re-pin the
+  three literals in one deliberate commit), or declare the committed copy a
+  dated archive and say so in it. Owner: Karl + E. Trigger: the next corpus
+  change, or any time. Detail: [G.2.md](walkthroughs/G.2.md) section 4.
 
 ## 4. Phase 2 method risks (record now, decide at Phase-2 kickoff)
 
