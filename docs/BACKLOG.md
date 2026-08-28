@@ -534,27 +534,82 @@ precedes ANY real-data run** — the pre-registration clock
   uniformly a weighed box-core mass**, and a method offset of the same size and
   direction as the basis offset is riding in the same number. `abundance_basis`
   therefore stays UNRECORDED for [03] and [04] rather than guessed.
-- [ ] **Separate [03]'s method offset from its basis offset — the step that
-  would close the wet/dry gap on the DOMES family** (deferred at WET.1,
-  2026-08-28, at the moment the AMBIGUOUS verdict was written). The work, in
-  order of decreasing reach: (1) transcribe [03] Table 9's box-core sub-table
-  (printed p. 458, columns 6–8: box-core No. / Weight kg/m² / Photo kg/m²) and
-  re-run WET.1 §4's ratio against the **Weight** column instead of Table 8's
-  mixed one — if the spread tightens onto 0.80 the basis reading survives, if
-  it persists it does not; (2) obtain **Sorem et al. 1979a** (pp. 475–527 of
-  the same Plenum volume as [03]), the chapter [04] Table 1 is drawn from,
-  which should state how the nodules were dried and weighed; (3) a stated basis
-  for TS-6's own distribution, which Contract 4's cutoffs are anchored to —
-  the other half of the same gap, already carried in the entry above.
-  **Step (1) needs nothing that does not already exist**: the PDF is on disk at
-  `~/CCZ/downloads/domes/Piper_1979_chapter.pdf` and WET.1's two transcription
-  files sit beside it. Owner: Karl (as G). **Trigger: none — this is a
-  PRIORITY, not a trigger.** Step 1 is possible today; steps 2–3 wait on
-  acquisition. (Written this way deliberately: OBS.1's sweep found 30 of 62
-  triggers naming something adjacent to rather than required by the work, and
-  the diagnostic — *what would have to become true for the WORK to be
-  possible?* — answers "nothing" here.)
-  Detail: [WET.1.md](walkthroughs/WET.1.md) §5, §7.
+  **VERDICT ACCEPTED 2026-08-28: AMBIGUOUS** (not a failure — the distribution
+  was shown and a confound was correctly refused as a confirmation). The
+  distribution in full, ratio [04]-derived / [03] Table 8 per shared box core:
+  `BC6 0.925 · BC7 0.593 · BC8 0.958 · BC9 0.667 · BC10 0.782 · BC11 1.240 ·
+  BC12 1.029 · BC13 1.220 · BC15 0.834 · BC16 0.760 · BC18 1.020 · BC19 0.800 ·
+  BC20 0.719 · BC21 0.631 · BC22 0.696 · BC23 2.414 · BC24 0.863 · BC27 0.950 ·
+  BC28 0.605`.
+  **SUPERSEDED IN PART, same day (WET.1 commit 2):** the confound is now derived
+  to its floor — [03] Table 8 is `0.08 × Coverage × Diameter` throughout, so the
+  ratio above compares a balance reading against a photograph and is not evidence
+  about basis at all. See the entry below for what the gap now is, per source.
+- [ ] **Close the wet/dry gap on the DOMES family — REVISED 2026-08-28 (WET.1
+  commit 2): the step this entry used to name is UNDER-POWERED, and for [03]
+  Table 8 the gap is INAPPLICABLE rather than open.** As first written, this
+  entry named "transcribe [03] Table 9's Weight column and re-run the ratio" as
+  the closing step. Two derivations changed that. **(a)** [03] Table 8's
+  Concentration column reproduces as `0.08 × Coverage% × Diameter_cm` for
+  **75 of the 79** rows that print both inputs (single-constant admissible
+  interval [0.07995, 0.08007]; Sites A and B reproduce with no exceptions), and
+  Piper's own Techniques section (p. 439) says the abundances "were estimated
+  from photographs of box cores" — so **Table 8 contains no mass measurement
+  anywhere**, and a wet/dry question is a category error against it.
+  `abundance_basis` cannot be filled for Table 8 with any value, `"unknown"`
+  included. **(b)** Table 9's Weight column is printed to **1 kg/m²** — ±0.5,
+  i.e. **±16.7% at its minimum (3), ±4.5% at its median (11), ±2.5% at its
+  maximum (20)** against a 20% effect. Resolution alone does not sink it (the
+  effect is 4.4× the noise at the median); what sinks it is that the comparison
+  would weigh **[04]'s unstated basis against [03]'s unstated basis** — two
+  unknowns, one equation, unable to say which side is dry. **Marked
+  UNDER-POWERED, not pending.**
+  **The gap, per source:** [03] Table 8 → **INAPPLICABLE (closed as
+  not-well-posed)**; [03] Table 9 col 9 → **ANSWERED** (dry, salt-free, by its
+  own caption); [03] Table 9 col 7 → **OPEN**, protocol unstated; [04] Table 1
+  → **OPEN**, protocol unstated. **What would actually close the two OPEN ones:
+  a document stating a drying/weighing protocol for either side** — first
+  candidate **Sorem et al. 1979a** (pp. 475–527 of the same Plenum volume as
+  [03]; the chapter [04] Table 1 is drawn from), **not on disk**. Plus, still,
+  a stated basis for TS-6's own distribution — the other half of the same gap,
+  carried in the entry above. Owner: Karl (as G). **Trigger: acquisition of
+  Sorem et al. 1979a — this one is a real trigger**, because unlike the
+  superseded step 1 the work genuinely cannot proceed without it.
+  Detail: [WET.1.md](walkthroughs/WET.1.md) §9, §11.
+- [ ] **[03]'s `evidence_classes` and `data_origin` are wrong after WET.1 §9 —
+  two contract-bearing fields, flagged not changed** (found and deferred at
+  WET.1 commit 2, 2026-08-28). The PANGAEA dataset catalogued as `[03]` *is*
+  Table 8 — its own citation line reads "(Table 8, pages 454-455)". Since that
+  table's Concentration column is a closed form over Coverage and Diameter
+  (§9), (a) `evidence_classes: [MASS, COVER]` would admit **79 computed rows
+  into a training target as if they were weighings**, and (b) `data_origin:
+  MEASURED` fails TAX.1's own rule — what the artifact IS decides its class, and
+  a column computed from two measured inputs is **DERIVED** (the Coverage and
+  Diameter columns stay MEASURED). Both left as-is deliberately: changing either
+  moves a field the production guard reads, which is Karl's call, not a
+  recording task's. Owner: Karl (as G). **Trigger: before wiring [03] into any
+  adapter** — the fields are inert until then and wrong the moment they are not.
+  Detail: [WET.1.md](walkthroughs/WET.1.md) §9, §12.
+- [ ] **[03] Table 8's printed averages do not recompute from its printed rows —
+  the source has DROPPED ROWS** (found at WET.1 commit 2, 2026-08-28; a defect
+  of the source, not of the transcription — row counts were confirmed twice,
+  by image reads and by clustering the PDF's own word positions). Sites **A and
+  C fail on all three columns**, Site B on Coverage only. Implied denominators
+  against printed row counts: A 28/27, 26/25, 28/27 — **exactly one more row on
+  all three columns**, and the bounds that row must satisfy are mutually
+  consistent (coverage ≤13%, diameter ≤0.5 cm, concentration ≤2.7 kg/m², itself
+  consistent with §9's formula at 0.52) — one near-barren core present in the
+  averages and absent from the table. C: 40/39, 40–41/38, **54/50** — at least
+  four rows. B Coverage implies **19–20 against 21 printed**, the only column
+  running the other way; recorded, not explained. Table 8's working set held
+  **≥116 rows against the 111 it prints**. **The 19 cores used in the WET.1 join
+  sit entirely inside Site C**, the worst-affected site — the join is unharmed
+  (it uses per-row values, never the printed averages), but this bounds how far
+  the source can be trusted to have printed what it computed. Consequence to
+  decide: whether a source that cannot reproduce its own averages should carry a
+  `qa_status` below the default. Owner: Karl (as G). **Trigger: none — this is a
+  PRIORITY, not a trigger.** The finding is complete; only the disposition is
+  open. Detail: [WET.1.md](walkthroughs/WET.1.md) §10.
 - [ ] **LITERATURE citations that fail the locate-the-number bar** (P2.0c;
   the bar: document + table/section/page — "TS-6" alone is insufficient).
   Labels carried as LITERATURE with the gap recorded, not guessed closed and

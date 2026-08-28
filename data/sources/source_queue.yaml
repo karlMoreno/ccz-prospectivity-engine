@@ -101,14 +101,50 @@ sources:
     # Sorem et al. 1979a", pp. 475-527 of THE SAME VOLUME. This chapter cites it
     # as "(Sorem et al., this volume)" (p. 456) and credits Sorem for the box-core
     # photographs its coverage column rests on (Fig. 4 caption, p. 453).
-    # WET/DRY BASIS: UNRESOLVED (verdict AMBIGUOUS). Table 9's caption (p. 458)
-    # states its column-9 average "was lowered by 20% to give a nodule
-    # concentration on a dry-weight and salt-free basis" -- so Table 9 col 9 is
-    # dry+salt-free and its inputs are not. Table 8's own Concentration column
-    # has NO stated basis, and is NOT uniformly a weighed box-core mass: Table 9
-    # prints "-" in the box-core Weight column for box cores 11 and 23 while
-    # Table 8 prints 9.6 and 6.5 for them. Detail: docs/walkthroughs/WET.1.md.
-    notes: "Compare events against [02] before dedup (DOMES family, rule 1). NOT INDEPENDENT of [04] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. abundance_basis UNKNOWN, not guessed."
+    # VERDICT ACCEPTED 2026-08-28: AMBIGUOUS. Ratio [04]-derived / [03] Table 8,
+    # per shared box core (n=19; median 0.834, geomean 0.877, min 0.593, max
+    # 2.414, spread 4.07x). Excluding BC 11 and 23: n=17, median 0.800, geomean
+    # 0.810, 95pct CI 0.696-0.950, which excludes 1.00. Per-core:
+    #   BC6 0.925 | BC7 0.593 | BC8 0.958 | BC9 0.667 | BC10 0.782 | BC11 1.240 | BC12 1.029
+    #   BC13 1.220 | BC15 0.834 | BC16 0.760 | BC18 1.020 | BC19 0.800 | BC20 0.719
+    #   BC21 0.631 | BC22 0.696 | BC23 2.414 | BC24 0.863 | BC27 0.950 | BC28 0.605
+    # WET/DRY BASIS -- AMENDED WET.1 commit 2 (2026-08-28). Verdict on the
+    # [03]-vs-[04] comparison: AMBIGUOUS. But for THIS table the question is not
+    # merely unresolved, it is NOT WELL-POSED:
+    #   THE DATASET CATALOGUED HERE *IS* TABLE 8 (its PANGAEA citation line reads
+    #   "(Table 8, pages 454-455)"), AND TABLE 8 CONTAINS NO MASS MEASUREMENT.
+    # Derived, not assumed: Table 8's Concentration column reproduces as
+    #   Concentration_kg_m2 = 0.08 x Coverage_pct x AvgDiameter_cm
+    # for 75 of the 79 rows that print both inputs -- one constant, admissible
+    # interval [0.07995, 0.08007]; Sites A (25/25) and B (16/16) reproduce with
+    # NO exceptions; the join's Site C series is 16/19, the misses being three
+    # small residuals and one single-digit slip (BC 22, +1.04). Piper's own
+    # Techniques section (p. 439) says it in words: abundances "were estimated
+    # from photographs of box cores ... A = 19.5 DP/100". (That printed
+    # coefficient, 0.195, reproduces NO row; the table was computed at 0.08.)
+    # So the column is covered area x an assumed vertical axis x an assumed bulk
+    # density. Nothing in it was on a balance, and abundance_basis CANNOT be
+    # filled for it with any value -- "unknown" included, since that asserts an
+    # answer exists. Where the basis question IS well-posed in this paper:
+    # Table 9 col 9 = ANSWERED (dry + salt-free, "lowered by 20%", p. 458);
+    # Table 9 col 7 (box-core weights, 1 kg/m2 resolution) = OPEN, protocol
+    # unstated. Detail: docs/walkthroughs/WET.1.md sections 9 and 11.
+    #
+    # TWO FIELDS ABOVE ARE NOW SUSPECT AND WERE DELIBERATELY NOT CHANGED HERE
+    # (contract-bearing; Karl's call -- BACKLOG entry filed 2026-08-28):
+    #   evidence_classes: [MASS, COVER] -- Table 8's Concentration is not MASS;
+    #     wiring it as MASS puts 79 COMPUTED rows into a training target.
+    #   data_origin: MEASURED -- under TAX.1's rule a column computed by closed
+    #     form from two measured inputs is DERIVED. Coverage/Diameter stay
+    #     MEASURED.
+    #
+    # SOURCE DEFECT (WET.1 section 10): Table 8's printed per-site "Average:"
+    # rows do not recompute from the rows it prints. Sites A and C fail on all
+    # three columns, Site B on Coverage only; implied denominators 28/27 (A, all
+    # three columns -> exactly one dropped row) and 54/50 (C, concentration).
+    # Working set was >=116 rows against the 111 printed. The 19 cores used in
+    # the [03]/[04] join sit entirely inside Site C.
+    notes: "Compare events against [02] before dedup (DOMES family, rule 1). NOT INDEPENDENT of [04] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. Table 8 = 0.08 x Coverage x Diameter, a PHOTOGRAPHIC ESTIMATE, not a weighing: abundance_basis is NOT WELL-POSED here (do not fill it, not even \"unknown\"); evidence_classes/data_origin flagged suspect, see comment block."
 
   - source_id: src_domes_sitec_sorem1989     # [04]
     data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
@@ -141,8 +177,21 @@ sources:
     # are footnoted "Recovery probably incomplete" -- both absent from [03].
     # The Total-number column sums to 4113 over the 21 data rows, matching
     # Sorem's own prose on p. 193.
-    # WET/DRY BASIS: UNRESOLVED (verdict AMBIGUOUS). Table 1 states grams, with
-    # no basis given anywhere in the paper. Detail: docs/walkthroughs/WET.1.md.
+    # VERDICT ACCEPTED 2026-08-28: AMBIGUOUS. Ratio [04]-derived / [03] Table 8,
+    # per shared box core (n=19; median 0.834, geomean 0.877, min 0.593, max
+    # 2.414, spread 4.07x). Excluding BC 11 and 23: n=17, median 0.800, geomean
+    # 0.810, 95pct CI 0.696-0.950, which excludes 1.00. Per-core:
+    #   BC6 0.925 | BC7 0.593 | BC8 0.958 | BC9 0.667 | BC10 0.782 | BC11 1.240 | BC12 1.029
+    #   BC13 1.220 | BC15 0.834 | BC16 0.760 | BC18 1.020 | BC19 0.800 | BC20 0.719
+    #   BC21 0.631 | BC22 0.696 | BC23 2.414 | BC24 0.863 | BC27 0.950 | BC28 0.605
+    # WET/DRY BASIS: OPEN (verdict AMBIGUOUS, ACCEPTED 2026-08-28). Table 1
+    # states grams, with no drying/weighing protocol given anywhere in the
+    # paper. Unlike [03] Table 8 -- where WET.1 commit 2 showed the question is
+    # NOT WELL-POSED, the column being a photographic estimate rather than a
+    # weighing -- these ARE weighings, so the question is well-posed here and
+    # simply unanswered. What would answer it: Sorem et al. 1979a, pp. 475-527,
+    # the chapter this table is drawn from (not on disk).
+    # Detail: docs/walkthroughs/WET.1.md sections 9 and 11.
     notes: "DERIVE. Area VERIFIED 0.25 m2 (p.193). NOT INDEPENDENT of [03] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. abundance_basis UNKNOWN, not guessed."
 
   - source_id: src_so268_nodules             # [05]
