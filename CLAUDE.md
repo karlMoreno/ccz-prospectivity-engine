@@ -681,12 +681,18 @@ ccz-prospectivity-engine/
   `E3.1-2.md`, `TAX.1.md`, `E3.3.md`, `E3.4.md`, whose second half is
   the PHASE-3 TRACK-E CLOSEOUT, `HASH.1.md`, `E4.1.md` … `E4.3.md`,
   `E5.1.md` … `E5.5.md`, `E5.6-7.md`, whose §5 is the PHASE-5 CLOSEOUT, and
-  Track G's `G.3.md`, `G.2.md` and `TID.2.md`, and `OBS.1.md`). **The Phase-4/5 and Track-G files were
+  Track G's `G.3.md`, `G.2.md` and `TID.2.md`, `OBS.1.md`, `WET.1.md`, and the
+  cross-cutting `provenance.md`). **The Phase-4/5 and Track-G files were
   MISSING from this list until the G.2 approval (2026-08-25) — an index that
   stopped at E3.4 while instructing the reader to "read the relevant one",
   i.e. pointing away from the newest work in the sentence that exists to
   point at it. Verify this list against `ls docs/walkthroughs/` when adding
-  one.** Read the relevant one before changing that area.
+  one.** *Verified at WET.1 (2026-08-28) by that instruction: adding `WET.1.md`
+  found `provenance.md` (2026-07-29) had been absent from this list since it was
+  written — the G.2 fix corrected the claim it was looking at and not the entry,
+  which is the shape the drift table names at (q). Both added; the list now
+  matches `ls docs/walkthroughs/` exactly, 35 files.* Read the relevant one
+  before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;
   if one needs a structural change, bump its `*_version`, tell me, and note it in the

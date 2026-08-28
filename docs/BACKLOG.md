@@ -519,6 +519,42 @@ precedes ANY real-data run** — the pre-registration clock
   both slots his engineering-side call — G.0-4 + G.0-5).
   **Trigger: before any published run; before Checkpoint 4.**
   Detail: [E4.1.md](walkthroughs/E4.1.md) §2.
+  **UPDATE 2026-08-28 (WET.1) — the gap STAYS OPEN; one attempt to close it
+  from the primary sources returned AMBIGUOUS.** [03] and [04] were tested
+  against each other over their 19 shared RP-8-OC-76 Leg 9 box cores, on the
+  hypothesis that [04] is dry+salt-free and [03] Table 8 wet+salted. Piper's
+  Table 9 caption (p. 458, verified) says its column-9 average "was lowered by
+  20% to give a nodule concentration on a dry-weight and salt-free basis",
+  which predicts a ratio [04]/[03] of 0.80. **Observed median 0.800 (n=17,
+  geomean 0.810, 95% CI 0.696–0.950, excluding 1.00) — on the predicted value,
+  and still not decisive**, because the ratios span 0.593–1.220 (2.06×) around
+  a constant a basis conversion cannot vary, and because [03]'s own Table 9
+  prints "-" in the box-core Weight column for box cores 11 and 23 while
+  Table 8 prints values for them — so **Table 8's Concentration column is not
+  uniformly a weighed box-core mass**, and a method offset of the same size and
+  direction as the basis offset is riding in the same number. `abundance_basis`
+  therefore stays UNRECORDED for [03] and [04] rather than guessed.
+- [ ] **Separate [03]'s method offset from its basis offset — the step that
+  would close the wet/dry gap on the DOMES family** (deferred at WET.1,
+  2026-08-28, at the moment the AMBIGUOUS verdict was written). The work, in
+  order of decreasing reach: (1) transcribe [03] Table 9's box-core sub-table
+  (printed p. 458, columns 6–8: box-core No. / Weight kg/m² / Photo kg/m²) and
+  re-run WET.1 §4's ratio against the **Weight** column instead of Table 8's
+  mixed one — if the spread tightens onto 0.80 the basis reading survives, if
+  it persists it does not; (2) obtain **Sorem et al. 1979a** (pp. 475–527 of
+  the same Plenum volume as [03]), the chapter [04] Table 1 is drawn from,
+  which should state how the nodules were dried and weighed; (3) a stated basis
+  for TS-6's own distribution, which Contract 4's cutoffs are anchored to —
+  the other half of the same gap, already carried in the entry above.
+  **Step (1) needs nothing that does not already exist**: the PDF is on disk at
+  `~/CCZ/downloads/domes/Piper_1979_chapter.pdf` and WET.1's two transcription
+  files sit beside it. Owner: Karl (as G). **Trigger: none — this is a
+  PRIORITY, not a trigger.** Step 1 is possible today; steps 2–3 wait on
+  acquisition. (Written this way deliberately: OBS.1's sweep found 30 of 62
+  triggers naming something adjacent to rather than required by the work, and
+  the diagnostic — *what would have to become true for the WORK to be
+  possible?* — answers "nothing" here.)
+  Detail: [WET.1.md](walkthroughs/WET.1.md) §5, §7.
 - [ ] **LITERATURE citations that fail the locate-the-number bar** (P2.0c;
   the bar: document + table/section/page — "TS-6" alone is insufficient).
   Labels carried as LITERATURE with the gap recorded, not guessed closed and

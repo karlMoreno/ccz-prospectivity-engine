@@ -91,7 +91,24 @@ sources:
     derivation: "MASS reported as kg/m2; COVER stays COVER"
     accessed_date: null
     content_hash: null
-    notes: "Compare events against [02] before dedup (DOMES family, rule 1)."
+    # WET.1 (2026-08-28): NOT INDEPENDENT OF [04]. Table 8's Site C rows for
+    # cruise RP-8-OC-76 Leg 9 and [04]'s Table 1 describe THE SAME 19 PHYSICAL
+    # BOX CORES -- proven by set identity (the two box-core sets are equal once
+    # [04]'s two "recovery probably incomplete" cores are removed), by the
+    # station-to-box-core mapping, and by the shipboard label in [04]'s Fig. 6
+    # ("RP-8-OC-76 LEG 9 / STATION 12 BC 18"). This chapter is pp. 437-474 of
+    # Bischoff & Piper (eds.), Plenum 1979; [04] Table 1 is footnoted "From
+    # Sorem et al. 1979a", pp. 475-527 of THE SAME VOLUME. This chapter cites it
+    # as "(Sorem et al., this volume)" (p. 456) and credits Sorem for the box-core
+    # photographs its coverage column rests on (Fig. 4 caption, p. 453).
+    # WET/DRY BASIS: UNRESOLVED (verdict AMBIGUOUS). Table 9's caption (p. 458)
+    # states its column-9 average "was lowered by 20% to give a nodule
+    # concentration on a dry-weight and salt-free basis" -- so Table 9 col 9 is
+    # dry+salt-free and its inputs are not. Table 8's own Concentration column
+    # has NO stated basis, and is NOT uniformly a weighed box-core mass: Table 9
+    # prints "-" in the box-core Weight column for box cores 11 and 23 while
+    # Table 8 prints 9.6 and 6.5 for them. Detail: docs/walkthroughs/WET.1.md.
+    notes: "Compare events against [02] before dedup (DOMES family, rule 1). NOT INDEPENDENT of [04] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. abundance_basis UNKNOWN, not guessed."
 
   - source_id: src_domes_sitec_sorem1989     # [04]
     data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
@@ -103,11 +120,30 @@ sources:
     primary_use: TRAIN
     is_open: true
     license: "CC-BY-3.0"
-    sampled_area_m2: null                     # [GEOLOGY — ISAAC] confirm box-core area to derive kg/m2
-    derivation: "group by event, sum mass, divide by box-core area (DERIVE)"
+    # FILLED WET.1 (2026-08-28) from the primary document, not assumed: Sorem
+    # 1989, Marine Mining 8(2), printed p. 193 -- "it is realized that the area
+    # of seabed represented by each box core is only 0.25 m2." Corroborated on
+    # printed p. 191: the sampler is "a stainless steel sample box 50 cm square"
+    # (0.5 m x 0.5 m = 0.25 m2). Two statements, one number, no ambiguity.
+    sampled_area_m2: 0.25
+    derivation: "group by event, sum size-class weights, divide by 0.25 m2 (DERIVE)"
     accessed_date: null
     content_hash: null
-    notes: "DERIVE. Verify area before computing kg/m2; compare with [02]/[03]."
+    # WET.1 (2026-08-28): NOT INDEPENDENT OF [03]. Table 1 is footnoted "From
+    # Sorem et al. 1979a" = Sorem, Fewkes & McFarland 1979a, pp. 475-527 of
+    # Bischoff & Piper (eds.), "Marine Geology and Oceanography of the Pacific
+    # Manganese Nodule Province", Plenum -- the COMPANION CHAPTER to [03]
+    # (pp. 437-474) in the same edited volume, one of whose editors is Piper.
+    # The two tables describe THE SAME 19 PHYSICAL BOX CORES (see [03]'s row).
+    # TABLE 1 SHAPE, transcribed and verified at WET.1: 22 printed rows, box
+    # cores 6-28 with NO row for 26; 21 carry data; core 17 carries none
+    # ("Core reserved by NOAA-DOMES for biological research"); cores 14 and 25
+    # are footnoted "Recovery probably incomplete" -- both absent from [03].
+    # The Total-number column sums to 4113 over the 21 data rows, matching
+    # Sorem's own prose on p. 193.
+    # WET/DRY BASIS: UNRESOLVED (verdict AMBIGUOUS). Table 1 states grams, with
+    # no basis given anywhere in the paper. Detail: docs/walkthroughs/WET.1.md.
+    notes: "DERIVE. Area VERIFIED 0.25 m2 (p.193). NOT INDEPENDENT of [03] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. abundance_basis UNKNOWN, not guessed."
 
   - source_id: src_so268_nodules             # [05]
     # Row count corrected 2026-07-29 (P3) from "~9,000 nodules": the actual
