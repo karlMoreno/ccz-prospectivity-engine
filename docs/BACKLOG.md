@@ -590,6 +590,44 @@ precedes ANY real-data run** — the pre-registration clock
   recording task's. Owner: Karl (as G). **Trigger: before wiring [03] into any
   adapter** — the fields are inert until then and wrong the moment they are not.
   Detail: [WET.1.md](walkthroughs/WET.1.md) §9, §12.
+- [ ] **[03] Table 8's 24 Moana Wave rows are UNRESOLVABLE from sources on disk**
+  (found and deferred at WET.2, 2026-08-30, at the moment the discriminator search
+  returned empty). WET.1 §9's constant fit covers only rows printing both Coverage
+  and Average Diameter (79 rows). **32 of Table 8's 111 rows do not**, and the larger block —
+  **24 rows, coinciding EXACTLY with the caption's "M.W. Series ... collected by the
+  R/V MOANA WAVE"** (set identity, 24 == 24) — prints neither input and carries
+  non-zero Concentrations. Nothing establishes whether those values are weighings,
+  box-core photo estimates with unprinted inputs, or bottom-photograph estimates;
+  the Techniques section (p. 439) describes all three methods and attributes none
+  of them to the M.W. series. **`abundance_basis` for these 24 rows is recorded
+  UNRESOLVED — deliberately distinct from INAPPLICABLE** (asserts no mass exists;
+  correct for the 78 fit-domain rows) **and from OPEN** (asserts a mass exists whose
+  basis is unstated; correct for [04] Table 1 and [03] Table 9 col 7). For P4 we do
+  not know the values are masses at all, so `"unknown"` would over-claim.
+  **Bounded discriminator search, all four tests reported with their power** (detail
+  in [WET.1.md](walkthroughs/WET.1.md) §17): (A) reachability under the fitted
+  equation — 24/24 reachable within Table 8's own printed input ranges, median 30
+  distinct (Coverage, Diameter) pairs per printed value, so **no power**;
+  (B) last-decimal-digit signature against the fit-domain rows — 6/24 end in `.0`
+  against 11/78, exact binomial **p = 0.112**, and structurally blind besides, since
+  a weighed and a computed mass printed to one decimal share the same support;
+  (C) other tables in [03] carrying the same cores — **`MOANA`/`M.W.` occur on
+  pp. 454–455 only**, i.e. inside Table 8 itself; Table 9 is RP-8-OC-76 and Site C
+  only, Table 10 is station-boxcore chemistry with no M.W. label, Table 6 is
+  sediment leachate; and [04] shares not one core with the series; (D) prose stating
+  a method — none. **Outcome: NO DISCRIMINATOR AVAILABLE.**
+  **What would resolve it:** a document reporting the R/V *Moana Wave* DOMES
+  box-core work with its abundance method — the cruise reports for `M.W.8`,
+  `M.W.13A/13B` and `M.W.16`, or whichever companion chapter of Bischoff & Piper
+  (eds.) covers the Moana Wave stations. **None is on disk.** Failing that, the 24
+  rows stay UNRESOLVED permanently and must never be admitted as MASS.
+  **HAZARD to carry into any such attempt:** the `M.W.13A`/`13B` box-core numbers
+  run 2–12, and **seven of them (6, 7, 8, 9, 10, 11, 12) collide numerically with
+  Table 9's RP-8-OC-76 box-core numbers** — a lookup on "Site C box core N" returns
+  an *Oceanographer* weight for a *Moana Wave* row. This is WET.1 §3's recurrence
+  hazard one level down. Owner: Karl (as G). **Trigger: acquisition of a Moana Wave
+  DOMES cruise/abundance source** — a real trigger; the work cannot proceed without
+  one. Detail: [WET.1.md](walkthroughs/WET.1.md) §14–§18.
 - [ ] **[03] Table 8's printed averages do not recompute from its printed rows —
   the source has DROPPED ROWS** (found at WET.1 commit 2, 2026-08-28; a defect
   of the source, not of the transcription — row counts were confirmed twice,

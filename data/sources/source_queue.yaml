@@ -123,9 +123,46 @@ sources:
     # from photographs of box cores ... A = 19.5 DP/100". (That printed
     # coefficient, 0.195, reproduces NO row; the table was computed at 0.08.)
     # So the column is covered area x an assumed vertical axis x an assumed bulk
-    # density. Nothing in it was on a balance, and abundance_basis CANNOT be
-    # filled for it with any value -- "unknown" included, since that asserts an
-    # answer exists. Where the basis question IS well-posed in this paper:
+    # density. Nothing in it was on a balance.
+    #
+    # NARROWED 2026-08-30 (WET.2). The line that stood here said abundance_basis
+    # "CANNOT be filled for Table 8 with any value". That was broader than the
+    # evidence: the fit covers only rows printing BOTH inputs (79), and 32 of the 111
+    # printed rows do not. Table 8 partitions into four classes (exhaustive,
+    # mutually exclusive, summing to 111) -- carried PER ROW in the transcription
+    # at ~/CCZ/downloads/domes/Piper1979_Table8_TRANSCRIPTION.txt, column
+    # `provenance`:
+    #   P1-BOTH-INPUTS       78 rows  Coverage+Diameter printed, Conc > 0
+    #                                 -> abundance_basis INAPPLICABLE (74 the fit
+    #                                    reproduces; 4 exceptions presumed same)
+    #   P2-BOTH-INPUTS-ZERO   1 row   both printed, Conc = 0
+    #   P3-COVERAGE-ONLY      8 rows  Coverage printed, Diameter dashed, Conc = 0
+    #                                 -> P2+P3 abundance_basis VACUOUS: a barren
+    #                                    core weighs zero on any basis
+    #   P4-NO-INPUTS         24 rows  neither input printed, Conc > 0
+    #                                 -> abundance_basis UNRESOLVED (see below)
+    # P4 COINCIDES EXACTLY with the caption's "M.W. Series ... collected by the
+    # R/V MOANA WAVE" (set identity, 24 == 24, no row either way). The fit is
+    # SILENT on it: no inputs are printed, so nothing establishes whether those
+    # 24 values are weighings, box-core photo estimates with unprinted inputs, or
+    # bottom-photograph estimates (the Techniques section describes all three
+    # methods). WET.2 ran a bounded discriminator search -- reachability under the
+    # fitted equation (24/24 reachable, median 30 (P,D) pairs per value: no
+    # power); last-digit signature vs P1 (p=0.112, and structurally blind); other
+    # tables in [03] carrying the same cores (MOANA/M.W. appear on pp. 454-455
+    # ONLY, i.e. in Table 8 itself; Tables 6, 9 and 10 carry none); prose stating
+    # a method (none) -- and returned NO DISCRIMINATOR AVAILABLE.
+    #   UNRESOLVED is distinct from INAPPLICABLE (no mass exists) and from OPEN
+    #   (a mass exists, basis unstated): for P4 we do not know whether the values
+    #   are masses at all. Do NOT fill abundance_basis for P4 -- "unknown"
+    #   presupposes a mass and would over-claim.
+    # HAZARD for any future attempt to find P4 weights: M.W.13A/13B box-core
+    # numbers run 2-12 and SEVEN of them (6,7,8,9,10,11,12) collide numerically
+    # with Table 9's RP-8-OC-76 box-core numbers. A lookup on "Site C box core N"
+    # returns an Oceanographer weight for a Moana Wave row. Different vessel,
+    # different series.
+    #
+    # Where the basis question IS well-posed in this paper:
     # Table 9 col 9 = ANSWERED (dry + salt-free, "lowered by 20%", p. 458);
     # Table 9 col 7 (box-core weights, 1 kg/m2 resolution) = OPEN, protocol
     # unstated. Detail: docs/walkthroughs/WET.1.md sections 9 and 11.
@@ -144,7 +181,7 @@ sources:
     # three columns -> exactly one dropped row) and 54/50 (C, concentration).
     # Working set was >=116 rows against the 111 printed. The 19 cores used in
     # the [03]/[04] join sit entirely inside Site C.
-    notes: "Compare events against [02] before dedup (DOMES family, rule 1). NOT INDEPENDENT of [04] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. Table 8 = 0.08 x Coverage x Diameter, a PHOTOGRAPHIC ESTIMATE, not a weighing: abundance_basis is NOT WELL-POSED here (do not fill it, not even \"unknown\"); evidence_classes/data_origin flagged suspect, see comment block."
+    notes: "Compare events against [02] before dedup (DOMES family, rule 1). NOT INDEPENDENT of [04] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. Table 8 = 0.08 x Coverage x Diameter, a PHOTOGRAPHIC ESTIMATE, not a weighing: abundance_basis NARROWED per row (WET.2): INAPPLICABLE for the 78 fit-domain rows, VACUOUS for the 9 zero rows, UNRESOLVED for the 24 Moana Wave rows -- per-row classes in the transcription's `provenance` column. NOT a MASS source at source level; evidence_classes/data_origin flagged suspect, see comment block."
 
   - source_id: src_domes_sitec_sorem1989     # [04]
     data_origin: MEASURED                     # published measurement dataset (DOI); hash on download

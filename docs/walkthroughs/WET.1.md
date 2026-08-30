@@ -591,3 +591,246 @@ field value was changed.
   intent.** It says 0.08 corresponds to a believable nodule density and 0.195 does
   not; it does not establish how the printed 19.5 arose.
 - **No code changed; the suite is unchanged at 709 passed, 2 skipped.**
+
+---
+
+# WET.2 — 2026-08-30. Per-row provenance for [03] Table 8, and the claim that was too broad
+
+Commit 2 recorded that `abundance_basis` **cannot be filled for Table 8 with any
+value**. That sentence was broader than the evidence under it. The constant fit
+covers the rows that print Coverage *and* Average Diameter; it is **silent** on the
+rows that do not, and Table 8 has 32 of those (8 + 24). This task partitions the table,
+states what the fit does and does not reach in each part, and narrows the record
+accordingly.
+
+**Nothing here re-runs the fit** — the constant, its interval and its four
+exceptions are taken as recorded. **`evidence_classes` and `data_origin` are
+untouched and their flags stand** (§12); correcting them needs paired Track-E
+re-wiring and is its own task.
+
+## 14. The partition — derived from the shapes Table 8 actually prints
+
+Rather than assume classes, the table was asked which shapes occur. Exactly four
+do, over the three binary facts available per row (is Coverage printed, is Diameter
+printed, is Concentration non-zero):
+
+| class | Coverage | Diameter | Concentration | n | A / B / C |
+|---|---|---|---|--:|---|
+| **P1-BOTH-INPUTS** | printed | printed | > 0 | **78** | 25 / 15 / 38 |
+| **P2-BOTH-INPUTS-ZERO** | printed | printed | = 0 | **1** | 0 / 1 / 0 |
+| **P3-COVERAGE-ONLY** | printed | **dashed** | = 0 (all) | **8** | 2 / 5 / 1 |
+| **P4-NO-INPUTS** | **dashed** | **dashed** | > 0 (all) | **24** | 0 / 13 / 11 |
+| | | | **sum** | **111** | |
+
+**The partition closes: 111 = 27 + 34 + 50, the printed row count of Table 8.**
+Exclusivity is by construction — a single predicate chain, first match wins — and
+every row was asserted to receive exactly one class. Two corners are empty and were
+checked rather than assumed: **no row prints a Diameter without a Coverage** (0
+rows), and **no row prints neither input while carrying a zero** (0 rows). The
+STOP conditions did not fire.
+
+Two shapes are worth naming for what they are. **P3 is the barren class**: all 8
+rows print Coverage 0 or 1 with a dashed Diameter — there were no nodules to
+measure a diameter on, so the input is missing for a physical reason, and the
+Concentration is 0. **P2 is a single row**, Site B `D.53` box core 44, printing
+Coverage `.5` and Diameter `.7` — the smallest non-empty core in the table.
+
+## 15. What the fit reaches, class by class
+
+| class | does the recorded constant fit apply? | what it establishes | what it does not |
+|---|---|---|---|
+| **P1** (78) | **Yes — this is the fit's entire domain.** 74 reproduce at k ∈ [0.07995, 0.08007]; 4 do not | these rows are **computed**, not weighed: covered area × assumed vertical axis × assumed bulk density | nothing about the 4 exceptions individually |
+| **P2** (1) | Formally yes, **evidentially no** | 0.08 × 0.5 × 0.7 = 0.028 → prints 0.0 — consistent, but **a zero is produced by every method**, so this row carries no discriminating information | that the row was computed rather than weighed |
+| **P3** (8) | **No — the fit cannot be evaluated**, there is no Diameter to multiply | nothing about method | anything; but the Concentration is **0.0**, and a barren core weighs zero on any basis, so no basis question arises |
+| **P4** (24) | **No — the fit is entirely silent.** Neither input is printed | nothing whatsoever | everything: origin, method, basis |
+
+**The correction this makes to the record.** Commit 2's finding — *"Table 8
+contains no mass measurement anywhere"* — is established for **74 rows** and
+strongly indicated for the 4 P1 exceptions (three residuals of 0.08–0.22 are
+consistent with the same computation plus a rounding or arithmetic slip; BC 22's
++1.04 has the shape of a single-digit typesetting error). It is **vacuously true**
+for the 9 zero-valued rows of P2 and P3, which contain no mass on any reading. It
+is **not established at all** for the 24 rows of P4. The honest scope of the
+finding is **87 of 111 rows**, not 111.
+
+## 16. The Moana Wave series coincides exactly with P4
+
+Table 8's caption: *"The M.W. Series of samples were collected by the R/V MOANA
+WAVE."* Tested as a set identity rather than eyeballed:
+
+```
+  rows whose Station is an M.W. label : 24
+  rows in class P4                    : 24
+  M.W. \ P4 = 0        P4 \ M.W. = 0        M.W. == P4 : TRUE
+```
+
+The correspondence is **exact**: the four sub-series `M.W.16` (10 rows, Site B),
+`M.W.8` (3, Site B), `M.W.13A` (3, Site C) and `M.W.13B` (8, Site C) are precisely
+the rows that print neither input, and no D. row is among them.
+
+**This is the strongest single fact in the task.** The class the fit cannot reach
+is not a scatter of incomplete rows — it is one coherent block, collected by a
+different vessel, and every D. (DOMES/*Oceanographer*) row in the table prints at
+least a Coverage. Whatever produced the M.W. numbers, it was a different pipeline,
+which is exactly why the fit is silent on them and exactly why the silence is not
+an accident of typesetting.
+
+**A hazard that follows, recorded because it would bite a later join.** The
+`M.W.13A`/`13B` box-core numbers run 2–12, and **7 of those 11 (6, 7, 8, 9, 10, 11,
+12) collide numerically with Table 9's RP-8-OC-76 box-core numbers.** A lookup of
+"Site C box core N" against Table 9 would return an *Oceanographer* weight for a
+*Moana Wave* row. This is WET.1 §3's recurrence hazard one level down, and it is
+the trap any attempt to find weights for P4 walks into first.
+
+## 17. Discriminator search on P4 — bounded, and its outcome
+
+Question: can **any** test available from the two documents on disk distinguish a
+weighed mass from a photo estimate with unprinted inputs, for the 24 P4 rows?
+
+**Test A — are the printed values reachable by the fitted equation under plausible
+unprinted inputs?** Table 8's own printed inputs span Coverage 0–70% and Diameter
+0.7–9.0 cm. For each P4 value, all integer Coverage and 0.1-cm Diameter pairs in
+those ranges were enumerated:
+
+- **24 of 24 P4 values are reachable.** Zero rows are unreachable, so no row
+  falsifies the formula.
+- The map is heavily many-to-one: **median 30 distinct (P, D) pairs** per printed
+  value (min 5, max 62). Even the hardest row — `M.W.13B` box core 11 at
+  **30.0 kg/m²**, the table's maximum — needs only P·D = 375, e.g. 70% × 5.4 cm or
+  50% × 7.5 cm, both inside the observed ranges.
+- **Result: cannot exclude the formula, and cannot confirm it.** A test that every
+  value passes has no discriminating power. **FAILED.**
+
+**Test B — does the last-decimal-digit distribution of P4 differ from P1's, where
+the formula is known to have been used?**
+
+| last digit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| P1 (n=78) | 11 | 3 | 6 | 7 | 14 | 10 | 6 | 7 | 9 | 5 |
+| P4 (n=24) | 6 | 4 | 2 | 0 | 1 | 2 | 4 | 2 | 0 | 3 |
+
+P4 ends in `.0` more often (6/24 = 0.250 vs 11/78 = 0.141), which is the visible
+oddity — `20.0`, `15.0`, `15.0`, `30.0` all appear in `M.W.13B`. Exact one-sided
+binomial: **P(X ≥ 6 | rate 0.141, n = 24) = 0.112**, not significant at 0.05.
+**FAILED — and its power ceiling is worse than the p-value suggests:** a weighed
+mass printed to one decimal and a computed mass printed to one decimal have the
+*same support*. Digit frequency can detect a different **rounding habit**; it
+cannot detect a different **measurement method**. Its power against the actual
+question is zero at any sample size, so it is reported and discarded rather than
+pursued.
+
+**Test C — does any other table in [03] carry weights for the same cores?**
+`MOANA` and `M.W.` occur on **exactly two pages of the chapter — 454 and 455**,
+which are Table 8 itself. Checked individually:
+
+- **Table 9** (p. 458, the only table with a box-core `Weight kg/m²` column) is
+  *"Nodule abundance in five areas within Site C"*, keyed to Fig. 6 — *"box core
+  and camera flight locations for NOAA cruise RP-8-0C-76"*. It is the
+  *Oceanographer* series. It contains no M.W. row, and the numeric collision above
+  is a trap, not a match. It also covers Site C only, so the 13 Site B M.W. rows
+  have no candidate table at all.
+- **Table 10** (pp. 464–465, bulk nodule compositions) is keyed by station-boxcore
+  labels — `1-6`, `2-7`, … `22-28`, plus Site A/B and RP-6-OC-75 labels. **No M.W.
+  label appears.** It also carries chemistry, not abundance.
+- **Table 6** (pp. 450–451) is sediment leachate chemistry, labelled `46-1-1`,
+  `47-10-9` … under cruise `RP-8-0C-75`. No M.W., and no abundance column.
+- **[04]** cannot help either: Sorem 1989 Table 1 is RP8-OC-76 Leg 9 box cores
+  only, so it shares not one core with the M.W. series.
+
+**FAILED — no other table on disk carries the M.W. cores in any column.**
+
+**Test D — does the prose state a method for the M.W. samples?** The caption says
+only that they were *collected* by the R/V *Moana Wave*; collection is not
+measurement. The chapter mentions the series nowhere else. Worse, the Techniques
+section offers a **third** candidate origin rather than narrowing to two: besides
+box-core photographs it describes *bottom* photographs used *"to estimate nodule
+size and abundance"* from about 200 usable frames. So P4 could be weighed, or a
+box-core photo estimate with unprinted inputs, or a bottom-photograph estimate —
+and nothing on disk chooses. **FAILED.**
+
+> ### **OUTCOME: NO DISCRIMINATOR AVAILABLE.**
+> Four tests were tried. A and B have statable power and both return nothing —
+> A because every P4 value is reachable, B because it is underpowered at n = 24
+> *and* structurally blind to the distinction. C and D fail on availability: no
+> other table on disk carries these cores, and no prose describes their method.
+> No further test was manufactured, because none was found whose power could be
+> stated.
+
+## 18. The narrowed `abundance_basis` record for [03]
+
+Commit 2's blanket claim is replaced by a per-class disposition, written onto the
+transcription itself as a per-row column (§19) and onto the `[03]` queue row:
+
+| class | n | `abundance_basis` disposition | why |
+|---|--:|---|---|
+| **P1**, the 74 the fit reproduces | 74 | **INAPPLICABLE** | no mass exists in the value; it is a geometric computation. A basis is a category error here |
+| **P1**, the 4 exceptions | 4 | **INAPPLICABLE (presumed)** | same class and same shape; the fit misses them by 0.08–1.04, consistent with a slip, but not individually established |
+| **P2 + P3** | 9 | **VACUOUS** | the Concentration is 0.0. A barren core weighs zero wet and zero dry; the question is well-formed and its answer is method-independent |
+| **P4** | 24 | **UNRESOLVED** | non-zero values; the fit is silent, and §17 found no discriminator on disk |
+
+**UNRESOLVED is deliberately distinct from the two dispositions already in the
+record.** *INAPPLICABLE* asserts there is no mass to have a basis (P1). *OPEN*
+asserts a mass exists, has a basis, and the basis is not stated — which is where
+[04] Table 1 and [03] Table 9 col 7 sit. **UNRESOLVED asserts less than either: we
+do not know whether these 24 values are masses at all.** Filling `abundance_basis`
+for them with `"unknown"` would over-claim, because `"unknown"` presupposes a
+mass; leaving them INAPPLICABLE would over-claim in the other direction.
+
+## 19. Recorded
+
+- **Per-row provenance column on the transcription**
+  (`~/CCZ/downloads/domes/Piper1979_Table8_TRANSCRIPTION.txt`) — one value per row
+  for all 111 rows, not a summary. Two mechanical format changes are documented in
+  the file's own amended header: the texture field is now always present (a printed
+  blank writes `.`), and `provenance` is the new final field. **Round-trip
+  verified**: re-parsed after the rewrite, all 111 rows present and every original
+  field byte-identical to before.
+- **`[03]`'s queue row** carries the narrowed four-way disposition, replacing the
+  blanket "cannot be filled with any value".
+- **A BACKLOG entry filed at the moment of deferral** for P4's unresolvability.
+- **`evidence_classes` and `data_origin` untouched**, flags standing, per scope.
+
+## 20. Can [03] enter as MASS at source level? Still no — and what would have to change
+
+**No.** 87 of 111 rows are either a geometric computation (P1) or a
+method-independent zero (P2, P3); none of them is a mass observation, and no
+evidence could make them one, because the arithmetic that produced them is
+recorded in the table itself.
+
+**The only class whose reclassification could change anything is P4** — and even
+then the answer at *source* level stays no:
+
+1. P4 would first need a discriminator showing its 24 values are weighings. §17
+   says none exists on disk, so this needs a document not yet held.
+2. If that succeeded, [03] would become a **partial** MASS source: 24 of 111 rows,
+   admissible only under a row-level filter on the provenance column. A source-level
+   MASS classification would still be wrong, because it would admit the other 87.
+3. And those 24 would then land in `abundance_basis` **OPEN**, not resolved — a
+   weighing whose drying protocol [03] never states. They would arrive needing the
+   same answer the Contract 1 gap is already waiting on.
+4. **None of the 24 is in the WET.1 join.** P4 is disjoint from the 19 RP-8-OC-76
+   cores, so nothing here revisits the AMBIGUOUS verdict.
+
+## 21. Corrections and limits of WET.2
+
+- **A recorded claim was narrowed, not withdrawn.** Commit 2's *"`abundance_basis`
+  cannot be filled for Table 8 with any value"* was true of the class it was
+  reasoning about and over-stated for the table as a whole. Its scope is now
+  87 of 111 rows, with the remaining 24 explicitly UNRESOLVED. The verdict, the
+  constant, and the non-independence record are unaffected.
+- **The four P1 exceptions are carried as "presumed", not proven.** They sit in the
+  fit's class and are almost certainly the same process with slips, but this task
+  did not re-run the fit and does not claim them individually.
+- **Test B is reported despite being worthless**, because "we looked and it told us
+  nothing" is a different record from "we did not look" — and because its power
+  ceiling, not its p-value, is the reason it was abandoned.
+- **This section's own complement count was wrong on first writing.** The intro
+  said Table 8 has "33" rows not printing both inputs; it has **32** (P3's 8 plus
+  P4's 24 — the complement of P1+P2 = 79). Caught by re-deriving the complement
+  from the partition table rather than re-reading the sentence, and corrected in
+  all three places it had been copied to before the commit was finalised. The
+  partition itself, which is what the STOP condition guards, always summed to 111.
+- **The P4 disposition depends on the transcription being complete for those rows.**
+  The M.W. rows print only a Concentration, so there is little to mis-read; the
+  row count was confirmed mechanically at WET.1 and is unchanged here.
+- **No code changed; the suite is unchanged at 709 passed, 2 skipped.**
