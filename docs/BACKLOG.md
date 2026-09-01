@@ -590,6 +590,27 @@ precedes ANY real-data run** — the pre-registration clock
   recording task's. Owner: Karl (as G). **Trigger: before wiring [03] into any
   adapter** — the fields are inert until then and wrong the moment they are not.
   Detail: [WET.1.md](walkthroughs/WET.1.md) §9, §12.
+- [ ] **The [02]-vs-[03] event disagreement is asserted but unverified in this
+  repo** (carried into the record at WET.3, 2026-08-31, and deferred at the moment
+  it was carried). WET.3 recorded an **author-overlap linkage** between [02]
+  (Fewkes et al. 1980, USBM OFR 108-80) and the chapter behind [04] (Sorem et al.
+  1979a) — verified from both PDFs, including that the chapter is **cited two
+  different ways**, with W. R. Reinhart present in Piper 1979's reference list
+  (p. 473) and absent from Sorem 1989's (p. 200). The linkage is a caution against
+  counting [02] as independent corroboration of [03]/[04]. **The counterweight — that
+  [02] and [03] disagree on their shared events, which would show they are not the
+  same measurements — was carried from the task prompt and NOT established here**,
+  because analysing [02]'s data was out of scope. No record in this repo asserts it
+  either: [03]'s queue row says only "Compare events against [02] before dedup
+  (DOMES family, rule 1)", which sets up the comparison without having run it.
+  **What would settle it:** the event-level comparison that note already calls for —
+  match [02]'s DOMES Site A/B/C box-core kg/m² against [03] Table 8's rows on
+  station/box-core, and report agreement or disagreement per shared event. Note
+  before running it that WET.2 showed Table 8's values are **photographic estimates,
+  not weighings**, so a disagreement would be expected and would say nothing about
+  [02]'s basis. Owner: Karl (as G). **Trigger: none — this is a PRIORITY, not a
+  trigger.** Both sources' data are already on disk. Detail:
+  [WET.1.md](walkthroughs/WET.1.md) §24.
 - [ ] **[03] Table 8's 24 Moana Wave rows are UNRESOLVABLE from sources on disk**
   (found and deferred at WET.2, 2026-08-30, at the moment the discriminator search
   returned empty). WET.1 §9's constant fit covers only rows printing both Coverage

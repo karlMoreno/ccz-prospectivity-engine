@@ -75,7 +75,39 @@ sources:
     derivation: "reported directly (kg/m2); confirm wet/dry basis"
     accessed_date: null
     content_hash: null
-    notes: "Historic, already-normalized kg/m2. High-value training data."
+    # WET.3 (2026-08-31): AUTHOR-OVERLAP LINKAGE to the source chapter behind
+    # [04]. Verified against the page images of both PDFs on disk, not the OCR.
+    # [02]'s parent report, as cited in Sorem 1989's reference list (p. 199):
+    #   "Fewkes, R. H., W. D. McFarland, W. R. Reinhart, and R. K. Sorem. 1980.
+    #    Evaluation of metal resources at and near proposed deep-sea mine sites.
+    #    U.S. Bureau of Mines Open File Report 108-80. NTIS PB80-228992."
+    # [04] Table 1 is footnoted "From Sorem et al. 1979a", and THAT CHAPTER IS
+    # CITED TWO DIFFERENT WAYS by the two papers on disk:
+    #   Sorem 1989 ref list (p. 200) -- THREE authors, Reinhart ABSENT:
+    #     "Sorem, R. K., R. H. Fewkes, and W. D. McFarland. 1979a. ... In
+    #      Bischoff, J., and D. Piper, eds., Marine geology and oceanography of
+    #      the Pacific nodule province. New York: Plenum, 475-527."
+    #   Piper 1979 ref list (p. 473) -- FOUR authors, Reinhart PRESENT as second,
+    #   McFarland with NO initials, no year-letter, no pages, no editors:
+    #     "Sorem, R.K., Reinhart, W.R., Fewkes, R.H., and McFarland, (1979)
+    #      Occurrence and character of manganese nodules in DOMES Sites A, B,
+    #      and C east equatorial Pacific Ocean (this volume)."
+    # The discrepancy is RECORDED, NOT RECONCILED -- neither rendering is
+    # treated as correct. Which source gives which is stated above.
+    # A third rendering sits in this dataset's own PANGAEA header
+    # (~/CCZ/downloads/domes/Fewkes_1980_2_[2].tab): the DATASET is credited to
+    # "Fewkes, Ronald H; McFarland, William Douglas; Reinhart, W R (1980)" --
+    # Sorem absent -- while its parent report per Sorem 1989 includes him.
+    # WHAT THE LINKAGE IMPLIES: under Piper's rendering the 1979a author set is
+    # IDENTICAL to [02]'s parent-report set {Sorem, Reinhart, Fewkes, McFarland};
+    # under Sorem's own rendering the overlap is still {Fewkes, McFarland}.
+    # WHAT IT DOES NOT IMPLY: shared authorship is NOT shared data. This is a
+    # CAUTION AGAINST TREATING [02] AND THE [03]/[04] PAIR AS INDEPENDENT
+    # CORROBORATION -- it is NOT a claim they are one source, and NOT the
+    # same-measurements finding recorded for [03]/[04] (which rests on set
+    # identity over 19 shared box cores, not on authorship).
+    # Detail: docs/walkthroughs/WET.1.md section 22.
+    notes: "Historic, already-normalized kg/m2. High-value training data. AUTHOR-OVERLAP LINKAGE to [04]'s source chapter (Sorem et al. 1979a) -- shared authorship, NOT shared data: do not count [02] as independent corroboration of [03]/[04]. See comment block."
 
   - source_id: src_domes_piper1979           # [03]
     data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
@@ -221,6 +253,17 @@ sources:
     #   BC6 0.925 | BC7 0.593 | BC8 0.958 | BC9 0.667 | BC10 0.782 | BC11 1.240 | BC12 1.029
     #   BC13 1.220 | BC15 0.834 | BC16 0.760 | BC18 1.020 | BC19 0.800 | BC20 0.719
     #   BC21 0.631 | BC22 0.696 | BC23 2.414 | BC24 0.863 | BC27 0.950 | BC28 0.605
+    # WET.3 (2026-08-31): AUTHOR-OVERLAP LINKAGE to [02]. The chapter this
+    # table is drawn from -- "Sorem et al. 1979a" -- shares authors with [02]'s
+    # parent report (USBM OFR 108-80). Under Piper 1979's rendering of the
+    # chapter the two author sets are IDENTICAL; under Sorem 1989's own
+    # rendering the overlap is {Fewkes, McFarland}. The same chapter is cited
+    # TWO DIFFERENT WAYS by the two PDFs on disk (Reinhart present in Piper's
+    # list, absent from Sorem's) -- recorded, not reconciled, on [02]'s row.
+    # This is WEAKER than the [03]/[04] relation above: shared authorship is
+    # not shared data. Treat as a caution against counting [02] as independent
+    # corroboration, not as a same-source claim.
+    # Detail: docs/walkthroughs/WET.1.md section 22.
     # WET/DRY BASIS: OPEN (verdict AMBIGUOUS, ACCEPTED 2026-08-28). Table 1
     # states grams, with no drying/weighing protocol given anywhere in the
     # paper. Unlike [03] Table 8 -- where WET.1 commit 2 showed the question is

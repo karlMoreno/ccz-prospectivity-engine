@@ -834,3 +834,137 @@ then the answer at *source* level stays no:
   The M.W. rows print only a Concentration, so there is little to mis-read; the
   row count was confirmed mechanically at WET.1 and is unchanged here.
 - **No code changed; the suite is unchanged at 709 passed, 2 skipped.**
+
+---
+
+# WET.3 — 2026-08-31. The [02] author-overlap linkage, and one chapter cited two ways
+
+Recording only. No analysis of [02]'s data, no ingestion. [03]/[04] were already
+recorded as non-independent; [02] had been linked to neither, and it shares
+authorship with the chapter behind [04].
+
+## 22. The three renderings, verbatim
+
+All read from the page images at 700 dpi, not the OCR text layer, which mangles
+these lines badly (`Fewkcs`, `Rcinhart`, `meta!`, `!08-80`).
+
+**(a) [02]'s parent report, as given in Sorem 1989's reference list (printed p. 199):**
+
+> "Fewkes, R. H., W. D. McFarland, W. R. Reinhart, and R. K. Sorem. 1980.
+> Evaluation of metal resources at and near proposed deep-sea mine sites. U.S.
+> Bureau of Mines Open File Report 108-80. NTIS PB80-228992."
+
+Author set: **{Fewkes, McFarland, Reinhart, Sorem}** — four.
+
+**(b) The 1979a chapter, as given in Sorem 1989's reference list (printed p. 200):**
+
+> "Sorem, R. K., R. H. Fewkes, and W. D. McFarland. 1979a. Occurrence and
+> character of manganese nodules in DOMES Sites A, B, and C, east equatorial
+> Pacific Ocean. *In* Bischoff, J., and D. Piper, eds., *Marine geology and
+> oceanography of the Pacific nodule province.* New York: Plenum, 475–527."
+
+Author set: **{Sorem, Fewkes, McFarland}** — three.
+
+**(c) The same 1979a chapter, as given in Piper 1979's reference list (printed p. 473):**
+
+> "Sorem, R.K., Reinhart, W.R., Fewkes, R.H., and McFarland, (1979) Occurrence
+> and character of manganese nodules in DOMES Sites A, B, and C east equatorial
+> Pacific Ocean (this volume)."
+
+Author set: **{Sorem, Reinhart, Fewkes, McFarland}** — four.
+
+**The two reference lists do not agree, so the STOP condition did not fire.**
+
+## 23. The discrepancy, recorded and not reconciled
+
+One chapter, two citations, four differences:
+
+| | Sorem 1989 (p. 200) | Piper 1979 (p. 473) |
+|---|---|---|
+| **W. R. Reinhart** | **absent** | **present, as second author** |
+| author count | 3 | 4 |
+| McFarland's initials | `W. D.` | **none given** |
+| year / locator | `1979a`, `Plenum, 475–527`, editors named | `(1979)`, `(this volume)`, no pages, no editors |
+
+**Neither rendering is treated as correct here.** They are recorded as a
+provenance fact about how the source chapter behind [04] is cited, with which
+source gives which stated on the face of the record. Reconciling them would need
+the chapter itself (pp. 475–527), which is not on disk — the same document the
+Contract 1 wet/dry gap is already waiting on (§11, and the BACKLOG entry it
+carries).
+
+**A third rendering is already in the repo's own downloads**, and it disagrees
+with both: [02]'s PANGAEA header (`Fewkes_1980_2_[2].tab`) credits the **dataset**
+to *"Fewkes, Ronald H; McFarland, William Douglas; Reinhart, W R (1980)"* —
+**Sorem absent** — while naming the parent report *"Fewkes, RH et al. (1980) …
+United States Bureau of Mines, Open File Report, 108-80, 242 pp"*. So the dataset
+and the report it supplements carry different author lists too. Recorded for the
+same reason: it is a fact about the citation record, not a thing to be resolved.
+
+## 24. What the linkage does and does not imply
+
+**The overlap is robust under every pairing.** Under Piper's rendering (c), the
+1979a author set is **identical** to [02]'s parent-report set (a) —
+{Sorem, Reinhart, Fewkes, McFarland}, same four people, different order. Under
+Sorem's own rendering (b), the overlap with [02]'s dataset authors is still
+{Fewkes, McFarland}. There is no reading of the citation record on which these are
+unrelated groups.
+
+**What it implies.** [02] is not an independent check on [03]/[04]. The DOMES
+Site A/B/C box-core work was done by one overlapping group, and treating [02]'s
+kg/m² values as outside corroboration of [03]'s or [04]'s would be counting the
+same investigators twice.
+
+**What it does not imply — three things, stated because the record is easy to
+over-read:**
+
+1. **Shared authorship is not shared data.** This is categorically weaker than the
+   [03]/[04] relation, which does not rest on authorship at all: that one rests on
+   **set identity over 19 shared box cores** (§3) plus [04] Table 1's own footnote
+   *"From Sorem et al. 1979a"*. Nothing of that kind has been shown for [02].
+2. **It is not a same-source claim.** [02] is a U.S. Bureau of Mines report's
+   dataset; [04]'s source chapter is a Plenum volume chapter. Different documents,
+   different publishers, different years.
+3. **It does not license deduplicating [02] against [03] or [04].** The dedup rule
+   that governs the DOMES family is event-level, and [03]'s queue row already
+   carries the instruction to *"Compare events against [02] before dedup"*. This
+   linkage adds a caution about **independence weighting**, not a merge key.
+
+**And the evidence pointing the other way, carried as the task framed it.** [02]
+and [03] are said to disagree on their shared events — which, if so, is itself
+evidence they are *not* the same measurements, and it bounds the linkage: shared
+people, different numbers. **This session did not verify that disagreement**
+(analysing [02]'s data was out of scope), so it is recorded here as a carried
+premise with its source, not as an established finding, and it gets a BACKLOG
+entry rather than a place in the queue row's assertions.
+
+## 25. Recorded
+
+- **[02]'s queue row** carries the linkage, the three verbatim renderings, the
+  discrepancy, and the implies/does-not-imply split — on the **same mechanism**
+  used for [03]/[04] and [18]/[19]: the row's own `derivation`/`notes` prose plus
+  its comment block. No second mechanism was invented.
+- **[04]'s queue row** carries the reciprocal pointer, as [03] and [04] carry each
+  other's, and states explicitly that this relation is **weaker** than theirs.
+- **A BACKLOG entry** for the unverified [02]-vs-[03] event disagreement, filed at
+  the moment of deferral.
+- **Nothing else changed.** [02] is not ingested, `evidence_classes` and
+  `data_origin` are untouched everywhere, and the AMBIGUOUS verdict is unaffected —
+  this linkage is about independence weighting, not about basis.
+
+## 26. Limits of WET.3
+
+- **The premise was checked before being recorded**, and it held: the two reference
+  lists disagree, so the STOP condition did not fire. Had they agreed, there would
+  have been nothing here.
+- **The [02]-vs-[03] event disagreement is carried, not verified** (§24), for the
+  stated scope reason. It is the one claim in this section that this session did
+  not establish.
+- **WET.3's labels were first written 2026-08-30 and are 2026-08-31.** The session
+  banner said the 30th; `git log` and the system clock both said the 31st when the
+  commit landed, and the convention is that the date comes from `git log` at the
+  moment the label is written, not from the banner. Caught by comparing the commit
+  stamp against the labels rather than trusting the banner, and corrected in all
+  four places. **WET.2's 2026-08-30 labels are untouched and correct** — its commit
+  `ed5b76c` really is dated the 30th.
+- **No code changed; the suite is unchanged at 709 passed, 2 skipped.**
