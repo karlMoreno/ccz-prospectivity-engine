@@ -357,11 +357,58 @@ sources:
     primary_use: COVARIATE
     is_open: true
     license: "CC-BY-4.0"
-    sampled_area_m2: null
+    sampled_area_m2: null                      # per-IMAGE footprint, not a sampler; see below
     derivation: "NONE for kg/m2"
     accessed_date: null
     content_hash: null
-    notes: "Separate pre-impact / impact / post-impact records."
+    # ===== AREA.1 (2026-09-01): characterized from the deposited files. NOT ingested. =====
+    # WHAT IT ACTUALLY IS (the `notes` line below previously said "Separate
+    # pre-impact / impact / post-impact records" -- THAT WAS WRONG and is
+    # corrected here and in both hunt-index copies):
+    #   Philbert, Purser, Boehringer & Thomsen, "Asymmetric recovery of benthic
+    #   megafauna after a polymetallic nodule mining trial in the CCZ."
+    #   279 data rows (DERIVED by counting; no row count had ever been claimed
+    #   anywhere in this repo), ONE ROW PER IMAGE, 45 columns. A megafauna
+    #   DENSITY dataset that also carries nodule coverage -- not cover-only.
+    #   NO TEMPORAL DESIGN EXISTS: all 279 images are dive SO295_136, every one
+    #   captured 2022-12-03. One expedition, one dive, one day.
+    # SPATIAL STRUCTURE (this is what "separate" actually means here). The R
+    # script states the mapping in its own terminology note: "Outside1 = Zone A,
+    # Inside = Mining Test Site, and Outside2 = Zone B". Zone counts DERIVED:
+    #   Outside1  121 rows   Distance_from_start    0.00 ..  614.28 m
+    #   Inside     69 rows                        617.98 ..  953.72 m  <- disturbed
+    #   Outside2   89 rows                        957.93 .. 1646.76 m
+    #   121 + 69 + 89 = 279, closes. Distance_from_start is 279 distinct values,
+    #   monotone with row order, spanning 0 .. 1646.757 m.
+    # HARD FILTER RULE for undisturbed seafloor:  Zone != "Inside"  -> 210 rows.
+    # AREA BASIS -- one half CLOSED, one half OPEN:
+    #   CLOSED: every per-m2 density column is computed against `Export_Area`.
+    #     Verified by recomputation, not assumed: total_abundance /
+    #     total_abundance_per_m2 == Export_Area on 239/239 rows with non-zero
+    #     abundance, max |diff| 1.8e-15; against image_area_m2 it matches 0/239.
+    #     Export_Area is the analysed footprint: mean 2.513 m2 (1.841 .. 3.413).
+    #     image_area_m2 is the raw frame: mean 4.447 m2 (3.259 .. 6.041).
+    #   OPEN: which of those two `area_percent` was computed against is NOT
+    #     DETERMINABLE from anything on disk. The R script never assigns
+    #     area_percent (it only reads it) and never mentions either area column;
+    #     the workbook holds ZERO formulas; and the deposit's own Metadata.docx
+    #     says "intermediate data-processing steps performed prior to creation of
+    #     this dataset are not included in this repository." The arithmetic
+    #     cannot settle it either: no published column is the numerator under
+    #     either denominator, and Export_Area / image_area_m2 is a CONSTANT
+    #     0.5650 on all 279 rows -- so the two candidates differ only by a global
+    #     factor 1.7699 and no internal check can separate them. RECORDED AS OPEN
+    #     RATHER THAN INFERRED. See BACKLOG; detail docs/walkthroughs/AREA.1.md.
+    #   Suggestive but NOT used to close it: Metadata.docx says the file contains
+    #   "image area used for density and nodule coverage calculations" (singular,
+    #   one area for both) -- which would make it Export_Area. Its other literal
+    #   reading names the column called `image_area_m2`, and the arithmetic
+    #   refutes that one for density. Ambiguous, so it decides nothing.
+    # CONSEQUENCE: [14] stays COVER / COVARIATE and is still never converted to
+    # kg/m2, so the open half blocks no downstream use today. It would matter the
+    # moment area_percent is compared against any other source's cover fraction,
+    # because the two readings differ by 1.77x.
+    notes: "COVER covariate, never converted to kg/m2. 279 rows, one per image, dive SO295_136 (2022-12-03) -- NOT pre/impact/post; the separation is SPATIAL via `Zone` (Outside1=Zone A 121 / Inside=Mining Test Site 69 / Outside2=Zone B 89). Undisturbed filter: Zone != \"Inside\" -> 210 rows. Densities are per Export_Area (verified); the area_percent denominator is OPEN -- see comment block."
 
   # ===================== PHASE A — [GRID] priors / benchmark ===================
   # Compiled/interpolated. Priors + benchmark ONLY. Never independent stations.

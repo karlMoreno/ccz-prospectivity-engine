@@ -590,6 +590,36 @@ precedes ANY real-data run** — the pre-registration clock
   recording task's. Owner: Karl (as G). **Trigger: before wiring [03] into any
   adapter** — the fields are inert until then and wrong the moment they are not.
   Detail: [WET.1.md](walkthroughs/WET.1.md) §9, §12.
+- [ ] **[14]'s `area_percent` denominator is not determinable from the deposit**
+  (found and deferred at AREA.1, 2026-09-01, at the moment the STOP condition
+  fired). [14] carries three area-related columns. Two are now settled: every
+  per-m² density column is computed against **`Export_Area`** (verified by
+  recomputation — 239/239 exact, max diff 1.8e-15; `image_area_m2` matches 0/239),
+  and that fixes `image_area_m2` as the raw frame (mean 4.447 m²) and `Export_Area`
+  as the analysed sub-area (mean 2.513 m², a fixed 56.50% of the frame). **Which of
+  the two `area_percent` was computed against is unresolved, and nothing on disk
+  can resolve it:** the R script never assigns `area_percent` (all 13 occurrences
+  are reads) and never mentions either area column; the workbook contains **zero
+  formulas**; the deposit's own `Metadata.docx` states that *"intermediate
+  data-processing steps performed prior to creation of this dataset are not
+  included in this repository"*; the numerator (a nodule area) is **not a published
+  column** under either denominator; and `Export_Area / image_area_m2` is a
+  **constant 0.5650 on all 279 rows**, so the two candidates differ only by a global
+  ×1.7699 and no internal-consistency check can separate them even in principle.
+  Recorded OPEN rather than inferred, per the task's own STOP condition.
+  **Cost today: none.** [14] is COVER/COVARIATE and is never converted to kg/m², so
+  no consumer reads `area_percent`'s scale. **It becomes live the moment
+  `area_percent` is compared against another source's cover fraction** — [11] Amon
+  or [12] APEI-6 — since 1.77× exceeds the between-site differences such a
+  comparison would be looking for. **What would close it:** the intermediate
+  processing the metadata says was withheld — the image-annotation export that
+  produced the nodule areas — or a statement from the authors; failing either, the
+  paper's own methods section (Philbert, Purser, Böhringer & Thomsen, *Asymmetric
+  recovery of benthic megafauna after a polymetallic nodule mining trial in the
+  CCZ*), which is **not on disk**. Owner: Karl (as G). **Trigger: before
+  `area_percent` is compared against any other source's cover fraction** — a real
+  trigger; until then the ambiguity is inert. Detail:
+  [AREA.1.md](walkthroughs/AREA.1.md) §1–§2.
 - [ ] **The [02]-vs-[03] event disagreement is asserted but unverified in this
   repo** (carried into the record at WET.3, 2026-08-31, and deferred at the moment
   it was carried). WET.3 recorded an **author-overlap linkage** between [02]

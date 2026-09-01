@@ -173,9 +173,25 @@ Status: [NOW] [COVER]
 Link:   https://data.mendeley.com/datasets/7jst5wyc6j/1
 What:   Open data and R scripts containing megafauna, depth, and polymetallic
         nodule coverage across a GSR MiningImpact collector-test area.
+        [CORRECTED 2026-09-01, AREA.1, from the deposited files themselves]
+        Philbert, Purser, Boehringer & Thomsen, "Asymmetric recovery of benthic
+        megafauna after a polymetallic nodule mining trial in the CCZ".
+        279 data rows, ONE ROW PER IMAGE, 45 columns. It is a megafauna-density
+        dataset that also carries nodule coverage -- not a cover-only table.
 Use:    Modern GSR-area spatial cover observations and reproducible analysis.
-Work:   Ingest raw cover and coordinates; separate pre-impact, impact, and
-        post-impact records.
+Work:   Ingest raw cover and coordinates; separate the SPATIAL zones.
+        [CORRECTED 2026-09-01, AREA.1] This line previously read "separate
+        pre-impact, impact, and post-impact records". THE DATASET HAS NO
+        TEMPORAL DESIGN: all 279 images are dive SO295_136, every one captured
+        2022-12-03 -- one expedition, one dive, one day. The separation is
+        SPATIAL, along a 1,646 m transect, in the `Zone` column:
+          Outside1 = Zone A (undisturbed, N)   121 rows
+          Inside   = Mining Test Site          69 rows   <- the disturbed rows
+          Outside2 = Zone B (undisturbed, S)   89 rows
+        Hard filter for undisturbed seafloor: Zone != "Inside" -> 210 rows.
+        AREA BASIS: the per-m2 density columns are computed against
+        `Export_Area` (verified, 239/239 exact). The denominator behind
+        `area_percent` is NOT determinable from the deposit -- see BACKLOG.
 License: CC BY 4.0.
 
 [15] Zenodo - south-central CCZ environmental-driver data, KIOST
