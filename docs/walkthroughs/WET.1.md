@@ -968,3 +968,164 @@ entry rather than a place in the queue row's assertions.
   four places. **WET.2's 2026-08-30 labels are untouched and correct** — its commit
   `ed5b76c` really is dated the 30th.
 - **No code changed; the suite is unchanged at 709 passed, 2 skipped.**
+
+---
+
+# WET.4 — 2026-09-01. Correcting [03]'s declaration: the accidental refusal made principled
+
+The only session in this family that touches production code. WET.2 flagged two
+contract-bearing fields and deliberately left them standing. One is now corrected;
+the other hit the task's own STOP condition and stays flagged, with the reason
+recorded rather than the field guessed.
+
+```
+  BEFORE                                    AFTER
+  data_origin: MEASURED                     data_origin: DERIVED
+  refused by _require_proven_measured       refused by _require_proven_measured
+    because content_hash was null             because the ORIGIN is not MEASURED
+         │                                          │
+    ACCIDENTAL — a Track G download            PRINCIPLED — no hash can
+    fills the hash and the refusal             admit it; mutation-verified
+    silently disappears, admitting             both ways
+    79 computed rows as measurements
+```
+
+## 27. Step 1 — every consumer of [03]'s two fields, named
+
+Established by grep over `engine/`, `services/`, `apps/`, `tests/`, and then
+confirmed by running the code rather than reading it.
+
+**`evidence_classes` — zero code consumers anywhere.** `grep -rn evidence_classes
+engine services apps` returns **nothing**. One test reads it:
+`tests/test_corpus_invariants.py::test_each_wired_adapter_produces_exactly_the_classes_its_source_queue_entry_declares`
+loads *all* entries into a `declared` dict but asserts only over
+`_classes_produced_by_wired_adapters()` — [01] and [05]. **[03] is not wired, so it
+is loaded and never asserted on.**
+
+**`data_origin` — three consumers, none of which reaches [03] today:**
+
+| consumer | reaches [03]? | why |
+|---|---|---|
+| `measured_evidence_failure` via `_require_proven_measured` (`corpus_builder.py:116`) | **no** | runs only for `REAL_ADAPTER_BUILDERS` = [01], [05]. [03] has no adapter |
+| `measured_evidence_failure` via `_backed_by` (`corpus_manifest.py:405`) | **no** | iterates `recorder.sources()` — only sources that actually ran |
+| `_declared_data_origin` (`corpus_manifest.py:230`) | **no** | same iteration |
+| `tests/test_data_origin_audit.py::manifest_projection` | **no** | keyed off `manifest.json` `input_path`s, which exist only for [01] and [05] |
+| `tests/test_contracts_parse.py` | **no** | asserts nothing about `data_origin` |
+
+Verified empirically: `manifest.json` contains `src_so268_boxcore` and
+`src_so268_nodules` only, and `"src_domes_piper1979" in manifest` is **False**.
+
+**So [03]'s declaration is inert today.** That is the finding that sets the real
+risk, and it points the opposite way from "inert means harmless" — see §29.
+
+## 28. Step 2 — the predictions, written before the edit
+
+1. `evidence_classes` — no runtime consumer; changing it or not changes no
+   behaviour today. (Not changed anyway; §30.)
+2. `measured_evidence_failure([03], real file)` — refuses **before and after**, but
+   the **reason moves**: from *"declares MEASURED but records content_hash: null"*
+   to *"declares data_origin='DERIVED', not MEASURED"*, because conditions are
+   checked in order and the first failure is named.
+3. The refusal becomes **unconditional**: with a real matching hash injected, the
+   pre-change entry would be **admitted** and the post-change entry still refused.
+4. `manifest.json` unchanged; [03] still absent.
+5. Corpus unchanged: 108 rows, `src_so268_boxcore` only.
+6. Full suite unchanged at **709 passed, 2 skipped** — no existing test asserts on
+   [03]'s fields.
+
+## 29. Steps 4–6 — what changed, verified, and mutation-checked
+
+**The change.** `data_origin: MEASURED → DERIVED`, and `derivation` now carries
+what DERIVED requires — the formula and its inputs' origins:
+
+> `Table 8 Concentration_kg_m2 = 0.0800 × Coverage_pct × AvgDiameter_cm` (WET.2;
+> one constant reproduces 75 of the 79 rows printing both inputs, admissible
+> interval [0.07995, 0.08007]). **Input origins:** `Coverage_pct` and
+> `AvgDiameter_cm` are MEASURED (image annotations of box-core photographs).
+
+**Why DERIVED is safe to set now even though the M.W. class is UNRESOLVED.**
+`combine_origins` returns the **least-real** input. If P4's 24 rows later resolve
+as weighings (MEASURED), then MEASURED + DERIVED = **DERIVED**. No resolution of
+the open class can move this field back, so it is not a guess awaiting revision.
+
+**The paired Track-E re-wiring**, same commit, `tests/test_corpus_builder.py`:
+
+- `test_derived_declaration_is_refused_naming_the_declared_origin` — the sibling of
+  the existing [18]/LITERATURE test.
+- `test_the_derived_refusal_does_not_depend_on_pending_hash_evidence` — **the
+  discriminating one.** It injects a real hash matching a real file (the exact
+  state a completed Track G download produces), asserts [03] is *still* refused on
+  the origin, then flips the declaration back to MEASURED and asserts the same
+  fully-evidenced entry **is admitted**. Without that second half the test would
+  pass identically before and after this change and would prove nothing.
+
+**Prediction verification — one was wrong.**
+
+| # | predicted | actual | |
+|---|---|---|---|
+| 1 | no behaviour change from `evidence_classes` | none | ✓ |
+| 2 | reason moves to the origin condition | *"declares data_origin='DERIVED', not MEASURED — only proven MEASURED sources are admissible on a production path"* | ✓ |
+| 3 | refusal unconditional; control admits | refused with real hash; control returns `None` | ✓ |
+| 4 | manifest unchanged, [03] absent | unchanged, absent | ✓ |
+| 5 | corpus 108 rows, one source | 108, `src_so268_boxcore` | ✓ |
+| 6 | suite **709** passed | **711** passed, 2 skipped | ✗ **WRONG** |
+
+**Prediction 6 was wrong as written.** The suite is 711, not 709 — I predicted the
+count while adding two tests to it. The substance held (no existing test changed
+status; 709 → 711 is exactly the two added), but the number I committed to in
+writing was not the number that came out, and the point of writing predictions down
+is that they are graded as written. Recorded rather than quietly reconciled.
+
+**Mutation verification, both guards by name.**
+
+| mutation | tests exercised | result |
+|---|---|---|
+| baseline | the two new tests | 2 passed |
+| revert declaration `DERIVED → MEASURED` | the two new tests | **2 failed** |
+| restore | | 2 passed |
+| disable the guard's own origin branch (`if declared != DataOrigin.MEASURED.value:` → `if False:`) in `corpus_manifest.py` | the two new tests **+ the existing [18]/LITERATURE test** | **3 failed** |
+| restore | | 3 passed |
+
+Both the declaration and the branch that reads it are observed. The second mutation
+also confirms the new tests share the guard the existing LITERATURE test protects,
+rather than testing a private path.
+
+**The hazard this actually removed.** Before this commit [03] was refused *only*
+because its `content_hash` was null — the last condition standing between 79
+computed rows and a training target, and one that Track G was expected to remove in
+the ordinary course of downloading the file. The safety was accidental. It is now a
+property of the declaration.
+
+## 30. Step 3 and the STOP — what could not be set, and why
+
+**`evidence_classes` stays `[MASS, COVER]`.** The task's STOP condition applies
+verbatim: *"STOP if the correct value depends on the M.W. classification and that
+classification is UNRESOLVED."* WET.2 ran and returned **UNRESOLVED / NO
+DISCRIMINATOR AVAILABLE** for the 24 Moana Wave rows.
+
+- **COVER** — settled and correct. `Coverage_pct` is a measured cover fraction.
+- **MASS** — not settled either way. Removing it would assert that **no** row of
+  Table 8 is a mass; the 24 P4 rows may be weighings and nothing on disk decides.
+  Asserting it would claim the 87 P1/P2/P3 rows carry mass, which WET.2 refuted.
+
+So the field is left as it stands and the flag stays, with the constraint recorded
+on the row itself: **an adapter must not emit MASS from the P1/P2/P3 rows**, and
+whoever wires [03] must either resolve P4 first or narrow the list to `[COVER]` in
+the wiring commit. That is enforceable, not advisory — the invariant test compares
+adapter output against this list and fails loudly on disagreement.
+
+## 31. Limits of WET.4
+
+- **One prediction was wrong** (§29, #6) and is reported rather than reconciled.
+- **`evidence_classes` was not corrected**, by design. Half the flagged pair is
+  still open, and the BACKLOG entry now says which half and what closes it.
+- **The two new tests exercise a source that is not wired.** They pin latent
+  behaviour — what happens *when* [03] is wired — which is the only way to observe
+  a declaration whose consumers do not run today. Mutation verification is what
+  makes that a test rather than a comment.
+- **`backed_by` would now book [03] as `"fixture"`** if it ever reached the
+  manifest, since that helper returns `"real_data"` only for a passing
+  `measured_evidence_failure`. The wording is misleading for a DERIVED source, but
+  it is pre-existing behaviour shared by every non-MEASURED entry and was not
+  changed here — out of scope, noted so it is not rediscovered as new.
+- **Suite: 709 → 711 passed, 2 skipped.** Two tests added, no existing test changed.

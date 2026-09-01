@@ -590,6 +590,34 @@ precedes ANY real-data run** — the pre-registration clock
   recording task's. Owner: Karl (as G). **Trigger: before wiring [03] into any
   adapter** — the fields are inert until then and wrong the moment they are not.
   Detail: [WET.1.md](walkthroughs/WET.1.md) §9, §12.
+  **HALF CLOSED at WET.4 (2026-09-01).** `data_origin` is **CORRECTED
+  MEASURED → DERIVED**, with the derivation formula and its inputs' origins now
+  in the row's `derivation` field — the evidence DERIVED requires. It is stable
+  under the still-open M.W. question, because `combine_origins` returns the
+  least-real input and MEASURED + DERIVED = DERIVED, so no resolution of WET.2's
+  P4 class can move it back. Paired Track-E re-wiring landed in the same commit:
+  two tests in `tests/test_corpus_builder.py`, both mutation-verified.
+  **The correction removed a live latent hazard, not a cosmetic one:** before it,
+  [03] was refused by `_require_proven_measured` *only* because its
+  `content_hash` was null. That refusal would have vanished the moment Track G
+  downloaded the file and filled the hash — a routine, expected action — silently
+  admitting 79 computed rows as measurements. The refusal is now on the origin
+  and is unconditional; `test_the_derived_refusal_does_not_depend_on_pending_hash_evidence`
+  pins exactly that by giving the entry a real matching hash and asserting it is
+  still refused.
+  **`evidence_classes` REMAINS OPEN — the task's STOP condition fired.** COVER is
+  settled and correct. MASS cannot be removed: doing so would assert that no row
+  of Table 8 is a mass, and WET.2's 24 Moana Wave rows (P4) returned UNRESOLVED
+  with NO DISCRIMINATOR AVAILABLE, so they may be weighings. What is established
+  is that MASS is wrong for the other 87 rows. **What would close it:** the same
+  evidence the P4 entry names — a Moana Wave DOMES abundance source. Failing
+  that, whoever wires [03] must narrow the list to `[COVER]` in the wiring commit
+  itself; the invariant test
+  `test_each_wired_adapter_produces_exactly_the_classes_its_source_queue_entry_declares`
+  compares adapter output against this list and fails loudly if they disagree.
+  Owner: Karl (as G). **Trigger: resolution of the P4 class, or the commit that
+  wires [03] — whichever comes first.** Detail:
+  [WET.1.md](walkthroughs/WET.1.md) §27–§30.
 - [ ] **[14]'s `area_percent` denominator is not determinable from the deposit**
   (found and deferred at AREA.1, 2026-09-01, at the moment the STOP condition
   fired). [14] carries three area-related columns. Two are now settled: every

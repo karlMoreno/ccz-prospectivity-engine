@@ -110,7 +110,18 @@ sources:
     notes: "Historic, already-normalized kg/m2. High-value training data. AUTHOR-OVERLAP LINKAGE to [04]'s source chapter (Sorem et al. 1979a) -- shared authorship, NOT shared data: do not count [02] as independent corroboration of [03]/[04]. See comment block."
 
   - source_id: src_domes_piper1979           # [03]
-    data_origin: MEASURED                     # published measurement dataset (DOI); hash on download
+    # CORRECTED WET.4 (2026-09-01) MEASURED -> DERIVED. This dataset IS Table 8
+    # (its PANGAEA citation line reads "(Table 8, pages 454-455)"), and Table 8's
+    # Concentration column is a CLOSED FORM over the two columns printed beside
+    # it, not a measurement -- see `derivation` below for the formula and its
+    # inputs' origins, which is exactly the evidence DERIVED requires. Piper's
+    # own Techniques section (p. 439) says it in words: the abundances "were
+    # estimated from photographs of box cores".
+    # STABLE UNDER THE OPEN M.W. QUESTION: even if the 24 unresolved Moana Wave
+    # rows turn out to be weighings (MEASURED), combine_origins returns the
+    # LEAST-real input, and MEASURED + DERIVED = DERIVED. So no resolution of
+    # WET.2's open class can move this field back.
+    data_origin: DERIVED
     title: "DOMES abundance & seafloor observations, Piper et al. (1979)"
     doi: "10.1594/PANGAEA.880886"
     url: "https://doi.org/10.1594/PANGAEA.880886"
@@ -120,7 +131,8 @@ sources:
     is_open: true
     license: "CC-BY-3.0"
     sampled_area_m2: null
-    derivation: "MASS reported as kg/m2; COVER stays COVER"
+    # DERIVED's required evidence: the derivation formula + its inputs' origins.
+    derivation: "Table 8 Concentration_kg_m2 = 0.0800 x Coverage_pct x AvgDiameter_cm (fitted at WET.2; one constant reproduces 75 of the 79 rows printing both inputs, admissible interval [0.07995, 0.08007]). INPUT ORIGINS: Coverage_pct and AvgDiameter_cm are MEASURED (image annotations of box-core photographs). COVER stays COVER and is never converted."
     accessed_date: null
     content_hash: null
     # WET.1 (2026-08-28): NOT INDEPENDENT OF [04]. Table 8's Site C rows for
@@ -199,13 +211,24 @@ sources:
     # Table 9 col 7 (box-core weights, 1 kg/m2 resolution) = OPEN, protocol
     # unstated. Detail: docs/walkthroughs/WET.1.md sections 9 and 11.
     #
-    # TWO FIELDS ABOVE ARE NOW SUSPECT AND WERE DELIBERATELY NOT CHANGED HERE
-    # (contract-bearing; Karl's call -- BACKLOG entry filed 2026-08-28):
-    #   evidence_classes: [MASS, COVER] -- Table 8's Concentration is not MASS;
-    #     wiring it as MASS puts 79 COMPUTED rows into a training target.
-    #   data_origin: MEASURED -- under TAX.1's rule a column computed by closed
-    #     form from two measured inputs is DERIVED. Coverage/Diameter stay
-    #     MEASURED.
+    # THE TWO FLAGGED FIELDS, at WET.4 (2026-09-01). ONE CORRECTED, ONE STOPPED:
+    #   data_origin: CORRECTED MEASURED -> DERIVED (see the block at the top of
+    #     this entry). Defensible now and stable under the open M.W. question.
+    #   evidence_classes: [MASS, COVER] -- LEFT AS IT STANDS, DELIBERATELY.
+    #     COVER is correct and settled: the Coverage_pct column is a measured
+    #     cover fraction. MASS is NOT settled either way, and the task's own STOP
+    #     condition applies: removing it would assert that NO row of Table 8 is a
+    #     mass, which WET.2 explicitly could not establish -- the 24 Moana Wave
+    #     rows (class P4-NO-INPUTS) returned UNRESOLVED with NO DISCRIMINATOR
+    #     AVAILABLE, so they may be weighings. What IS established: MASS is wrong
+    #     for the other 87 rows (78 computed + 9 method-independent zeros).
+    #     CONSEQUENCE FOR WHOEVER WIRES [03]: an adapter must NOT emit MASS from
+    #     the P1/P2/P3 rows. Either resolve P4 first, or narrow this list to
+    #     [COVER] in the same commit that wires the adapter -- the invariant test
+    #     `test_each_wired_adapter_produces_exactly_the_classes_its_source_queue_
+    #     entry_declares` compares adapter output against this list and will fail
+    #     loudly if the two disagree. Per-row classes are in the transcription's
+    #     `provenance` column. BACKLOG entry stands.
     #
     # SOURCE DEFECT (WET.1 section 10): Table 8's printed per-site "Average:"
     # rows do not recompute from the rows it prints. Sites A and C fail on all

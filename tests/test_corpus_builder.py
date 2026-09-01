@@ -34,6 +34,11 @@ from engine.prospectivity.ingestion.corpus_builder import (
     _require_proven_measured,
 )
 from engine.prospectivity.ingestion.dedup_rules import DuplicateResolutionPolicy
+from engine.prospectivity.provenance.corpus_manifest import (
+    file_sha256,
+    measured_evidence_failure,
+    source_queue_entries,
+)
 from engine.prospectivity.ingestion.normalizer_registry import build_default_registry
 from engine.prospectivity.ingestion.pipeline import IngestionPipeline
 from engine.prospectivity.ingestion.source_adapter import RawRecord, SourceAdapter
@@ -116,6 +121,40 @@ def test_non_measured_declaration_is_refused_naming_the_declared_origin() -> Non
         _require_proven_measured(
             "src_ts6_grid", SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
         )
+
+
+def test_derived_declaration_is_refused_naming_the_declared_origin() -> None:
+    """[03] declares DERIVED (WET.4, corrected from MEASURED): Table 8's
+    Concentration column is `0.08 x Coverage x Diameter`, a closed form over
+    the two columns printed beside it, so it is not a measurement.
+
+    The paired half of that correction. Before it, [03] was refused only
+    because its content_hash was still null -- an ACCIDENTAL refusal that would
+    have disappeared the moment Track G downloaded the file and filled the
+    hash, silently admitting 79 computed rows into a training target as
+    measurements. This pins the refusal to the ORIGIN instead."""
+    with pytest.raises(ValueError, match="DERIVED"):
+        _require_proven_measured(
+            "src_domes_piper1979", SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+        )
+
+
+def test_the_derived_refusal_does_not_depend_on_pending_hash_evidence() -> None:
+    """The discriminating half: give [03]'s entry a REAL hash matching a REAL
+    file -- the exact state a completed Track G download produces -- and it is
+    still refused, on the origin. A test that only checked the null-hash entry
+    would pass identically before and after WET.4 and would prove nothing."""
+    entry = dict(source_queue_entries()["src_domes_piper1979"])
+    path = SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+    entry["content_hash"] = file_sha256(path)   # already carries the "sha256:" prefix
+
+    failure = measured_evidence_failure(entry, path)
+    assert failure is not None and "DERIVED" in failure and "not MEASURED" in failure
+
+    # and the mutation that must break it: flip the declaration back and the
+    # same fully-evidenced entry is admitted.
+    entry["data_origin"] = "MEASURED"
+    assert measured_evidence_failure(entry, path) is None
 
 
 def test_a_source_with_no_queue_entry_is_refused() -> None:
