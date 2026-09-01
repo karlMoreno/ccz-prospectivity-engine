@@ -92,8 +92,14 @@ sources:
     #     "Sorem, R.K., Reinhart, W.R., Fewkes, R.H., and McFarland, (1979)
     #      Occurrence and character of manganese nodules in DOMES Sites A, B,
     #      and C east equatorial Pacific Ocean (this volume)."
-    # The discrepancy is RECORDED, NOT RECONCILED -- neither rendering is
-    # treated as correct. Which source gives which is stated above.
+    # RESOLVED BY EVIDENCE 2026-09-01 (docs/data-sources/RETRIEVAL-LOG.md sec 1):
+    # Crossref, the publisher's own record, gives the CANONICAL list as
+    # "R. K. Sorem; W. R. Reinhart; R. H. Fewkes; W. D. McFarland", pp. 475-527 --
+    # the FOUR-author form in exactly Piper's order. So Piper 1979 is right and
+    # SOREM 1989's OWN REFERENCE LIST OMITS REINHART from a chapter Sorem
+    # co-authored. Wikidata independently confirms this report's four authors.
+    # The two author sets are therefore IDENTICAL, not identical-under-one-reading.
+    # The chapter's FULL TEXT is still not on disk, so nothing else was closed.
     # A third rendering sits in this dataset's own PANGAEA header
     # (~/CCZ/downloads/domes/Fewkes_1980_2_[2].tab): the DATASET is credited to
     # "Fewkes, Ronald H; McFarland, William Douglas; Reinhart, W R (1980)" --

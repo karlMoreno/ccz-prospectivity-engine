@@ -886,12 +886,22 @@ One chapter, two citations, four differences:
 | McFarland's initials | `W. D.` | **none given** |
 | year / locator | `1979a`, `Plenum, 475–527`, editors named | `(1979)`, `(this volume)`, no pages, no editors |
 
-**Neither rendering is treated as correct here.** They are recorded as a
-provenance fact about how the source chapter behind [04] is cited, with which
-source gives which stated on the face of the record. Reconciling them would need
-the chapter itself (pp. 475–527), which is not on disk — the same document the
-Contract 1 wet/dry gap is already waiting on (§11, and the BACKLOG entry it
-carries).
+~~**Neither rendering is treated as correct here.**~~ **RESOLVED BY EVIDENCE
+2026-09-01** — see [RETRIEVAL-LOG.md](../data-sources/RETRIEVAL-LOG.md) §1. The
+chapter's full text is still not on disk, but its **canonical record is**: Crossref,
+the publisher's own record for its own book, gives
+
+> R. K. Sorem · **W. R. Reinhart** · R. H. Fewkes · W. D. McFarland — pp. **475–527**,
+> *Marine Geology and Oceanography of the Pacific Manganese Nodule Province*,
+> Springer US, 1979.
+
+That is the **four-author form, in exactly Piper 1979's order**. So Piper's
+reference list is correct and **Sorem 1989's own reference list omits Reinhart from
+a chapter Sorem co-authored**. The page range matches both, and Crossref supplies
+the initials Piper's entry lacked (**W. D.** McFarland). The discrepancy is no
+longer symmetric: one rendering is canonical and the other is an error in the later
+paper. Recorded here rather than in a new section so the original finding and its
+resolution sit together.
 
 **A third rendering is already in the repo's own downloads**, and it disagrees
 with both: [02]'s PANGAEA header (`Fewkes_1980_2_[2].tab`) credits the **dataset**
@@ -903,12 +913,14 @@ same reason: it is a fact about the citation record, not a thing to be resolved.
 
 ## 24. What the linkage does and does not imply
 
-**The overlap is robust under every pairing.** Under Piper's rendering (c), the
-1979a author set is **identical** to [02]'s parent-report set (a) —
-{Sorem, Reinhart, Fewkes, McFarland}, same four people, different order. Under
-Sorem's own rendering (b), the overlap with [02]'s dataset authors is still
-{Fewkes, McFarland}. There is no reading of the citation record on which these are
-unrelated groups.
+**The overlap is robust under every pairing — and under the canonical list it is
+exact.** Under Piper's rendering (c), the 1979a author set is **identical** to
+[02]'s parent-report set (a) — {Sorem, Reinhart, Fewkes, McFarland}, same four
+people, different order. Under Sorem's own rendering (b), the overlap with [02]'s
+dataset authors is still {Fewkes, McFarland}. There is no reading of the citation
+record on which these are unrelated groups. **Strengthened 2026-09-01:** Crossref
+confirms (c) as canonical and Wikidata independently confirms (a)'s four authors,
+so the two author sets are **identical**, not identical-under-one-of-two-readings.
 
 **What it implies.** [02] is not an independent check on [03]/[04]. The DOMES
 Site A/B/C box-core work was done by one overlapping group, and treating [02]'s

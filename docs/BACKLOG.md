@@ -570,7 +570,16 @@ precedes ANY real-data run** — the pre-registration clock
   → **OPEN**, protocol unstated. **What would actually close the two OPEN ones:
   a document stating a drying/weighing protocol for either side** — first
   candidate **Sorem et al. 1979a** (pp. 475–527 of the same Plenum volume as
-  [03]; the chapter [04] Table 1 is drawn from), **not on disk**. Plus, still,
+  [03]; the chapter [04] Table 1 is drawn from), **not on disk**.
+  **RETRIEVAL ATTEMPTED 2026-09-01 AND NOT OBTAINED** — SpringerLink paywalled (303
+  to auth), HathiTrust 403, no open copy found; Crossref returned metadata only.
+  **The gap therefore stays OPEN, not resolved by default** — the fallback would be
+  to guess a drying protocol, which is what this entry exists to refuse. Routes are
+  logged so the next attempt does not repeat them:
+  [RETRIEVAL-LOG.md](data-sources/RETRIEVAL-LOG.md) §1. **Highest-value remaining
+  route: CU Boulder ILL for the volume** — it yields this chapter *and* a clean
+  copy of Table 8; not attempted here because it needs Karl's institutional
+  sign-in. Plus, still,
   a stated basis for TS-6's own distribution — the other half of the same gap,
   carried in the entry above. Owner: Karl (as G). **Trigger: acquisition of
   Sorem et al. 1979a — this one is a real trigger**, because unlike the
@@ -698,7 +707,11 @@ precedes ANY real-data run** — the pre-registration clock
   **What would resolve it:** a document reporting the R/V *Moana Wave* DOMES
   box-core work with its abundance method — the cruise reports for `M.W.8`,
   `M.W.13A/13B` and `M.W.16`, or whichever companion chapter of Bischoff & Piper
-  (eds.) covers the Moana Wave stations. **None is on disk.** Failing that, the 24
+  (eds.) covers the Moana Wave stations. **None is on disk.** **Sorem et al. 1979a —
+  the most likely of them — was attempted 2026-09-01 and NOT obtained** (SpringerLink
+  paywalled, HathiTrust 403; metadata only via Crossref), so P4 stays UNRESOLVED and
+  nothing was settled by default: [RETRIEVAL-LOG.md](data-sources/RETRIEVAL-LOG.md)
+  §1. Failing that, the 24
   rows stay UNRESOLVED permanently and must never be admitted as MASS.
   **HAZARD to carry into any such attempt:** the `M.W.13A`/`13B` box-core numbers
   run 2–12, and **seven of them (6, 7, 8, 9, 10, 11, 12) collide numerically with
