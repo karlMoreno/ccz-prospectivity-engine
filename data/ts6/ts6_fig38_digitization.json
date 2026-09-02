@@ -1,0 +1,192 @@
+{
+  "source_document": "ISA Technical Study No. 6, Figure 38, printed p.59",
+  "source_file": "tstudy6.pdf",
+  "source_page_index": 80,
+  "figure_caption": "Abundance (kg/m2): Grid Block Data, Interpolated Contours",
+  "render": "poppler pdftoppm -r 400 -png, rotated -90 to upright",
+  "georeference": {
+    "method": "graticule read from render; plate carree, linear, separate x/y scales",
+    "lon_pixels": {
+      "-160.0": 754.5,
+      "-110.0": 4017.5
+    },
+    "lat_pixels": {
+      "20.0": 736.5,
+      "0.0": 2127.0
+    },
+    "graticule_lines_found": {
+      "vertical": 11,
+      "horizontal": 5
+    }
+  },
+  "extraction": {
+    "rule": "per-cell mode of nearest-legend-swatch match",
+    "data_mask": "Cells are kept only INSIDE the red dashed data boundary. The boundary dashes (already isolated as annotation) are closed with a 45px square, hole-filled, and eroded by 9px so the ring itself is excluded. Found by LOOKING at the first output: fracture-zone lines and graticule outside the polygon had been classified as '5-10' because their anti-aliased grey is within tolerance of that swatch.",
+    "annotation_masking": "The red dashed data-boundary polygon is drawn in the SAME RGB as the '>35' legend swatch, so colour cannot separate them. Before classification, red-matching pixels are opened with a radius-7 disk; anything that does not survive is a thin structure (the dashed line) and is masked to nodata. This was FOUND BY A SANITY CHECK, not anticipated: the first run classified 248 cells as 30-35 or >35 when the figure shows no red fill. Those cells formed 90 components of median size 2 (largest a 1x18 straight run) against 1,385 cells at 43% bbox fill for a genuine class.",
+    "rgb_tolerance": 26,
+    "legend": [
+      {
+        "label": "<1",
+        "rgb": [
+          65,
+          133,
+          195
+        ],
+        "low": 0.0,
+        "high": 1.0,
+        "midpoint": 0.5
+      },
+      {
+        "label": "1-5",
+        "rgb": [
+          120,
+          162,
+          198
+        ],
+        "low": 1.0,
+        "high": 5.0,
+        "midpoint": 3.0
+      },
+      {
+        "label": "5-10",
+        "rgb": [
+          175,
+          196,
+          199
+        ],
+        "low": 5.0,
+        "high": 10.0,
+        "midpoint": 7.5
+      },
+      {
+        "label": "10-15",
+        "rgb": [
+          220,
+          228,
+          193
+        ],
+        "low": 10.0,
+        "high": 15.0,
+        "midpoint": 12.5
+      },
+      {
+        "label": "15-20",
+        "rgb": [
+          243,
+          244,
+          178
+        ],
+        "low": 15.0,
+        "high": 20.0,
+        "midpoint": 17.5
+      },
+      {
+        "label": "20-25",
+        "rgb": [
+          243,
+          198,
+          129
+        ],
+        "low": 20.0,
+        "high": 25.0,
+        "midpoint": 22.5
+      },
+      {
+        "label": "25-30",
+        "rgb": [
+          238,
+          142,
+          81
+        ],
+        "low": 25.0,
+        "high": 30.0,
+        "midpoint": 27.5
+      },
+      {
+        "label": "30-35",
+        "rgb": [
+          230,
+          83,
+          57
+        ],
+        "low": 30.0,
+        "high": 35.0,
+        "midpoint": 32.5
+      },
+      {
+        "label": ">35",
+        "rgb": [
+          219,
+          37,
+          45
+        ],
+        "low": 35.0,
+        "high": 45.0,
+        "midpoint": 40.0
+      }
+    ]
+  },
+  "digitization_uncertainty": {
+    "kind": "ORDINAL, NOT CONTINUOUS",
+    "statement": "Figure 38 is a filled-contour map with 9 classes. What is recovered per cell is a CLASS, not a value. A cell read as '5-10' carries +/-2.5 kg/m2 of irreducible binning uncertainty BY CONSTRUCTION, before any tracing error. The midpoint array assigns class midpoints; that assignment is a CHOICE, not a measurement, and any statistic computed from it inherits the bin width. Do not report precision finer than the class width. The open-ended classes (<1 and >35) have no defined midpoint at all; 0.5 and 40.0 are conventions.",
+    "bin_half_width_kg_m2": 2.5,
+    "open_ended_classes": [
+      "<1",
+      ">35"
+    ],
+    "repeat_digitization_measured": {
+      "procedure": "The extraction was re-run from independent renders of the same page at 300 and 500 dpi, with graticule pixel positions scaled linearly, and compared cell-by-cell against the 400 dpi deliverable.",
+      "vs_300dpi": {
+        "co_valid_cells": 29185,
+        "class_agreement_pct": 99.31,
+        "midpoint_diff_mean": 0.0005,
+        "midpoint_diff_sd": 0.3717,
+        "midpoint_diff_max_abs": 5.0,
+        "valid_set_symmetric_difference": 290
+      },
+      "vs_500dpi": {
+        "co_valid_cells": 29157,
+        "class_agreement_pct": 98.73,
+        "midpoint_diff_mean": -0.0033,
+        "midpoint_diff_sd": 0.5162,
+        "midpoint_diff_max_abs": 5.0,
+        "valid_set_symmetric_difference": 269
+      },
+      "conclusion": "Tracing error sd is 0.37-0.52 kg/m2 with no detectable bias (mean diff < 0.004). Disagreements are single-class jumps at contour boundaries (max |diff| = one bin width). THE BINNING UNCERTAINTY (+/-2.5) DOMINATES THE TRACING ERROR BY ROUGHLY 5x. Report the binning figure as the uncertainty; the tracing error is a second-order term."
+    }
+  },
+  "provenance_chain_note": "This surface is FOUR steps from a measurement: contractor stations -> 0.1-degree block averages (originals withheld as proprietary) -> interpolated contours -> our raster. TS-6 also states its own free-fall-grab recovery bias was NOT corrected.",
+  "licence_note": "ISA Technical Study No. 6 is all rights reserved. This raster is a benchmark only and is_open is FALSE; it must not enter a published run.",
+  "defect_found_in_source": "Figure 36 ('Abundance (kg/m2): Grid Block Data Locations and Values') carries Figure 40's MANGANESE legend (<16..>37). Abundance median is 5.47 per TS-6 Table 5, so those bins cannot be abundance. Figure 36 was rejected for this reason; Figure 38 carries the correct abundance legend (<1..>35).",
+  "transform": {
+    "note": "GDAL-style affine: x = c0 + col*a; y = f0 + row*e (north-up)",
+    "c0_west_edge_lon": -160.0,
+    "pixel_width_deg": 0.1,
+    "f0_north_edge_lat": 20.0,
+    "pixel_height_deg": -0.1,
+    "width": 500,
+    "height": 200,
+    "crs": "EPSG:4326",
+    "gdal_geotransform": [
+      -160.0,
+      0.1,
+      0.0,
+      20.0,
+      0.0,
+      -0.1
+    ]
+  },
+  "class_histogram": {
+    "<1": 1034,
+    "1-5": 12557,
+    "5-10": 12803,
+    "10-15": 2402,
+    "15-20": 456,
+    "20-25": 0,
+    "25-30": 0,
+    "30-35": 0,
+    ">35": 0
+  },
+  "nodata_cells": 70748,
+  "valid_cells": 29252
+}

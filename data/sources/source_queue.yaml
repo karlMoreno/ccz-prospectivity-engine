@@ -451,13 +451,50 @@ sources:
     source_type: benchmark
     evidence_classes: [GRID]
     primary_use: BENCHMARK                     # also see Contract 6 (ts6_reference)
-    is_open: true
-    license: "ISA publication — benchmark use, not redistributed as data"
+    # CORRECTED G3.1 (2026-09-01) true -> false. The digitization sidecar states
+    # it plainly: "ISA Technical Study No. 6 is all rights reserved. This raster
+    # is a benchmark only and is_open is FALSE; it must not enter a published
+    # run." The previous `true` was inconsistent with this row's OWN licence
+    # string ("not redistributed as data") and with Contract 6's header
+    # ("this is a BENCHMARK, not redistributed data").
+    is_open: false
+    license: "ISA Technical Study No. 6 (2010) — ALL RIGHTS RESERVED. Benchmark use only; the PDF is held locally and NOT redistributed here, and the digitized raster must not enter a published run."
     sampled_area_m2: null
     derivation: "compiled 0.1deg grid; observation_or_prediction = compiled"
     accessed_date: null
-    content_hash: null
-    notes: "Benchmark surface for compare_to_ts6 (Contract 6). Never a training station."
+    content_hash: null                         # stays null: see the G3.1 note
+    # ===== G3.1 (2026-09-01): the figure is digitized; the raster is landed. ====
+    # WHAT CHANGED AND WHAT DID NOT.
+    #   data_origin stays LITERATURE and that is deliberate. THIS ROW IS THE
+    #   PUBLICATION — a compiled grid printed in an ISA report. OUR raster is a
+    #   different artifact, declared in Contract 6 as raster_data_origin DERIVED,
+    #   whose INPUT is this row. Contract 6 says so in its own words: "The TS-6
+    #   PUBLICATION is DERIVED's INPUT, cited as such". Two artifacts, two
+    #   classes, no laundering.
+    #   content_hash stays null. This field is the SOURCE's hash, and what we
+    #   hold is the PDF, not the compiled grid it prints. The raster's hash lives
+    #   in Contract 6 (content_hash), where the artifact it identifies is.
+    # THE GUARD IS UNAFFECTED, and was verified rather than assumed: [18] is
+    # refused by _require_proven_measured on its ORIGIN
+    # ("declares data_origin='LITERATURE', not MEASURED"), which is the FIRST
+    # condition checked — so the refusal never rested on the null hash, and the
+    # accidental-safety failure corrected for [03] at WET.4 does NOT recur here.
+    # A test now injects a valid hash and asserts the refusal survives.
+    # THE FIGURE, and a defect found in the source while choosing it:
+    #   USED: Figure 38, "Abundance (kg/m2): Grid Block Data, Interpolated
+    #   Contours" (Appendix 8.1.1, printed p.59) — legend <1..>35, the abundance
+    #   legend.
+    #   REJECTED: Figure 36, "Abundance (kg/m2): Grid Block Data Locations and
+    #   Values", which CARRIES FIGURE 40's MANGANESE LEGEND (<16..>37). The
+    #   reasoning that rejected it: TS-6's own Table 5 gives an abundance median
+    #   of 5.47 kg/m2, so a legend whose LOWEST bin starts at 16 cannot be
+    #   abundance — the whole distribution would fall below the first class.
+    #   Corroborated here against the PDF: Figure 36 sits at 0-based page index
+    #   77 and Figure 40 ("Manganese (dry weight percent): Grid Block Data
+    #   Locations and Values") at index 81, so the legend it borrows is a real
+    #   neighbouring figure's. This is a DEFECT IN THE PUBLISHED SOURCE, recorded
+    #   because the next reader will otherwise reach for Figure 36 by its title.
+    notes: "Benchmark surface for compare_to_ts6 (Contract 6). Never a training station. DIGITIZED at G3.1 from Figure 38 — see Contract 6 for the method, uncertainty and raster hash. is_open FALSE (all rights reserved): must not enter a published run. Figure 36 REJECTED — it carries Figure 40's manganese legend."
 
   - source_id: src_washburn2021_grid         # [19]
     data_origin: LITERATURE                   # derived/compiled published points ("largely derived from TS-6 + Morgan")

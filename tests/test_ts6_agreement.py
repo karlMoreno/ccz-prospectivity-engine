@@ -361,3 +361,42 @@ def test_compare_all_covers_every_surface_and_none_is_cherry_picked(
         assert agreement.estimator_name == name
         assert agreement.role_note == "benchmark_only"
         assert agreement.resampling is not None and agreement.resampling["method"] == "nearest"
+
+
+# ── G3.1: Contract 6 is filled; the real-data path's gate must now pass ──
+
+
+def test_contract_6_as_committed_satisfies_the_real_path_digitization_gate() -> None:
+    """G3.1 filled Contract 6's five nulls from the Figure 38 digitization.
+    `_require_digitization_evidence` is the REAL (non-SYNTHETIC) path's gate:
+    before G3.1 it refused this contract twice over — null uncertainty, null
+    method. This asserts the committed file now passes it, and that the method
+    clears the re-runnability floor rather than merely being non-empty."""
+    from engine.prospectivity.ts6.comparison import (
+        MIN_DIGITIZATION_METHOD_CHARS,
+        _require_digitization_evidence,
+    )
+
+    uncertainty, method = _require_digitization_evidence(None)
+    assert uncertainty == 2.5
+    assert len(method) > MIN_DIGITIZATION_METHOD_CHARS
+    # The method must LOCATE the work, not name a category. These tokens are
+    # what the VERBATIM script docstring carries; the FIGURE's identity lives in
+    # `source_figure` (asserted in the next test), not here — the method block
+    # locates the page and the procedure.
+    for token in ("page 80", "400 dpi", "graticule", "digitize_fig38.py"):
+        assert token in method, f"digitization_method does not mention {token!r}"
+
+
+def test_the_committed_ts6_contract_records_a_non_circular_role() -> None:
+    """role_note was null until G3.1. `benchmark_only` is the contract's own
+    PREFERRED case: the corpus trains on [01]/[05] stations, so nothing from
+    TS-6 fed the samples and the comparison is not a reproduction check."""
+    import yaml
+
+    repo_root = Path(__file__).resolve().parents[1]
+    contract = yaml.safe_load(
+        (repo_root / "data/ts6/ts6_reference.yaml").read_text()
+    )["ts6_reference"]
+    assert contract["role_note"] == "benchmark_only"
+    assert contract["source_figure"] and "Figure 38" in contract["source_figure"]

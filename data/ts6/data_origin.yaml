@@ -1,0 +1,43 @@
+# Origin sidecar for data/ts6/ (G3.1, 2026-09-01) — the GEBCO pattern one
+# directory over: the DECLARATION AND ITS EVIDENCE are committed here, the
+# bulk raster is not.
+#
+# ts6_reference.yaml is NOT an entry: it carries its own file-level in-file
+# declaration (data_origin: AUTHORED), and the audit resolves that first.
+#
+# ts6_abundance.tif is DELIBERATELY NOT AN ENTRY, because it is deliberately
+# NOT TRACKED (.gitignore's standing `data/ts6/*.tif` rule, Phase 0) and
+# `dangling_sidecar_entries` refuses — correctly — a tracked sidecar entry
+# naming an untracked file. THE RASTER'S COMMITTED DECLARATION IS CONTRACT 6:
+# ts6_reference.raster_data_origin (DERIVED) with its content_hash, method and
+# uncertainty. Exactly how data/bathymetry/ declares the two GEBCO rasters
+# through their source_queue row instead of through its own sidecar.
+#
+# The three bulk outputs of the digitization — ts6_fig38_class.npy,
+# ts6_fig38_midpoint.npy, ts6_fig38_cells.csv — are likewise not here and not
+# tracked; they live beside the source PDF under ~/CCZ/downloads/ts6/files/
+# with their sha256 recorded in Contract 6's provenance block. They are
+# REGENERABLE from the two files that ARE committed here plus tstudy6.pdf.
+
+files:
+  digitize_fig38.py:
+    data_origin: AUTHORED
+    author: model
+    # Attribution is EVIDENCED, not assumed: the delivered script writes to
+    # `OUT = '/mnt/user-data/outputs'`, a model-sandbox path, and carries no
+    # human byline. Recorded as `model` on that evidence; if Karl wrote it by
+    # hand the attribution should change and this note is the place it was
+    # decided.
+  ts6_fig38_digitization.json:
+    data_origin: DERIVED
+    derivation: >-
+      Emitted by digitize_fig38.py in the same run that produced the raster:
+      the legend RGB table and class bounds read off ISA Technical Study No. 6
+      Figure 38, the graticule pixel positions measured from the render, the
+      per-class cell histogram counted from the classified grid, the GDAL
+      affine computed from those graticule positions, and the repeat-
+      digitization statistics measured by re-running the extraction from
+      independent 300 dpi and 500 dpi renders of the same page. INPUTS:
+      tstudy6.pdf (sha256:8468f53190878c6a07828d4e2a185791a66ef9e47b3491cc5eef0944626c0add),
+      which is LITERATURE — an ISA publication held on disk but not
+      redistributed here — and digitize_fig38.py above.

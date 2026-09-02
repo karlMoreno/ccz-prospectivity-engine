@@ -82,11 +82,42 @@ ts6_reference:
   #   Fig 8  — Abundance, Individual Blocks (GSLIB Kriging)
   #   Fig 37/38 — Abundance interpolated contours (Appendix 8.1.1)
   #   or interpolate the 0.1-degree grid tables (Section 3.2).
-  source_figure: null                    # e.g. "Figure 5" or "Appendix 8.1.1 Fig 38"
+  # FILLED G3.1 (2026-09-01). Verified against tstudy6.pdf: the caption at
+  # 0-based page index 79 reads "Figure 38. Abundance (kg/m2): Grid Block Data,
+  # Interpolated Contours", matching the sidecar's figure_caption exactly.
+  # NOTE the sidecar's own key `source_page_index: 80` is a ONE-BASED page
+  # number under a name that reads zero-based; index 80 is Figure 39
+  # (Manganese). Recorded here so nobody re-derives the off-by-one.
+  source_figure: "Appendix 8.1.1, Figure 38 — 'Abundance (kg/m2): Grid Block Data, Interpolated Contours', printed p.59 (tstudy6.pdf 1-based page 80 = 0-based index 79)"
   # [GEOLOGY — ISAAC] THIS FIELD IS NOW DERIVED'S EVIDENCE (TAX.1 approval):
   # the shape below is a starting vocabulary, not a sufficient answer. Record
   # the procedure in enough detail to re-run it.
-  digitization_method: null              # "georeferenced raster scan" | "table interpolation" | "contour vectorization"
+  # FILLED G3.1 (2026-09-01) — VERBATIM from digitize_fig38.py's own METHOD
+  # docstring (data/ts6/digitize_fig38.py, committed beside this contract), not
+  # paraphrased. This is DERIVED's evidence and the comparison enforces its
+  # length (MIN_DIGITIZATION_METHOD_CHARS = 40).
+  digitization_method: >-
+    source: tstudy6.pdf page 80 (printed page 59), rendered with poppler
+    pdftoppm at 400 dpi, rotated -90 deg to upright.
+    georef: graticule read from the rendered image: 11 vertical lines at
+    160W..110W (5 deg spacing), 5 horizontal lines at 20N..0N. Linear
+    (plate carree) mapping, separate x and y scales.
+    extraction: each output cell centre is sampled over the image pixels it
+    covers; every pixel is matched to the nearest of the 9 legend swatch RGBs
+    within a tolerance (RGB euclidean <= 26); the cell takes the MODE of the
+    matched classes. Cells where no pixel matches (outside the red dashed data
+    boundary, or on graticule/annotation) are nodata.
+    output: ORDINAL CLASS, not a continuous value; the raster carries class
+    MIDPOINTS, which are a CHOICE and not a measurement.
+    Two masking steps found by sanity-checking the first output, both recorded
+    in ts6_fig38_digitization.json: (1) the red dashed data-boundary polygon is
+    drawn in the SAME RGB as the '>35' swatch, so red-matching pixels are
+    opened with a radius-7 disk and anything that does not survive is masked to
+    nodata; (2) cells are kept only INSIDE that boundary, which is closed with
+    a 45px square, hole-filled and eroded by 9px, because fracture-zone lines
+    and graticule outside it were being classified as '5-10'.
+    Script: data/ts6/digitize_fig38.py
+    (sha256:323f94567e6f9bc711b8c0109c84bc244825dd985b0b63c28413f1eff3a415f2).
 
   raster: data/ts6/ts6_abundance.tif     # the digitized surface Track G produces
 
@@ -129,14 +160,49 @@ ts6_reference:
   unit: kg_m2
   crs: EPSG:4326                         # reproject to canonical CRS on ingest
   grid_note: "TS-6 modeled on a 0.1-degree grid; record native resolution + your resample."
-  content_hash: null                     # sha256:... filled at ingestion
+  # FILLED G3.1 (2026-09-01) — the sha256 of data/ts6/ts6_abundance.tif as
+  # written from the midpoint array. The raster is NOT tracked (.gitignore
+  # `data/ts6/*.tif`); this hash is its committed identity.
+  content_hash: "sha256:e3282b327232e92473251ceadf0db739c724d0794e813d525ca469df91da7dd0"
+
+  # ── THE DIGITIZATION'S OWN PROVENANCE (G3.1, 2026-09-01) ──────────────
+  # Inputs and bulk outputs, hashed. Only the script and the JSON sidecar are
+  # committed (data/ts6/, declared in data/ts6/data_origin.yaml); the rest
+  # live under ~/CCZ/downloads/ts6/ and are REGENERABLE from them.
+  digitization_provenance:
+    source_pdf: "tstudy6.pdf"
+    source_pdf_sha256: "sha256:8468f53190878c6a07828d4e2a185791a66ef9e47b3491cc5eef0944626c0add"
+    script_sha256: "sha256:323f94567e6f9bc711b8c0109c84bc244825dd985b0b63c28413f1eff3a415f2"
+    metadata_sidecar_sha256: "sha256:71d057f19ec45f6bd43e44cf0147cfb93af1bc27497f4d00bb71b4c7e55586d3"
+    class_array_sha256: "sha256:f8e3a61f2f5dc0216f69265affeab0f3c336725f617171b502d04371a2eacbbb"
+    midpoint_array_sha256: "sha256:ff031c623acdaa8daea16bd00870dc56fbfdb1577a51fc8ab7b8d2a9b096fad6"
+    cells_csv_sha256: "sha256:1e32b5cc39e02450ffbbe9dfe109b36374a7d04c99d443ce242109814df5d896"
+    preview_png_sha256: "sha256:2fb7198d71a8a2286b1c215acbd1b21582335da41820690ddd6df67a83f49759"
+    grid: "200 rows x 500 cols @ 0.1 deg; 29,252 valid cells, 70,748 nodata"
+    # THE INPUT RENDER IS ABSENT and this is the one reproducibility limit.
+    # digitize_fig38.py reads `SRC = 'ts6fig/f38_hi-080.png'`, the 400 dpi
+    # poppler render, which was NOT delivered. MEASURED at G3.1 rather than
+    # asserted: the page was re-rendered from the held PDF with PyMuPDF at
+    # 400 dpi and the script re-run unchanged. Result vs the delivered arrays —
+    # 28,240 co-valid cells, CLASS AGREEMENT 97.95%, midpoint difference mean
+    # +0.0035 kg/m2, sd 0.62, max |diff| 5.0 (one bin width), valid-set
+    # symmetric difference 1,184. That is the same family as the sidecar's own
+    # 300/500 dpi repeat runs (99.31% / 98.73%) and well inside the +/-2.5
+    # binning uncertainty below. SO: the outputs are REPRODUCIBLE from the
+    # committed script plus the held PDF, but NOT bit-identical without the
+    # original poppler render.
+    render_reproduced_class_agreement_pct: 97.95
 
   # [GEOLOGY — ISAAC] record TS-6's role in THIS run, to keep validation honest:
   #   "benchmark_only"        = samples came from stations elsewhere; this is an
   #                             independent comparison (PREFERRED).
   #   "reproduction_check"    = TS-6's modeled grid also fed the samples;
   #                             comparison is circular and labeled as such.
-  role_note: null
+  # FILLED G3.1 (2026-09-01): benchmark_only. The corpus trains on [01]/[05]
+  # SO268 box-core stations; NOTHING from TS-6 fed the samples, so the
+  # comparison is independent and not circular. This is the PREFERRED case the
+  # header describes, and it is the value FileTS6Reference already defaults to.
+  role_note: "benchmark_only"
 
   # ── THE DIGITIZATION ERROR (E3.3 approval, 2026-08-22). [GEOLOGY — ISAAC]
   # fills this WITH the digitization (G3.1) — do not fill it before then.
@@ -158,7 +224,18 @@ ts6_reference:
   # NO data_origin on this field: there is no value to classify (the
   # acceptance_thresholds precedent). The value arrives WITH
   # digitization_method, whose specificity the comparison also enforces.
-  digitization_uncertainty: null
+  # FILLED G3.1 (2026-09-01): 2.5 kg/m2 — the BIN HALF-WIDTH.
+  # Figure 38 is a filled-contour map with 9 classes, so what is recovered per
+  # cell is a CLASS, not a value: a cell read as '5-10' carries +/-2.5 kg/m2 of
+  # irreducible binning uncertainty BY CONSTRUCTION, before any tracing error.
+  # This IS "the error we introduce" in the sense this field means — our
+  # value-extraction assigns a midpoint where the figure offers only an
+  # interval. The TRACING error was measured separately (repeat digitization at
+  # 300 and 500 dpi: sd 0.37-0.52 kg/m2, mean diff < 0.004, disagreements never
+  # more than one bin) and is a SECOND-ORDER term the binning dominates by ~5x.
+  # The open-ended classes (<1 and >35) have no defined midpoint at all; 0.5 and
+  # 40.0 are conventions. Do not report precision finer than the class width.
+  digitization_uncertainty: 2.5
 
   # How Track E should compare (Track E reads these; Track G may tune with metrics.md)
   comparison:

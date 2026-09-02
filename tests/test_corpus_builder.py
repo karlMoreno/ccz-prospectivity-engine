@@ -157,6 +157,38 @@ def test_the_derived_refusal_does_not_depend_on_pending_hash_evidence() -> None:
     assert measured_evidence_failure(entry, path) is None
 
 
+def test_the_ts6_literature_refusal_does_not_depend_on_pending_hash_evidence() -> None:
+    """[18]'s sibling of WET.4's [03] test, and the reason it exists: at G3.1
+    the TS-6 figure was digitized and Contract 6's content_hash filled. That is
+    a DIFFERENT field on a DIFFERENT file, and this pins that [18]'s own
+    admissibility never rested on a pending hash the way [03]'s did.
+
+    Give [18]'s entry a real hash matching a real file — the state a completed
+    download produces — and it is still refused, on the origin. The existing
+    null-hash test would pass either way and so proves nothing about this."""
+    entry = dict(source_queue_entries()["src_ts6_grid"])
+    path = SOURCES_DIR / "SO268-bc-nodules-PANGAEA-904962.tab"
+    entry["content_hash"] = file_sha256(path)
+
+    failure = measured_evidence_failure(entry, path)
+    assert failure is not None and "LITERATURE" in failure and "not MEASURED" in failure
+
+    # the mutation that must break it: only the declaration is doing the work.
+    entry["data_origin"] = "MEASURED"
+    assert measured_evidence_failure(entry, path) is None
+
+
+def test_ts6_is_not_open_so_it_cannot_enter_a_published_run() -> None:
+    """G3.1 corrected [18]'s is_open true -> false. ISA Technical Study No. 6 is
+    all rights reserved; the digitized raster is a benchmark and must not enter a
+    published run. The queue file's own header carries the rule ("Only
+    is_open=true sources may enter a PUBLISHED run"), and this is its observer —
+    without it the correction is a comment."""
+    entry = source_queue_entries()["src_ts6_grid"]
+    assert entry["is_open"] is False
+    assert "ALL RIGHTS RESERVED" in entry["license"].upper()
+
+
 def test_a_source_with_no_queue_entry_is_refused() -> None:
     with pytest.raises(ValueError, match="src_mystery"):
         _require_proven_measured(

@@ -627,6 +627,83 @@ precedes ANY real-data run** — the pre-registration clock
   Owner: Karl (as G). **Trigger: resolution of the P4 class, or the commit that
   wires [03] — whichever comes first.** Detail:
   [WET.1.md](walkthroughs/WET.1.md) §27–§30.
+- [ ] **`dangling_sidecar_entries` is VACUOUS on the real tree** (found at G3.1,
+  2026-09-01, by a mutation that was expected to fail and did not). The check
+  iterates `rel_paths` for files named `data_origin.yaml`, but
+  `tracked_subject_files()` **strips sidecars from that list by construction**
+  (`_is_the_sidecar_mechanism`), so the loop body never executes and the function
+  returns `[]` unconditionally. **Measured:** zero sidecars appear in the audit
+  subject list while **six** are tracked under `data/` and `tests/fixtures/`. The
+  unit test at `tests/test_data_origin_audit.py:790` passes a synthetic
+  `[SIDECAR_NAME]` list and does exercise the logic; the real-tree assertion at
+  `:787` **cannot fail**. Proven by adding a sidecar entry naming the untracked
+  `ts6_abundance.tif` — the audit passed. This is the coverage-that-isn't shape the
+  audit module's own header warns about, inside the audit module. **Not fixed at
+  G3.1** — a test-mechanism defect is not part of landing a digitization, and
+  bundling it is what that task forbade. **The fix is one line** (pass the tracked
+  sidecar list, or stop stripping sidecars before this check), plus a negation
+  fixture so it can fail. Owner: E. **Trigger: none — this is a PRIORITY, not a
+  trigger.** The defect is complete and the remedy needs nothing that does not
+  exist. Detail: [G3.1.md](walkthroughs/G3.1.md) §6.
+- [ ] **Nothing in the TS-6 comparison path reads `is_open`, so the benchmark's
+  licence gate is a declaration without a consumer** (found and deferred at G3.1,
+  2026-09-01). [18] is now `is_open: false` with an ALL RIGHTS RESERVED licence
+  string, because ISA Technical Study No. 6 is all rights reserved and the
+  digitized raster must not enter a published run. What enforces that today: the
+  queue file's own header rule, the new observer
+  `test_ts6_is_not_open_so_it_cannot_enter_a_published_run` (which pins the
+  declaration), and `role_note: benchmark_only` (refused when null). **What does
+  not: any code.** `grep is_open engine/prospectivity/ts6/` returns nothing;
+  `is_open` flows only through the ingestion adapters into per-row metadata, and
+  [18] has no adapter. So a run could load the benchmark raster with no code
+  consulting the licence flag. **What would close it:** a gate in the comparison
+  or harness path that refuses a non-open benchmark in a run marked publishable —
+  the same shape as the existing origin watermark, one field over. Owner: Karl
+  (whether to gate) + E (the gate). **Trigger: before any published run.** Detail:
+  [G3.1.md](walkthroughs/G3.1.md) §7.
+- [ ] **The Figure 38 digitization is re-runnable only IN PRINCIPLE — its input
+  render is absent and its georeference is tied to one renderer** (found at the
+  G3.1 review, 2026-09-01, and deferred at the moment the commit was made).
+  `data/ts6/digitize_fig38.py` reads `SRC = 'ts6fig/f38_hi-080.png'`, a 400-dpi
+  render of `tstudy6.pdf` that **exists nowhere** — not in the repo, not under
+  `~/CCZ/downloads/ts6/`. (The committed `ts6_fig38_digitized.png`, 9,162 bytes, is
+  an output preview, not the input.) The script also writes to
+  `OUT = '/mnt/user-data/outputs'`, a sandbox path that does not exist here.
+  **Two things stand between "recorded method" and "re-runnable method":**
+  (a) **poppler is not installed on this machine** — `pdftoppm` is absent — so the
+  render named in `digitization_method` cannot currently be produced at all; and
+  (b) **the georeference constants are renderer-specific.** `X0=754.5, X1=4017.5,
+  Y0=736.5, Y1=2127.0` are pixel positions read off *poppler's* 400-dpi
+  rasterization. **A different rasterizer invalidates them even at the same dpi**,
+  because sub-pixel placement and anti-aliasing differ between engines — and the
+  extraction is an RGB-tolerance match (`TOL = 26`) over anti-aliased fills, so it
+  is sensitive to exactly that. Re-rendering with PyMuPDF or Ghostscript instead
+  would silently shift every cell boundary rather than fail loudly.
+  **What is NOT at risk:** the deliverable itself. The raster, the arrays and the
+  sidecar are committed or hashed, the raster matches the midpoint array
+  cell-for-cell (29,252 valid cells) and its recorded `content_hash` matches its
+  bytes, and the sidecar's repeat-digitization measurement (99.31% / 98.73% class
+  agreement at 300/500 dpi) already bounds the tracing error. This entry is about
+  **regenerating** the surface, not trusting the one in hand.
+  **What would close it:** either archive the 400-dpi render itself beside the
+  script and hash it, or install poppler and re-derive the four graticule constants
+  from a freshly produced render, recording both the poppler version and the
+  render's hash in the sidecar. The second is better — it makes the method
+  self-contained — and it is the one that must happen if the render is ever
+  produced by a different engine. Owner: Karl (as G). **Trigger: before anyone
+  needs to re-run or re-render the digitization** — including the six verification
+  checks, if any of them requires going back to the image. Detail:
+  [G3.1.md](walkthroughs/G3.1.md) §1, §9.
+- [ ] **Contract 6's `source_id: src_isa_ts6` is a dangling reference** (noticed at
+  G3.1, 2026-09-01, while filling the contract; not fixed there because changing a
+  contract field is its own decision). `data/ts6/ts6_reference.yaml` names
+  `source_id: src_isa_ts6  # -> Contract 5 entry`, and **Contract 5 has no such
+  entry** — the TS-6 row is `src_ts6_grid` [18]. `FileTS6Reference` already hard-codes
+  the correct one (`DEFAULT_SOURCE_ID = "src_ts6_grid"`), so nothing is broken
+  today; the contract simply points at a source id that does not exist. Fix is
+  either renaming the field's value to `src_ts6_grid` or adding the entry, and it
+  should carry a `reference_version` note. Owner: Karl. **Trigger: none — a
+  PRIORITY.** Detail: [G3.1.md](walkthroughs/G3.1.md) §9.
 - [ ] **[14]'s `area_percent` denominator is not determinable from the deposit**
   (found and deferred at AREA.1, 2026-09-01, at the moment the STOP condition
   fired). [14] carries three area-related columns. Two are now settled: every
