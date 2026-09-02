@@ -702,6 +702,66 @@ precedes ANY real-data run** — the pre-registration clock
   **Trigger: before [04] is wired into any adapter.** The measurement is complete
   and needs nothing further; only the decision is outstanding. Detail:
   [POS.1.md](walkthroughs/POS.1.md).
+- [ ] **Two Figure 38 verification checks are BLOCKED on the absent render**
+  (found and deferred at G3.2, 2026-09-01, at the moment each check stopped).
+  **(1) The georeference linearity residual was never measured.** The sidecar records
+  finding 11 vertical and 5 horizontal graticule lines while pinning 2 per axis as
+  anchors, so **9 vertical and 3 horizontal interior lines are available as residual
+  checks and none has been evaluated**. The gate — *max residual > one output cell
+  means the recorded `digitization_method` is wrong* — is therefore **UNEVALUATED,
+  NOT PASSED**. **(2) The nodata seam's cause is unidentified** (see the entry
+  below). Both need the render: `ts6fig/f38_hi-080.png` is absent and `pdftoppm`,
+  `pdftocairo` and `gs` are all missing. A different rasterizer will not do — the
+  georeference constants are poppler-specific (see the re-runnability entry below).
+  **What would let them run:** the same thing that closes re-runnability — archive
+  the 400-dpi render and hash it, or install poppler and re-derive the four
+  graticule constants from a fresh render. Owner: Karl (as G).
+  **Trigger: whenever the render is produced** — both checks should run in that same
+  session, before the method is trusted as re-runnable. Detail:
+  [G3.2.md](walkthroughs/G3.2.md) Checks 1 and 2.
+- [ ] **Nodata seam in the TS-6 raster at column 149 (−145.05°) — a known defect
+  with an unidentified cause** (found at G3.2, 2026-09-01). 3 valid cells against
+  neighbours of 73 and 77, so **72 cells lost, 0.246% of the 29,252 valid cells**;
+  only rows 52/54/57 survive. **No other graticule column shows any depletion** —
+  all eleven were checked and every other one is flat. The obvious causes were
+  tested and ruled out: every graticule falls exactly on an output-cell boundary
+  (5° / 0.1° = 50 cells), 236 other columns share the same 6-px sampling window,
+  and the −145° line actually sits in **column 150, which is full at 77** — the seam
+  is one column west of it. So something occupies render px 1727–1732 that is not at
+  the other ten lines, and naming it needs the render. **The fix is therefore NOT
+  confined to an identifiable parameter and nothing was applied.** Magnitude is
+  small and bounded; this is a completeness defect, not a correctness one. Owner:
+  Karl (as G). **Trigger: whenever the render is produced.** Detail:
+  [G3.2.md](walkthroughs/G3.2.md) Check 2.
+- [ ] **The "ISA, 2012" versus TS-6 citation question for [19] — OPEN, and it had no
+  entry until now** (filed at G3.2, 2026-09-01; the task premise said this question
+  "keeps its BACKLOG entry" and **there was none anywhere in the repo**, so the
+  corroboration below had nothing to be distinguished from). [19]'s own metadata
+  reads *"Nodule Abundance (kg/m2) obtained from **ISA, 2012** (2009 year) and
+  proprietary information (2018 year)"*, while [18] is **ISA Technical Study No. 6
+  (2010)** — different years on their face. **G3.2 produced geometric CORROBORATION,
+  not resolution:** [19]'s open-year (2009) subset ends at −119.25 (cell centre;
+  0.5° grid, so edge −119.00) against the Figure 38 raster's −118.80 — **0.20–0.45°,
+  less than one of [19]'s own cells** — while its proprietary 2018 subset stops
+  704 km away. Two surfaces sharing an eastern limit is evidence of a shared source;
+  it is **not identification of that source**. "ISA, 2012" could be a later ISA
+  publication reproducing the same surface, a different technical study, or a
+  mis-citation. **What would close it:** locating the ISA 2012 publication [19]
+  cites and comparing its abundance surface against TS-6's Figure 38. Owner: Karl
+  (as G). **Trigger: before [19]'s GRID rows are used to corroborate [18], or
+  vice versa** — the two must not be treated as independent until this is settled.
+  Detail: [G3.2.md](walkthroughs/G3.2.md) Check 6.
+- [ ] **[19] declares `is_open: true` but its own metadata says 426 of its 2,790
+  nodule-abundance rows are "proprietary information"** (found in passing at G3.2,
+  2026-09-01; flagged, NOT changed — `is_open` is contract-bearing and the licence
+  discipline reads it, and correcting it was outside that task). The split is by the
+  `Year` column: **2009 rows (n=2,364) from "ISA, 2012"**, an open citable source;
+  **2018 rows (n=426) from "proprietary information"**. A single row-level flag
+  cannot be true of both halves. **What would close it:** either restrict [19]'s
+  ingestion to the 2009 subset and keep `is_open: true`, or split the declaration.
+  Note this interacts with the licence gap already recorded for [18] — nothing in
+  the comparison path reads `is_open` anyway. Owner: Karl (as G). **Trigger: before
+  [19] is wired.** Detail: [G3.2.md](walkthroughs/G3.2.md) Check 6.
 - [ ] **The Figure 38 digitization is re-runnable only IN PRINCIPLE — its input
   render is absent and its georeference is tied to one renderer** (found at the
   G3.1 review, 2026-09-01, and deferred at the moment the commit was made).

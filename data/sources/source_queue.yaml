@@ -563,7 +563,64 @@ sources:
     #   Locations and Values") at index 81, so the legend it borrows is a real
     #   neighbouring figure's. This is a DEFECT IN THE PUBLISHED SOURCE, recorded
     #   because the next reader will otherwise reach for Figure 36 by its title.
-    notes: "Benchmark surface for compare_to_ts6 (Contract 6). Never a training station. DIGITIZED at G3.1 from Figure 38 — see Contract 6 for the method, uncertainty and raster hash. is_open FALSE (all rights reserved): must not enter a published run. Figure 36 REJECTED — it carries Figure 40's manganese legend."
+    # ===== G3.2 (2026-09-01): the six verification checks on the Figure 38
+    # digitization. VERIFICATION ONLY -- nothing re-run, raster and arrays
+    # unaltered. Detail: docs/walkthroughs/G3.2.md.
+    #  1 GEOREFERENCE LINEARITY -- BLOCKED. The render is absent and pdftoppm,
+    #    pdftocairo and gs are all missing, so no residual was measured. 9 vertical
+    #    and 3 horizontal interior graticule lines remain UNCHECKED, and the gate
+    #    "max residual > one output cell => the method is wrong" is UNEVALUATED,
+    #    NOT PASSED. What did run: x = 65.2600 px/deg, y = 69.5250 px/deg,
+    #    ratio 1.06535. Plate carree predicts 1.00000, so THE FIGURE IS NOT PLATE
+    #    CARREE -- acos(1/1.06535) = 20.17 deg, an equirectangular projection with a
+    #    standard parallel at the map's own northern edge. The script fits SEPARATE
+    #    linear x/y scales, which is correct for that projection, so the arithmetic
+    #    in digitization_method is right and only its projection NAME is loose. No
+    #    number changes; not a contract amendment.
+    #  2 NODATA SEAM -- DEFECT. Column 149, lon -145.10..-145.00 (centre -145.05):
+    #    3 valid cells against neighbours 73 and 77, so 72.0 cells lost = 0.246% of
+    #    the 29,252 valid cells. Only rows 52/54/57 survive. NO OTHER graticule
+    #    column shows any depletion (all 11 checked). Cause NOT identifiable from
+    #    the committed artifacts: every graticule falls exactly on a cell boundary
+    #    (5/0.1 = 50 cells), 236 other columns share the same 6-px window, and the
+    #    -145 line actually sits in column 150, which is FULL at 77. Identifying
+    #    what occupies render px 1727-1732 needs the render. Nothing applied.
+    #  3 UPPER-TAIL TRUNCATION -- highest populated class 15-20 (midpoint 17.5);
+    #    FOUR classes unused (20-25, 25-30, 30-35, >35). Raster mean 5.887, max
+    #    17.5, AREA-WEIGHTED over 0.1-deg cells; TS-6 Table 5 gives mean 6.72, max
+    #    44.1 over GRID BLOCKS. The MAXIMUM survives that weighting difference (an
+    #    extremum is weighting-independent) so 17.5 vs 44.1 is a REAL truncation;
+    #    the mean does NOT survive it and is reported uninterpreted. The binned
+    #    median is deliberately OMITTED -- with 5 populated classes it is a bin
+    #    midpoint and reports the binning, not the source.
+    #    => THIS SURFACE CANNOT VALIDATE PREDICTIONS ABOVE 17.5 kg/m2 IN EITHER
+    #       DIRECTION. Its silence above 17.5 is absence of coverage, not a low value.
+    #  4 MASKING -- the NESTING ARGUMENT HOLDS and replaces the visual justification.
+    #    Masked: LEGEND[7] "30-35" and LEGEND[8] ">35". The adjacent UNMASKED class
+    #    25-30 is EMPTY, and so is 20-25. Filled contours nest, so a genuine
+    #    masked-class region would need 25-30 and 20-25 rings around it; both are
+    #    empty everywhere, so only annotation was removed. This rests on the
+    #    committed histogram, not on looking at the figure.
+    #  5 EXTENT -- valid-data bbox W -156.7 E -118.8 N 17.3 S 5.4; valid area
+    #    3,539,114 km2 on a sphere (64.8% of its own bbox) = 31.0% OF THE AOI
+    #    (11,399,939 km2, agreeing to the last digit with polygon_area_km2 and G.2).
+    #    *** THE BENCHMARK DOES NOT COVER THE EASTERN STATION CLUSTER: valid data
+    #    ends at -118.8 while the corpus's eastern cluster spans -117.0602..-117.0112,
+    #    1.789 deg (~192 km at 15N) further east. That is 66 of the corpus's 108
+    #    rows with no benchmark surface beneath them. ***
+    #  6 EASTERN-LIMIT CORROBORATION for the [18]/[19] linkage. [19]'s own metadata:
+    #    "Nodule Abundance (kg/m2) obtained from ISA, 2012 (2009 year) and
+    #    proprietary information (2018 year)" -- so the OPEN-YEAR subset is 2009.
+    #    Its eastern limit is -119.25 (cell centre; 0.5-deg grid -> edge -119.00)
+    #    against this raster's -118.80: 0.450 deg / 48.4 km centre-to-edge, or
+    #    0.20 deg / 21.5 km edge-to-edge -- LESS THAN ONE OF [19]'s OWN CELLS. The
+    #    proprietary 2018 subset stops 6.550 deg / 704.3 km away.
+    #    RECORDED AS GEOMETRIC CORROBORATION, EXPLICITLY NOT AS RESOLUTION of the
+    #    citation question: [19] cites "ISA, 2012", [18] is ISA Technical Study
+    #    No. 6 (2010). A shared eastern limit is evidence of a shared source, not
+    #    identification of it. That question has its own BACKLOG entry (filed at
+    #    G3.2 -- it had none before, contrary to the task premise).
+    notes: "Benchmark surface for compare_to_ts6 (Contract 6). Never a training station. G3.2 VERIFICATION: does NOT cover the corpus's eastern station cluster (valid data ends -118.8, cluster at -117.06..-117.01, 66 of 108 rows); cannot validate predictions above 17.5 kg/m2 in either direction; nodata seam at col 149 (-145.05, 72 cells); georeference residual check BLOCKED (render absent). DIGITIZED at G3.1 from Figure 38 — see Contract 6 for the method, uncertainty and raster hash. is_open FALSE (all rights reserved): must not enter a published run. Figure 36 REJECTED — it carries Figure 40's manganese legend."
 
   - source_id: src_washburn2021_grid         # [19]
     data_origin: LITERATURE                   # derived/compiled published points ("largely derived from TS-6 + Morgan")
