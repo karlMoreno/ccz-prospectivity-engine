@@ -676,8 +676,14 @@ precedes ANY real-data run** — the pre-registration clock
   **(c) One source defect that must be handled first.** Table 10's core `3-8`
   prints `126°59.3'`, 104.1 km from the Site C centroid with a depth that says it
   belongs in the cluster; read `125°59.3'` it sits 3.2 km from `1-6`. Re-read at
-  1400 dpi — **printed that way, a defect in [03]**. Any use of Table 10 must
-  exclude or correct it; POS.1 did neither.
+  1400 dpi — **printed that way, a defect in [03]**. **CONFIRMED at POS.1a by this
+  chapter's own Figure 6**, the Site C box-core map: it plots `Box 8 / Sta 3` inside
+  the survey area at a measured **125°59.5′ W**, agreeing with the one-digit fix to
+  0.2′ (~360 m), while the printed `126°59.3′` lies **47′ (~85 km) west of the
+  figure's own western edge** — unplottable on its own survey map. **So correcting
+  `3-8` is now the cheap option and excluding it (which costs 20 pairs) is no longer
+  the only safe route.** Choosing between them is part of this decision; POS.1a did
+  not choose, and the transcription still carries `126` as printed.
   **(d) What it would buy.** 190 pairs (20 cores), separations 1.27–26.68 km, every
   bin populated to 13 km and 63 pairs at 13–26.7 km — extending lag support into
   the bottom of the recorded 13–986 km zero-pair window, though not closing it.

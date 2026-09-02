@@ -218,3 +218,67 @@ per-field provenance today. BACKLOGged undecided.
   PANGAEA's event list for [02], and would want re-checking against the report if
   it is ever obtained.
 - **No code changed; no contract field changed; [04] was not ingested.**
+
+---
+
+## 9. POS.1a — the Figure 6 cross-check on core `3-8` (2026-09-01, same day)
+
+A bounded follow-up, run at Karl's direction. POS.1 §4 flagged Table 10's `3-8`
+longitude as a source defect on two grounds — 104.1 km from the site centroid, and
+a depth that says it belongs in the cluster — and hypothesised that `126°59.3'` is
+`125°59.3'` misprinted by one digit. **Figure 6 settles it, from inside the same
+chapter.**
+
+**What Figure 6 is.** *"Bathymetry, box core and camera flight locations for NOAA
+cruise RP-8-0C-76, Site C"* (printed p. 457) — a plate carrée bathymetric map whose
+frame is labelled **126°12′W on the west edge and 125°48′W on the east**, with box
+cores plotted as filled squares labelled `Box N / Sta M`.
+
+**`Box 8 / Sta 3` is on the map.** Read at 1500 dpi, the label and its symbol sit in
+the upper-middle of the survey area, beside `Box 38 / Sta 18A` and above `Box 6`.
+
+**Measured, not eyeballed.** The two frame verticals were located by column-darkness
+in a 600-dpi render (px 177.5 and 2944.5, spanning the printed 24 arcmin at
+115.3 px/arcmin) and the symbol's position taken as the median of dark pixels in a
+window around it:
+
+| | longitude |
+|---|---|
+| **Figure 6, measured** | **125°59.5′ W** (± ~0.3′ from symbol size) |
+| Table 10, printed | **126°59.3′ W** |
+| the one-digit fix POS.1 hypothesised | **125°59.3′ W** |
+
+**The map agrees with the hypothesised correction to 0.2′ ≈ 360 m** — inside the
+measurement's own uncertainty.
+
+**And the printed value is not merely wrong, it is unplottable.** `126°59.3′W` lies
+**47 arcmin — about 85 km — west of the figure's own western edge.** A core at that
+longitude could not appear on its own survey map. It does appear, in the cluster.
+
+**Latitude control.** Measured 15°16.4′N against Table 10's printed 15°15.4′N —
+agreement to ~1′ (~1.9 km) under a stated assumption: the top frame line was not
+detectable, so latitude was scaled at the longitude's px/arcmin. That is a soft
+control and is reported as one; it confirms the core is in the right place
+north–south and does not contradict. **The longitude result is the hard one**,
+resting only on the two detected frame verticals and the frame's own printed labels.
+
+### What this changes, and what it does not
+
+**Upgraded.** The defect record moves from *"position and depth disagree, and one
+digit would fix it"* to **"the same chapter's own map plots this core at the fixed
+value"**. The correction is now supported by an independent record inside [03],
+not inferred from plausibility.
+
+**Not changed — deliberately.** The transcription still carries `126` as printed.
+Writing a corrected value into a transcription of a printed source is a decision,
+not a transcription, and POS.1's framing stands. What changes is the cost of that
+decision: POS.1 §4 said any use of Table 10 must *"exclude or correct"* `3-8`, and
+**"correct" is now the cheap option** — the corrected longitude has an in-document
+witness, so excluding the core (and losing 20 pairs) is no longer the only safe
+route. Which to take remains part of the open [04] decision.
+
+**Note on method, since POS.1 refused this figure as a coordinate source.** It still
+refuses it. Reading positions off a map to *supply* coordinates for a corpus would
+be inference; using the map to *test one flagged value against the table that
+carries it* is corroboration, and the two are not the same use. Figure 6 supplied no
+coordinate here — it adjudicated one.

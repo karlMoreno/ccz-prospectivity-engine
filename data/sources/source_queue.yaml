@@ -247,6 +247,18 @@ sources:
     # REPORTING: the page prints 126, so this is a DEFECT IN THE SOURCE, not a
     # transcription error. Anything taking position from Table 10 must exclude or
     # correct 3-8; left as printed in the transcription, flagged here.
+    # CONFIRMED AT POS.1a (2026-09-01) BY THIS CHAPTER'S OWN FIGURE 6, the Site C
+    # box-core location map (printed p. 457, frame labelled 126 12'W .. 125 48'W).
+    # It plots "Box 8 / Sta 3" INSIDE the survey area; measured against the two
+    # frame verticals at 600 dpi its longitude is 125 59.5' W (+/- ~0.3'), agreeing
+    # with the one-digit fix 125 59.3' to 0.2' (~360 m). The PRINTED 126 59.3' lies
+    # 47 arcmin (~85 km) WEST OF THE FIGURE'S OWN WESTERN EDGE -- a core at that
+    # longitude could not be plotted on its own survey map, and it is plotted.
+    # Latitude control: map 15 16.4' vs printed 15 15.4', agreeing to ~1' under a
+    # stated assumption (top frame line undetectable, lat scaled at the longitude's
+    # px/arcmin) -- a soft control that does not contradict.
+    # => CORRECTING 3-8 is now the cheap option; excluding it is no longer the only
+    # safe route. Which to do is part of the open [04] decision, not settled here.
     # (Two further Site C rows sit far from the centroid -- 16-49 at 67.4 km and
     # 58-61 at 63.7 km -- but those are RP-6-OC-75 stations from the wider 1975
     # survey, internally coherent with their own pair partners and consistent in
