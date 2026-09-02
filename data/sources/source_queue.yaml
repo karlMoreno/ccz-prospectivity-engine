@@ -236,6 +236,21 @@ sources:
     #     loudly if the two disagree. Per-row classes are in the transcription's
     #     `provenance` column. BACKLOG entry stands.
     #
+    # SOURCE DEFECT #2, found at POS.1 (2026-09-01) in TABLE 10 (printed p. 464),
+    # the chapter's only per-core coordinate record: core 3-8 prints
+    # Long. (West) 126 59.3'. That places it 104.1 km from the Site C centroid
+    # (MAD-z 26.1 against the site's own spread) while its Depth 4363 m sits
+    # squarely inside the site range 4359-4641 -- position and depth disagree.
+    # Read as 125 59.3' -- a single-digit change -- it falls 3.2 km from core 1-6,
+    # inside the cluster with its four nearest neighbours at 3.2-6.7 km.
+    # Displacement between the two readings: 107.3 km. RE-READ AT 1400 dpi BEFORE
+    # REPORTING: the page prints 126, so this is a DEFECT IN THE SOURCE, not a
+    # transcription error. Anything taking position from Table 10 must exclude or
+    # correct 3-8; left as printed in the transcription, flagged here.
+    # (Two further Site C rows sit far from the centroid -- 16-49 at 67.4 km and
+    # 58-61 at 63.7 km -- but those are RP-6-OC-75 stations from the wider 1975
+    # survey, internally coherent with their own pair partners and consistent in
+    # depth. NOT defects, and not [04] cores.)
     # SOURCE DEFECT (WET.1 section 10): Table 8's printed per-site "Average:"
     # rows do not recompute from the rows it prints. Sites A and C fail on all
     # three columns, Site B on Coverage only; implied denominators 28/27 (A, all
@@ -301,7 +316,49 @@ sources:
     # simply unanswered. What would answer it: Sorem et al. 1979a, pp. 475-527,
     # the chapter this table is drawn from (not on disk).
     # Detail: docs/walkthroughs/WET.1.md sections 9 and 11.
-    notes: "DERIVE. Area VERIFIED 0.25 m2 (p.193). NOT INDEPENDENT of [03] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. abundance_basis UNKNOWN, not guessed."
+    # ===== POS.1 (2026-09-01): what [04] would need to become ingestible, and
+    # what would collide if it did. DERIVATION ONLY -- [04] is NOT ingested, no
+    # corpus row exists, and no contract field was changed by that task.
+    # POSITION IS AVAILABLE, AND FROM A BETTER TABLE THAN EXPECTED. [04]'s own
+    # Table 1 carries no coordinates. [03] carries exactly one per-core coordinate
+    # record -- TABLE 10 (printed p. 464), "Bulk compositions of nodules", whose
+    # left columns are Station-Box Core | Lat. (North) | Long. (West) | Depth
+    # (Meters). Verified exhaustively: "Latitude"/"Longitude" occur ZERO times in
+    # [03]'s 37 pages; Table 8 has no coordinate column; Figure 6 is a MAP, so
+    # reading positions off it would be inference. Transcribed at 650-700 dpi to
+    # ~/CCZ/downloads/domes/Piper1979_Table10_COORDS_TRANSCRIPTION.txt (47 printed
+    # rows, 41 unique cores; 6 Site A cores print twice with identical coordinates).
+    # COVERAGE: 21 of 21. Every [04] core carrying data has a coordinate in
+    # Table 10, on the station+box-core key established at WET.2 (never box core
+    # alone). Table 10 covers MORE than Table 8 does: it includes 9-14 and 19-25,
+    # [04]'s two "recovery probably incomplete" cores, which Table 8 omits.
+    # QUALITY: printed to 0.1 arcmin = 185.2 m (lat) / 178.7 m (lon at 15.2N);
+    # half-ulp +/-92.6 m and +/-89.4 m, worst-case planar offset 129 m. Against
+    # the repo's DEFAULT_BIN_EDGES_KM the narrowest bin is 2.0 km, so positional
+    # uncertainty is ~6.5% of a bin -- SMALL relative to the bins these stations
+    # populate, not comparable to them.
+    # SOURCE DEFECT FOUND (see [03]'s row and the walkthrough): Table 10's core
+    # 3-8 prints Long. 126 59.3', which puts it 104.1 km from the Site C centroid
+    # (MAD-z 26.1) while its depth 4363 m sits squarely inside the site range. Read
+    # 125 59.3' it falls 3.2 km from core 1-6, inside the cluster. Displacement
+    # 107.3 km. Re-read at 1400 dpi: PRINTED AS 126, so this is a defect in [03],
+    # not a transcription error.
+    # OVERLAP, the double-count exposure this measurement exists to expose:
+    #   in all three [02]/[03]/[04] : 19 cores
+    #   [03]&[04] only              : 2  (9-14, 19-25)
+    #   unique to any one source    : 0
+    #   [04] IS A SUBSET of [03]; it adds NO station [03] does not already have.
+    #   [02] and [04] share 19 PHYSICAL BOX CORES. If [02] later enters as MASS
+    #   and [04] with it, each of those 19 is double-counted without a rule.
+    # WHAT [04] ALONE WOULD ADD (derived from the coordinates, not from a handoff):
+    #   21 cores -> 210 pairs. By DEFAULT_BIN_EDGES_KM, excluding the defective
+    #   3-8 (20 cores, 190 pairs): 0-2 km 4 | 2-4 km 11 | 4-6 km 17 | 6-8 km 29 |
+    #   8-10 km 22 | 10-13 km 44 | 13-986 km 63 | 986-997 km 0. Separations run
+    #   1.27 .. 26.68 km. It populates EVERY bin up to 13 km and the bottom of the
+    #   13-986 window (13-26.7 km); it populates NOTHING at 986-997 km.
+    # Detail: docs/walkthroughs/POS.1.md. The open decision -- whether [04] may
+    # take position from [03] -- is KARL'S and is NOT decided here; BACKLOG.
+    notes: "DERIVE. Area VERIFIED 0.25 m2 (p.193). POSITION: none in [04] itself; [03] Table 10 covers 21/21 of its data cores at 0.1-arcmin precision (~129 m) -- availability MEASURED at POS.1, the decision to use it NOT taken. [04] is a SUBSET of [03] and shares 19 physical box cores with [02]: double-count risk if both enter as MASS. NOT INDEPENDENT of [03] -- same 19 RP-8-OC-76 Leg 9 box cores; never count both as separate MASS stations. abundance_basis UNKNOWN, not guessed."
 
   - source_id: src_so268_nodules             # [05]
     # Row count corrected 2026-07-29 (P3) from "~9,000 nodules": the actual

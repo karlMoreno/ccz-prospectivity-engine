@@ -661,6 +661,41 @@ precedes ANY real-data run** — the pre-registration clock
   the same shape as the existing origin watermark, one field over. Owner: Karl
   (whether to gate) + E (the gate). **Trigger: before any published run.** Detail:
   [G3.1.md](walkthroughs/G3.1.md) §7.
+- [ ] **DECIDE: may [04] take its position from [03] Table 10?** (open decision,
+  filed at POS.1, 2026-09-01, at the moment the measurement was handed over
+  undecided. **POS.1 measured the option; it did not take it.**) [04] carries a
+  weighed mass over a stated 0.25 m² and **no coordinates**. [03] Table 10 (printed
+  p. 464) is the only per-core coordinate record in either document.
+  **What POS.1 measured that bears on the decision:**
+  **(a) Availability — total.** 21 of 21 [04] data cores have a coordinate in
+  Table 10 on the station+box-core key, including `9-14` and `19-25`, the two
+  incomplete-recovery cores Table 8 omits.
+  **(b) Quality — sufficient.** 0.1 arcmin printed → ±92.6 m lat / ±89.4 m lon,
+  worst case 129 m, which is **6.5% of the narrowest 2 km lag bin**; the shortest
+  observed separation (1.27 km) exceeds it ~10×.
+  **(c) One source defect that must be handled first.** Table 10's core `3-8`
+  prints `126°59.3'`, 104.1 km from the Site C centroid with a depth that says it
+  belongs in the cluster; read `125°59.3'` it sits 3.2 km from `1-6`. Re-read at
+  1400 dpi — **printed that way, a defect in [03]**. Any use of Table 10 must
+  exclude or correct it; POS.1 did neither.
+  **(d) What it would buy.** 190 pairs (20 cores), separations 1.27–26.68 km, every
+  bin populated to 13 km and 63 pairs at 13–26.7 km — extending lag support into
+  the bottom of the recorded 13–986 km zero-pair window, though not closing it.
+  **(e) What it would collide with.** [04] is a **subset** of [03] and adds no
+  station [03] lacks. **[02] and [04] share 19 physical box cores.** If [02] later
+  enters as MASS alongside [04], those 19 are double-counted without a dedup rule.
+  **THE PROVENANCE QUESTION THIS OPENS, and the reason it is a decision and not a
+  wiring task:** a row whose abundance is MEASURED from [04] and whose position is
+  MEASURED from a *different publication* has **two origins in one row**, and the
+  corpus has no per-field provenance today — `data_origin` is per source, and
+  `combine_origins` returns the least-real input, which would make the whole row's
+  origin a single label over two different provenances. Deciding "yes" therefore
+  implies either a per-field provenance mechanism or an explicit recorded decision
+  that a borrowed coordinate does not change the row's origin. Neither exists.
+  Owner: Karl (as G — the geology call) + E (any mechanism it implies).
+  **Trigger: before [04] is wired into any adapter.** The measurement is complete
+  and needs nothing further; only the decision is outstanding. Detail:
+  [POS.1.md](walkthroughs/POS.1.md).
 - [ ] **The Figure 38 digitization is re-runnable only IN PRINCIPLE — its input
   render is absent and its georeference is tied to one renderer** (found at the
   G3.1 review, 2026-09-01, and deferred at the moment the commit was made).

@@ -684,7 +684,7 @@ ccz-prospectivity-engine/
   Track G's `G.3.md`, `G.2.md` and `TID.2.md`, `OBS.1.md`, `WET.1.md`, which also carries
   **WET.2** (per-row provenance for [03] Table 8), **WET.3** (the [02]
   author-overlap linkage) and **WET.4** (the [03] `data_origin` correction —
-  the only one of the four that touches production code), `AREA.1.md`, Track G's `G3.1.md`, and the cross-cutting `provenance.md`). **The Phase-4/5 and Track-G files were
+  the only one of the four that touches production code), `AREA.1.md`, `POS.1.md`, Track G's `G3.1.md`, and the cross-cutting `provenance.md`). **The Phase-4/5 and Track-G files were
   MISSING from this list until the G.2 approval (2026-08-25) — an index that
   stopped at E3.4 while instructing the reader to "read the relevant one",
   i.e. pointing away from the newest work in the sentence that exists to
@@ -693,9 +693,9 @@ ccz-prospectivity-engine/
   found `provenance.md` (2026-07-29) had been absent from this list since it was
   written — the G.2 fix corrected the claim it was looking at and not the entry,
   which is the shape the drift table names at (q). Both added; the list
-  matches `ls docs/walkthroughs/` exactly — 35 files then, 36 with `AREA.1.md`
-  (AREA.1, 2026-09-01) and 37 with `G3.1.md` (G3.1, 2026-09-01), re-verified each
-  time one was added.* Read the relevant one
+  matches `ls docs/walkthroughs/` exactly — 35 files then, and **38** with
+  `AREA.1.md`, `G3.1.md` and `POS.1.md` (all 2026-09-01), re-verified each time
+  one was added.* Read the relevant one
   before changing that area.
 - The seven contracts live in `docs/contracts/` + `data/` (canonical — see the paths above);
   `Proposals and contract V3/Contracts_v3/` holds the authoring copies. Treat them as frozen;
